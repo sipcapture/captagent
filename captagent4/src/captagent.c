@@ -203,8 +203,7 @@ int main( int argc, char *argv[] ) {
     xml_node *next, *modules, *config;
     const char *file = "captagent.xml";
     const char **attr, **attr_mod;
-    int i = 0, y = 0, c;
-    int checkout = 0
+    int i = 0, y = 0, c, checkout = 0;
 
     while((c=getopt(argc, argv, "cvhf:"))!=EOF) {
                 switch(c) {

@@ -235,15 +235,13 @@ int load_module(xml_node *config)
                         
                         }                        
 
-                        if(!strncmp(key, "capture-ip", 10)) capt_host = value;
+                        if(!strncmp(key, "capture-host", 10)) capt_host = value;
                         else if(!strncmp(key, "capture-port", 13)) capt_port = value;
                         else if(!strncmp(key, "capture-proto", 14)) capt_proto = value;
                         else if(!strncmp(key, "capture-password", 17)) capt_password = value;
                         else if(!strncmp(key, "capture-id", 11)) capt_id = atoi(value);
                         else if(!strncmp(key, "version", 7)) hep_version = atoi(value);
-                
-                	//printf("PARAM: %s=%s %s=%s [%s]\n", modules->attr[0], key, modules->attr[2], value, capt_proto);
-                	                	                	
+                                	                	                	
 		}
 next:		
 		

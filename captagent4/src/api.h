@@ -26,8 +26,9 @@ typedef struct xml_node {
 
 
 struct rc_info {
-    uint8_t     ipproto;
-    uint8_t     proto_id;
+    uint8_t     ipproto; /* IP family IPv6 IPv4 */
+    uint8_t     proto_id; /* IP protocol ID : tcp/udp */
+    uint8_t     proto_type; /* SIP: 0x001, SDP: 0x03*/
     char        *src_ip;
     char        *dst_ip;
     uint16_t    src_port;
