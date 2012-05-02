@@ -1,0 +1,48 @@
+<?xml version="1.0"?>
+
+<document type="captagent/xml">
+
+	<configuration name="core.conf" description="CORE Settings">
+  	  <settings>
+  	    <param name="debug" value="3"/>
+	    <param name="daemon" value="false"/>
+	    <param name="path" value="/usr/local/lib64/captagent/modules"/>	  
+	  </settings>
+	</configuration>
+
+	<configuration name="modules.conf" description="Modules">
+	  <modules>	  
+  	  	<load module="core_hep"/>
+  	  	<load module="proto_uni"/>
+	  </modules>
+	</configuration>
+
+	<!-- CORE MODULES -->
+	
+	<configuration name="core_hep.conf" description="HEP Socket">
+	  <settings>
+	    <param name="version" value="3"/>
+	    <param name="capture-ip" value="213.148.130.41"/>
+	    <param name="capture-port" value="9000"/>
+	    <param name="capture-proto" value="tcp"/>
+	    <param name="capture-id" value="2001"/>
+	    <param name="capture-password" value="myHep"/>
+	  </settings>
+	</configuration>	
+
+	<!-- PROTOCOLS -->
+	
+	<configuration name="proto_uni.conf" description="UNI Proto Basic capture">
+	  <settings>
+	    <param name="port" value="5060"/>
+	    <!-- <param name="portrange" value="5060-5090"/> -->
+	    <param name="dev"  value="eth0"/>
+	    <param name="promisc" value="true"/>
+	    <param name="ip-proto" value="udp"/>
+	    <param name="proto-type"  value="sip"/>
+	    <!-- <param name="filter" value="not src port 5099"/> -->
+	  </settings>
+	</configuration>
+
+</document>
+

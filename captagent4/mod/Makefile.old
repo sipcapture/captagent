@@ -1,0 +1,29 @@
+
+# makefile
+#
+#
+
+SHELL := /bin/bash
+
+CC=cc
+
+LDFLAGS=-shared -lc -lpthread -lpcap
+
+CFLAGS=-fPIC -g -Wall
+
+main: proto_uni.so core_hep.so
+
+proto_uni.so: proto_uni.o
+	$(CC) $(LDFLAGS) -o $@ $^
+
+proto_uni.o: proto_uni.c proto_uni.h
+	$(CC) -o $@ -c $< $(CFLAGS) 
+	
+core_hep.so: core_hep.o
+	$(CC) $(LDFLAGS) -o $@ $^
+
+core_hep.o: core_hep.c core_hep.h
+	$(CC) -o $@ -c $< $(CFLAGS) 	
+
+clean:
+	rm -f *.o *.so
