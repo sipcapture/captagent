@@ -16,7 +16,7 @@ int register_module(char *resource_name, xml_node *config)
 {
         const char *error;
 
-	printf("MODULE LOAD: %s\n", resource_name);
+	//printf("MODULE LOAD: %s\n", resource_name);
 	
 	static char fn[256];
         int errors=0, res, hep_error=0;

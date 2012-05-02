@@ -6,7 +6,7 @@
   	  <settings>
   	    <param name="debug" value="3"/>
 	    <param name="daemon" value="false"/>
-	    <param name="path" value="/usr/local/lib64/captagent/modules"/>	  
+	    <param name="path" value="/usr/local/lib/captagent/modules"/>	  
 	  </settings>
 	</configuration>
 

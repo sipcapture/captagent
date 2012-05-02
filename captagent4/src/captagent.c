@@ -164,26 +164,18 @@ xml_node *get_module_config( const char *mod_name, xml_node *mytree) {
 
     while(1) {
     
-        if(next == NULL) break;
-        
+        if(next == NULL) break;        
         next = xml_get("configuration", next, 1 );                    
-
         for(i=0;next->attr[i];i++) {    
-
-            if(!strncmp(next->attr[i], "name", 4)) {
-                        
+            if(!strncmp(next->attr[i], "name", 4)) {                        
                 if(!strncmp(next->attr[i+1], cfg, ret)) {
-                        printf("FOUND\n");   
                         modules =  next;
                         break;
                 }                            
             }
-        }
-            
-        next = next->next;
-        
-    }
-    
+        }            
+        next = next->next;        
+    }    
     return modules;
 }
 
@@ -201,7 +193,7 @@ void usage(int8_t e) {
 int main( int argc, char *argv[] ) {
 
     xml_node *next, *modules, *config;
-    const char *file = "captagent.xml";
+    const char *file = DEFAULT_CONFIG;
     const char **attr, **attr_mod;
     int i = 0, y = 0, c, checkout = 0;
 
@@ -274,10 +266,9 @@ int main( int argc, char *argv[] ) {
                                     /* get config */
                                     if(!(config = get_module_config(modules->attr[1], tree))) {
                                             fprintf(stderr, "Config for [%s] has been not found\n", modules->attr[1]);
-                                    }                                      
-                                                                      
-                                    if(register_module(modules->attr[1], config)) {
-                                            printf("registered\n");
+                                    }                                                                                                            
+                                    if(!register_module(modules->attr[1], config)) {
+                                            fprintf(stderr, "Module [%s] couldnot be registered\n", modules->attr[1]);
                                     }
                             }                                                        
                             
