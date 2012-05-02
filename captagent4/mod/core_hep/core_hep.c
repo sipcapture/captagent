@@ -34,8 +34,28 @@
 
 pthread_t call_thread;   
 
-
 int send_hep_basic (rc_info_t *rcinfo, unsigned char *data, unsigned int len) {
+
+        switch(hep_version) {
+        
+            case '3':
+                return send_hepv3(rcinfo, data, len);
+                break;
+                
+            case '2':            
+            case '1':        
+                return send_hepv2(rcinfo, data, len);                    
+                break;
+                
+            default:
+                fprintf(stderr, "Unsupported HEP version [%d]\n", hep_version);                
+                break;
+        }
+        
+        return 0;
+}
+
+int send_hepv3 (rc_info_t *rcinfo, unsigned char *data, unsigned int len) {
 
     struct hep_generic *hg=NULL;
     void* buffer;
@@ -76,7 +96,8 @@ int send_hep_basic (rc_info_t *rcinfo, unsigned char *data, unsigned int len) {
         
         hg->dst_ip4.chunk.length = sizeof(hg->dst_ip4);
     }
-    /* IPv6 */
+#ifdef USE_IPV6
+      /* IPv6 */
     else if(rcinfo->ipproto == AF_INET6) {
         /* SRC IPv6 */
         hg->src_ip6.chunk.vendor_id = htons(0x0000);
@@ -91,6 +112,7 @@ int send_hep_basic (rc_info_t *rcinfo, unsigned char *data, unsigned int len) {
         hg->dst_ip6.chunk.length = sizeof(hg->dst_ip6);    
     
     }
+#endif
         
     /* SRC PORT */
     hg->src_port.chunk.vendor_id = htons(0x0000);
@@ -121,7 +143,7 @@ int send_hep_basic (rc_info_t *rcinfo, unsigned char *data, unsigned int len) {
     /* Protocol TYPE */
     hg->proto_t.chunk.vendor_id = htons(0x0000);
     hg->proto_t.chunk.type_id   = htons(0x000b);
-    hg->proto_t.data = 0x01;
+    hg->proto_t.data = rcinfo->proto_type;
     hg->proto_t.chunk.length = sizeof(hg->proto_t);
     
     /* Capture ID */
@@ -134,9 +156,6 @@ int send_hep_basic (rc_info_t *rcinfo, unsigned char *data, unsigned int len) {
     hg->payload.vendor_id = htons(0x0000);
     hg->payload.type_id   = htons(0x000f);
     hg->payload.length    = htons(len);
-                       
-
-    //printf("JA: LEN: %d [%.*s]\n", len, len, data);
    
     /* total */
     hg->header.length = htons(sizeof(struct hep_generic) + len);
@@ -151,36 +170,12 @@ int send_hep_basic (rc_info_t *rcinfo, unsigned char *data, unsigned int len) {
     memcpy((void*) buffer, hg, sizeof(struct hep_generic));
     buflen = sizeof(struct hep_generic);
 
-    /*    
-    printf("LEN: %u\n", buflen);    
-    printf("LEN HEADER: %lu\n", sizeof(hep_ctrl_t));
-    printf("LEN IPPROTO: %lu\n", sizeof(hep_chunk_uint8_t));
-    printf("LEN PROTOID: %lu\n", sizeof(hep_chunk_uint8_t));
-    printf("LEN SRC: %lu\n", sizeof(hep_chunk_ip4_t));
-    printf("LEN DST: %lu\n", sizeof(hep_chunk_ip4_t));
-    printf("LEN SRC2: %lu\n", sizeof(hep_chunk_ip6_t));
-    printf("LEN DST2: %lu\n", sizeof(hep_chunk_ip6_t));
-    printf("LEN PORTS: %lu\n", sizeof(hep_chunk_uint16_t));
-    printf("LEN PORTD: %lu\n", sizeof(hep_chunk_uint16_t));
-    printf("LEN TIME: %lu\n", sizeof(hep_chunk_uint32_t));
-    printf("LEN TIME2: %lu\n", sizeof(hep_chunk_uint32_t));
-    printf("LEN PROTO: %lu\n", sizeof(hep_chunk_uint8_t));
-    printf("LEN CAPT: %lu\n", sizeof(hep_chunk_uint32_t));
-    printf("LEN TM: %lu\n", sizeof(hep_chunk_uint16_t));
-    printf("LEN KEY: %lu\n", sizeof(hep_chunk_str_t));
-    printf("LEN PAYLOAD: %lu\n", sizeof(hep_chunk_t));
-
-    */
-
     /* Now copying payload self */
     memcpy((void*) buffer+buflen, data, len);    
-    buflen+=len;
-    
+    buflen+=len;    
     
     /* send this packet out of our socket */
-    send(sock, buffer, buflen, 0); 
-    
-    //printf("DUPLICATED [%d] [%.*x]\n", buflen, buflen, buffer);
+    send_data(buffer, buflen); 
     
     /* FREE */        
     if(buffer) free(buffer);
@@ -190,9 +185,123 @@ int send_hep_basic (rc_info_t *rcinfo, unsigned char *data, unsigned int len) {
 }
 
 
+int send_hepv2 (rc_info_t *rcinfo, unsigned char *data, unsigned int len) {
+
+    void* buffer;            
+    struct hep_hdr hdr;
+    struct hep_timehdr hep_time;
+    struct hep_iphdr hep_ipheader;
+    unsigned int totlen=0, buflen=0;
+
+#ifdef USE_IPV6
+    struct hep_ip6hdr hep_ip6header;
+#endif /* USE IPV6 */
+
+    /* Version && proto */
+    hdr.hp_v = hep_version;
+    hdr.hp_p = rcinfo->ipproto;
+    hdr.hp_sport = htons(rcinfo->src_port); /* src port */
+    hdr.hp_dport = htons(rcinfo->dst_port); /* dst port */
+
+    /* IP version */    
+    switch (rcinfo->ipproto) {        
+                case AF_INET:
+                    totlen  = sizeof(struct hep_iphdr);
+                    break;
+#ifdef USE_IPV6                    
+                case AF_INET6:
+                    totlen = sizeof(struct hep_ip6hdr);
+                    break;
+#endif /* USE IPV6 */
+                    
+    }
+    
+    hdr.hp_l = totlen + sizeof(struct hep_hdr);
+    
+    /* COMPLETE LEN */
+    totlen += sizeof(struct hep_hdr);
+    totlen += len;
+
+    if(hep_version == 2) {
+    	totlen += sizeof(struct hep_timehdr);
+        hep_time.tv_sec = rcinfo->time_sec;
+        hep_time.tv_usec = rcinfo->time_usec;
+        hep_time.captid = capt_id;
+    }
+
+    /*buffer for ethernet frame*/
+    buffer = (void*)malloc(totlen);
+    if (buffer==0){
+    	fprintf(stderr,"ERROR: out of memory\n");
+        goto error;
+    }
+
+    /* copy hep_hdr */
+    memcpy((void*) buffer, &hdr, sizeof(struct hep_hdr));
+    buflen = sizeof(struct hep_hdr);
+
+    switch (rcinfo->ipproto) {
+
+    	case AF_INET:
+        	/* Source && Destination ipaddresses*/
+        	inet_pton(AF_INET, rcinfo->src_ip, &hep_ipheader.hp_src);
+        	inet_pton(AF_INET, rcinfo->dst_ip, &hep_ipheader.hp_dst);
+
+                /* copy hep ipheader */
+                memcpy((void*)buffer + buflen, &hep_ipheader, sizeof(struct hep_iphdr));
+                buflen += sizeof(struct hep_iphdr);
+
+                break;
+#ifdef USE_IPV6
+	case AF_INET6:
+
+                inet_pton(AF_INET6, rcinfo->src_ip, &hep_ip6header.hp6_src);
+                inet_pton(AF_INET6, rcinfo->dst_ip, &hep_ip6header.hp6_dst);                        
+
+                /* copy hep6 ipheader */
+                memcpy((void*)buffer + buflen, &hep_ip6header, sizeof(struct hep_ip6hdr));
+                buflen += sizeof(struct hep_ip6hdr);
+                break;
+#endif /* USE_IPV6 */
+     }
+
+     /* Version 2 has timestamp, captnode ID */
+     if(hep_version == 2) {
+     	/* TIMING  */
+        memcpy((void*)buffer + buflen, &hep_time, sizeof(struct hep_timehdr));
+        buflen += sizeof(struct hep_timehdr);
+     }
+
+     memcpy((void *)(buffer + buflen) , (void*)(data), len);
+     buflen +=len;
+
+     /* send this packet out of our socket */
+     send_data(buffer, buflen);
+
+     /* FREE */
+     if(buffer) free(buffer);
+
+     return 1;
+
+error:
+     if(buffer) free(buffer);
+     return 0;                     
+}
+
+
+int send_data (void *buf, unsigned int len) {
+
+	/* send this packet out of our socket */
+	if(!send(sock, buf, len, 0)) {
+		fprintf(stderr, "couldnot send data\n");
+		return 0;
+	}	
+	return 1;
+}
+
+
 int unload_module(void)
 {
-        //return ast_unregister_application(app);
         printf("unloaded module\n");
 
 	 /* Close socket */
@@ -289,16 +398,8 @@ next:
         }
 
         return 0;
-        //return ast_register_application(app, MYSQL_exec, synopsis, descrip);
 }
 
-int usecount(void)
-{
-        printf("Loaded usecount\n");        
-        
-        return 1;
-        //return ast_register_application(app, MYSQL_exec, synopsis, descrip);
-}
 
 char *description(void)
 {
@@ -306,7 +407,5 @@ char *description(void)
         char *description = "test description";
         
         return description;
-        //return ast_register_application(app, MYSQL_exec, synopsis, descrip);
 }
-
 

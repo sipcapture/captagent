@@ -1,4 +1,6 @@
 
+#define USE_IPV6
+
 #include <netinet/ip.h>
 #include <netinet/tcp.h>
 #include <netinet/udp.h>
@@ -16,9 +18,13 @@ int   capt_id = 101;
 int hep_version = 3;
 
 
-
 int load_module(xml_node *config);
 void handler(int value);
+
+int send_hepv3 (rc_info_t *rcinfo, unsigned char *data, unsigned int len);
+int send_hepv2 (rc_info_t *rcinfo, unsigned char *data, unsigned int len);
+int send_data (void *buf, unsigned int len);
+
 
 /* HEPv3 types */
 typedef struct hep_chunk {

@@ -207,6 +207,7 @@ int dump_proto_packet(struct pcap_pkthdr *pkthdr, u_char *packet, uint8_t proto,
         rcinfo->proto_id   = proto;
         rcinfo->time_sec   = pkthdr->ts.tv_sec;
         rcinfo->time_usec  = pkthdr->ts.tv_usec;
+        rcinfo->proto_type = proto_type;
 
 	/* Duplcate */
 	if(!send_message(rcinfo, data, (unsigned int) len)) {
@@ -284,7 +285,7 @@ int load_module(xml_node *config)
         char *dev, *usedev = NULL;
         char errbuf[PCAP_ERRBUF_SIZE];                                
         xml_node *modules;
-        char *key, *value;
+        char *key, *value = NULL, *local_pt = NULL;
         
         printf("Loaded proto_uni\n");
                                            
@@ -315,13 +316,10 @@ int load_module(xml_node *config)
                         if(!strncmp(key, "dev", 3)) usedev = value;
                         else if(!strncmp(key, "port", 4)) port = atoi(value);
                         else if(!strncmp(key, "ip-proto", 8)) ip_proto = value;
-                        else if(!strncmp(key, "proto-type", 10)) proto_type = value;
+                        else if(!strncmp(key, "proto-type", 10)) local_pt = value;
                         else if(!strncmp(key, "portrange", 9)) portrange = value;
                         else if(!strncmp(key, "promisc", 7) && !strncmp(value, "false", 5)) promisc = 0;
                         else if(!strncmp(key, "filter", 6)) userfilter = value;
-
-                        //printf("PARAM: %s=%s %s=%s [%s]\n", modules->attr[0], key, modules->attr[2], value, usedev);
-
                 }
 next:
 
@@ -339,6 +337,14 @@ next:
                 fprintf(stderr, "bad port or portranges in the config\n");
                 return -1;
         }
+
+        /* CHECK PROTO */
+        if(!strncmp(value, "sip", 3)) proto_type = PROTO_SIP;
+        else if(!strncmp(value, "xmpp", 4)) proto_type = PROTO_XMPP;                        
+        else {
+                fprintf(stderr, "Unsupported protocol. Switched to SIP\n");
+		proto_type = PROTO_SIP;
+        }                                        
 
         // start thread
         pthread_create(&call_thread, NULL, proto_collect, (void *)dev);
