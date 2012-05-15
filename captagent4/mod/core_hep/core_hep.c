@@ -1,4 +1,3 @@
-
 #include <stdio.h>
 #include <string.h>
 #include <errno.h>
@@ -38,12 +37,12 @@ int send_hep_basic (rc_info_t *rcinfo, unsigned char *data, unsigned int len) {
 
         switch(hep_version) {
         
-            case '3':
+            case 3:
                 return send_hepv3(rcinfo, data, len);
                 break;
                 
-            case '2':            
-            case '1':        
+            case 2:            
+            case 1:        
                 return send_hepv2(rcinfo, data, len);                    
                 break;
                 
