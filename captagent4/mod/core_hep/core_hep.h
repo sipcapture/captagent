@@ -1,4 +1,3 @@
-
 #define USE_IPV6
 
 #include <netinet/ip.h>
@@ -74,8 +73,8 @@ typedef struct hep_ctrl {
 
 struct hep_generic {
         hep_ctrl_t         header;
-        hep_chunk_uint8_t  ipproto;
-        hep_chunk_uint8_t  proto_id;
+        hep_chunk_uint8_t  ip_family;
+        hep_chunk_uint8_t  ip_proto;
         hep_chunk_ip4_t    src_ip4;
         hep_chunk_ip4_t    dst_ip4;
         hep_chunk_ip6_t    src_ip6;
