@@ -26,48 +26,63 @@ int send_data (void *buf, unsigned int len);
 
 
 /* HEPv3 types */
-typedef struct hep_chunk {
+
+struct hep_chunk {
        u_int16_t vendor_id;
        u_int16_t type_id;
        u_int16_t length;
-} hep_chunk_t;
+} __attribute__((packed));
 
-typedef struct hep_chunk_uint8 {
+typedef struct hep_chunk hep_chunk_t;
+
+struct hep_chunk_uint8 {
        hep_chunk_t chunk;
        u_int8_t data;
-} hep_chunk_uint8_t;
+} __attribute__((packed));
 
-typedef struct hep_chunk_uint16 {
+typedef struct hep_chunk_uint8 hep_chunk_uint8_t;
+
+struct hep_chunk_uint16 {
        hep_chunk_t chunk;
        u_int16_t data;
-} hep_chunk_uint16_t;
+} __attribute__((packed));
 
-typedef struct hep_chunk_uint32 {
+typedef struct hep_chunk_uint16 hep_chunk_uint16_t;
+
+struct hep_chunk_uint32 {
        hep_chunk_t chunk;
        u_int32_t data;
+} __attribute__((packed));
 
-} hep_chunk_uint32_t;
+typedef struct hep_chunk_uint32 hep_chunk_uint32_t;
 
-typedef struct hep_chunk_str {
+struct hep_chunk_str {
        hep_chunk_t chunk;
        char *data;
-} hep_chunk_str_t;
+} __attribute__((packed));
 
-typedef struct hep_chunk_ip4 {
+typedef struct hep_chunk_str hep_chunk_str_t;
+
+struct hep_chunk_ip4 {
        hep_chunk_t chunk;
        struct in_addr data;
-} hep_chunk_ip4_t;
+} __attribute__((packed));
 
-typedef struct hep_chunk_ip6 {
+typedef struct hep_chunk_ip4 hep_chunk_ip4_t;
+
+struct hep_chunk_ip6 {
        hep_chunk_t chunk;
        struct in6_addr data;
-} hep_chunk_ip6_t;
+} __attribute__((packed));
 
+typedef struct hep_chunk_ip6 hep_chunk_ip6_t;
 
-typedef struct hep_ctrl {
+struct hep_ctrl {
     char id[4];
     u_int16_t length;
-} hep_ctrl_t;
+} __attribute__((packed));
+
+typedef struct hep_ctrl hep_ctrl_t;
 
 /* Structure of HEP */
 
