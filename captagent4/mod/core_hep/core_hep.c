@@ -1,4 +1,3 @@
-
 #include <stdio.h>
 #include <string.h>
 #include <errno.h>
@@ -38,12 +37,12 @@ int send_hep_basic (rc_info_t *rcinfo, unsigned char *data, unsigned int len) {
 
         switch(hep_version) {
         
-            case '3':
+            case 3:
                 return send_hepv3(rcinfo, data, len);
                 break;
                 
-            case '2':            
-            case '1':        
+            case 2:            
+            case 1:        
                 return send_hepv2(rcinfo, data, len);                    
                 break;
                 
@@ -59,8 +58,13 @@ int send_hepv3 (rc_info_t *rcinfo, unsigned char *data, unsigned int len) {
 
     struct hep_generic *hg=NULL;
     void* buffer;
-    unsigned int buflen=0;
-            
+    unsigned int buflen=0, iplen=0;
+    hep_chunk_ip4_t src_ip4, dst_ip4;
+#ifdef USE_IPV6
+    hep_chunk_ip6_t src_ip6, dst_ip6;    
+#endif            
+    hep_chunk_t payload_chunk;
+
     hg = malloc(sizeof(struct hep_generic));
     memset(hg, 0, sizeof(struct hep_generic));
 
@@ -68,49 +72,50 @@ int send_hepv3 (rc_info_t *rcinfo, unsigned char *data, unsigned int len) {
     memcpy(hg->header.id, "\x48\x45\x50\x33", 4);
 
     /* IP proto */
-    hg->ipproto.chunk.vendor_id = htons(0x0000);
-    hg->ipproto.chunk.type_id   = htons(0x0001);
-    hg->ipproto.data = rcinfo->ipproto;
-    hg->ipproto.chunk.length = sizeof(hg->ipproto);
+    hg->ip_family.chunk.vendor_id = htons(0x0000);
+    hg->ip_family.chunk.type_id   = htons(0x0001);
+    hg->ip_family.data = rcinfo->ip_family;
+    hg->ip_family.chunk.length = htons(sizeof(hg->ip_family));
     
     /* Proto ID */
-    hg->proto_id.chunk.vendor_id = htons(0x0000);
-    hg->proto_id.chunk.type_id   = htons(0x0002);
-    hg->proto_id.data = rcinfo->proto_id;
-    hg->proto_id.chunk.length = sizeof(hg->proto_id);
+    hg->ip_proto.chunk.vendor_id = htons(0x0000);
+    hg->ip_proto.chunk.type_id   = htons(0x0002);
+    hg->ip_proto.data = rcinfo->ip_proto;
+    hg->ip_proto.chunk.length = htons(sizeof(hg->ip_proto));
     
 
     /* IPv4 */
-    if(rcinfo->ipproto == AF_INET) {
+    if(rcinfo->ip_family == AF_INET) {
         /* SRC IP */
-        hg->src_ip4.chunk.vendor_id = htons(0x0000);
-        hg->src_ip4.chunk.type_id   = htons(0x0003);
-        //int inet_pton(int af, const char *src, void *dst);        
-        inet_pton(AF_INET, rcinfo->src_ip, &hg->src_ip4.data);
-        hg->src_ip4.chunk.length = sizeof(hg->src_ip4);
+        src_ip4.chunk.vendor_id = htons(0x0000);
+        src_ip4.chunk.type_id   = htons(0x0003);
+        inet_pton(AF_INET, rcinfo->src_ip, &src_ip4.data);
+        src_ip4.chunk.length = htons(sizeof(src_ip4));            
         
         /* DST IP */
-        hg->dst_ip4.chunk.vendor_id = htons(0x0000);
-        hg->dst_ip4.chunk.type_id   = htons(0x0004);
-        inet_pton(AF_INET, rcinfo->dst_ip, &hg->dst_ip4.data);
+        dst_ip4.chunk.vendor_id = htons(0x0000);
+        dst_ip4.chunk.type_id   = htons(0x0004);
+        inet_pton(AF_INET, rcinfo->dst_ip, &dst_ip4.data);        
+        dst_ip4.chunk.length = htons(sizeof(dst_ip4));
         
-        hg->dst_ip4.chunk.length = sizeof(hg->dst_ip4);
+        iplen = dst_ip4.chunk.length + src_ip4.chunk.length;
     }
 #ifdef USE_IPV6
       /* IPv6 */
-    else if(rcinfo->ipproto == AF_INET6) {
+    else if(rcinfo->ip_family == AF_INET6) {
         /* SRC IPv6 */
-        hg->src_ip6.chunk.vendor_id = htons(0x0000);
-        hg->src_ip6.chunk.type_id   = htons(0x0005);
-        inet_pton(AF_INET6, rcinfo->src_ip, &hg->src_ip6.data);
-        hg->src_ip6.chunk.length = sizeof(hg->src_ip6);
+        src_ip6.chunk.vendor_id = htons(0x0000);
+        src_ip6.chunk.type_id   = htons(0x0005);
+        inet_pton(AF_INET6, rcinfo->src_ip, &src_ip6.data);
+        src_ip6.chunk.length = htons(sizeof(src_ip6));
         
         /* DST IPv6 */
-        hg->dst_ip6.chunk.vendor_id = htons(0x0000);
-        hg->dst_ip6.chunk.type_id   = htons(0x0006);
-        inet_pton(AF_INET6, rcinfo->dst_ip, &hg->dst_ip6.data);
-        hg->dst_ip6.chunk.length = sizeof(hg->dst_ip6);    
-    
+        dst_ip6.chunk.vendor_id = htons(0x0000);
+        dst_ip6.chunk.type_id   = htons(0x0006);
+        inet_pton(AF_INET6, rcinfo->dst_ip, &dst_ip6.data);
+        dst_ip6.chunk.length = htons(sizeof(dst_ip6));    
+        
+        iplen = dst_ip6.chunk.length + src_ip6.chunk.length;    
     }
 #endif
         
@@ -118,49 +123,49 @@ int send_hepv3 (rc_info_t *rcinfo, unsigned char *data, unsigned int len) {
     hg->src_port.chunk.vendor_id = htons(0x0000);
     hg->src_port.chunk.type_id   = htons(0x0007);
     hg->src_port.data = htons(rcinfo->src_port);
-    hg->src_port.chunk.length = sizeof(hg->src_port);
+    hg->src_port.chunk.length = htons(sizeof(hg->src_port));
     
     /* DST PORT */
     hg->dst_port.chunk.vendor_id = htons(0x0000);
     hg->dst_port.chunk.type_id   = htons(0x0008);
     hg->dst_port.data = htons(rcinfo->dst_port);
-    hg->dst_port.chunk.length = sizeof(hg->dst_port);
+    hg->dst_port.chunk.length = htons(sizeof(hg->dst_port));
     
     
     /* TIMESTAMP SEC */
     hg->time_sec.chunk.vendor_id = htons(0x0000);
     hg->time_sec.chunk.type_id   = htons(0x0009);
     hg->time_sec.data = htons(rcinfo->time_sec);
-    hg->time_sec.chunk.length = sizeof(hg->time_sec);
+    hg->time_sec.chunk.length = htons(sizeof(hg->time_sec));
     
 
     /* TIMESTAMP USEC */
     hg->time_usec.chunk.vendor_id = htons(0x0000);
     hg->time_usec.chunk.type_id   = htons(0x000a);
     hg->time_usec.data = htons(rcinfo->time_usec);
-    hg->time_usec.chunk.length = sizeof(hg->time_usec);
+    hg->time_usec.chunk.length = htons(sizeof(hg->time_usec));
     
     /* Protocol TYPE */
     hg->proto_t.chunk.vendor_id = htons(0x0000);
     hg->proto_t.chunk.type_id   = htons(0x000b);
     hg->proto_t.data = rcinfo->proto_type;
-    hg->proto_t.chunk.length = sizeof(hg->proto_t);
+    hg->proto_t.chunk.length = htons(sizeof(hg->proto_t));
     
     /* Capture ID */
     hg->capt_id.chunk.vendor_id = htons(0x0000);
     hg->capt_id.chunk.type_id   = htons(0x000c);
     hg->capt_id.data = htons(0x0001);
-    hg->capt_id.chunk.length = sizeof(hg->capt_id);
+    hg->capt_id.chunk.length = htons(sizeof(hg->capt_id));
 
     /* Payload */
-    hg->payload.vendor_id = htons(0x0000);
-    hg->payload.type_id   = htons(0x000f);
-    hg->payload.length    = htons(len);
+    payload_chunk.vendor_id = htons(0x0000);
+    payload_chunk.type_id   = htons(0x000f);
+    payload_chunk.length    = htons(len);
    
     /* total */
-    hg->header.length = htons(sizeof(struct hep_generic) + len);
+    hg->header.length = htons(sizeof(struct hep_generic) + sizeof(struct hep_chunk) + len + iplen);
 
-    buffer = (void*)malloc(sizeof(struct hep_generic) + len);
+    buffer = (void*)malloc(sizeof(struct hep_generic) + sizeof(struct hep_chunk) + len + iplen);
     if (buffer==0){
         fprintf(stderr,"ERROR: out of memory\n");
         free(hg);
@@ -169,6 +174,32 @@ int send_hepv3 (rc_info_t *rcinfo, unsigned char *data, unsigned int len) {
     
     memcpy((void*) buffer, hg, sizeof(struct hep_generic));
     buflen = sizeof(struct hep_generic);
+
+    /* IPv4 */
+    if(rcinfo->ip_family == AF_INET) {
+        /* SRC IP */
+        memcpy((void*) buffer+buflen, &src_ip4, sizeof(struct hep_chunk_ip4));
+        buflen += sizeof(struct hep_chunk_ip4);
+        
+        memcpy((void*) buffer+buflen, &dst_ip4, sizeof(struct hep_chunk_ip4));
+        buflen += sizeof(struct hep_chunk_ip4);
+    }
+#ifdef USE_IPV6
+      /* IPv6 */
+    else if(rcinfo->ip_family == AF_INET6) {
+        /* SRC IPv6 */
+        
+        memcpy((void*) buffer+buflen, &src_ip4, sizeof(struct hep_chunk_ip6));
+        buflen += sizeof(struct hep_chunk_ip6);
+        
+        memcpy((void*) buffer+buflen, &dst_ip6, sizeof(struct hep_chunk_ip6));
+        buflen += sizeof(struct hep_chunk_ip6);
+    }
+#endif
+
+    /* PAYLOAD CHUNK */
+    memcpy((void*) buffer+buflen, &payload_chunk,  sizeof(struct hep_chunk));
+    buflen +=  sizeof(struct hep_chunk);            
 
     /* Now copying payload self */
     memcpy((void*) buffer+buflen, data, len);    
@@ -199,12 +230,13 @@ int send_hepv2 (rc_info_t *rcinfo, unsigned char *data, unsigned int len) {
 
     /* Version && proto */
     hdr.hp_v = hep_version;
-    hdr.hp_p = rcinfo->ipproto;
+    hdr.hp_f = rcinfo->ip_family;
+    hdr.hp_p = rcinfo->ip_proto;
     hdr.hp_sport = htons(rcinfo->src_port); /* src port */
     hdr.hp_dport = htons(rcinfo->dst_port); /* dst port */
 
     /* IP version */    
-    switch (rcinfo->ipproto) {        
+    switch (hdr.hp_f) {        
                 case AF_INET:
                     totlen  = sizeof(struct hep_iphdr);
                     break;
@@ -240,7 +272,7 @@ int send_hepv2 (rc_info_t *rcinfo, unsigned char *data, unsigned int len) {
     memcpy((void*) buffer, &hdr, sizeof(struct hep_hdr));
     buflen = sizeof(struct hep_hdr);
 
-    switch (rcinfo->ipproto) {
+    switch (hdr.hp_f) {
 
     	case AF_INET:
         	/* Source && Destination ipaddresses*/
