@@ -1,3 +1,4 @@
+
 #define USE_IPV6
 
 #include <netinet/ip.h>
@@ -26,70 +27,55 @@ int send_data (void *buf, unsigned int len);
 
 
 /* HEPv3 types */
-
-struct hep_chunk {
+typedef struct hep_chunk {
        u_int16_t vendor_id;
        u_int16_t type_id;
        u_int16_t length;
-} __attribute__((packed));
+} hep_chunk_t;
 
-typedef struct hep_chunk hep_chunk_t;
-
-struct hep_chunk_uint8 {
+typedef struct hep_chunk_uint8 {
        hep_chunk_t chunk;
        u_int8_t data;
-} __attribute__((packed));
+} hep_chunk_uint8_t;
 
-typedef struct hep_chunk_uint8 hep_chunk_uint8_t;
-
-struct hep_chunk_uint16 {
+typedef struct hep_chunk_uint16 {
        hep_chunk_t chunk;
        u_int16_t data;
-} __attribute__((packed));
+} hep_chunk_uint16_t;
 
-typedef struct hep_chunk_uint16 hep_chunk_uint16_t;
-
-struct hep_chunk_uint32 {
+typedef struct hep_chunk_uint32 {
        hep_chunk_t chunk;
        u_int32_t data;
-} __attribute__((packed));
 
-typedef struct hep_chunk_uint32 hep_chunk_uint32_t;
+} hep_chunk_uint32_t;
 
-struct hep_chunk_str {
+typedef struct hep_chunk_str {
        hep_chunk_t chunk;
        char *data;
-} __attribute__((packed));
+} hep_chunk_str_t;
 
-typedef struct hep_chunk_str hep_chunk_str_t;
-
-struct hep_chunk_ip4 {
+typedef struct hep_chunk_ip4 {
        hep_chunk_t chunk;
        struct in_addr data;
-} __attribute__((packed));
+} hep_chunk_ip4_t;
 
-typedef struct hep_chunk_ip4 hep_chunk_ip4_t;
-
-struct hep_chunk_ip6 {
+typedef struct hep_chunk_ip6 {
        hep_chunk_t chunk;
        struct in6_addr data;
-} __attribute__((packed));
+} hep_chunk_ip6_t;
 
-typedef struct hep_chunk_ip6 hep_chunk_ip6_t;
 
-struct hep_ctrl {
+typedef struct hep_ctrl {
     char id[4];
     u_int16_t length;
-} __attribute__((packed));
-
-typedef struct hep_ctrl hep_ctrl_t;
+} hep_ctrl_t;
 
 /* Structure of HEP */
 
 struct hep_generic {
         hep_ctrl_t         header;
-        hep_chunk_uint8_t  ip_family;
-        hep_chunk_uint8_t  ip_proto;
+        hep_chunk_uint8_t  ipproto;
+        hep_chunk_uint8_t  proto_id;
         hep_chunk_ip4_t    src_ip4;
         hep_chunk_ip4_t    dst_ip4;
         hep_chunk_ip6_t    src_ip6;

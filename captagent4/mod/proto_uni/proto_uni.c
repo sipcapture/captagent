@@ -1,3 +1,4 @@
+
 #include <stdio.h>
 #include <string.h>
 #include <errno.h>
@@ -202,8 +203,8 @@ int dump_proto_packet(struct pcap_pkthdr *pkthdr, u_char *packet, uint8_t proto,
         rcinfo->dst_port   = htons(dport);
         rcinfo->src_ip     = ip_src;
         rcinfo->dst_ip     = ip_dst;
-        rcinfo->ip_family  = ip_ver = 4 ? AF_INET : AF_INET6 ;
-        rcinfo->ip_proto   = proto;        
+        rcinfo->ipproto    = ip_ver = 4 ? AF_INET : AF_INET6 ;
+        rcinfo->proto_id   = proto;
         rcinfo->time_sec   = pkthdr->ts.tv_sec;
         rcinfo->time_usec  = pkthdr->ts.tv_usec;
         rcinfo->proto_type = proto_type;

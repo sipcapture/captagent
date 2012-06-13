@@ -1,3 +1,4 @@
+
 #include <stdio.h>
 #include <string.h>
 #include <errno.h>
@@ -37,12 +38,12 @@ int send_hep_basic (rc_info_t *rcinfo, unsigned char *data, unsigned int len) {
 
         switch(hep_version) {
         
-            case 3:
+            case '3':
                 return send_hepv3(rcinfo, data, len);
                 break;
                 
-            case 2:            
-            case 1:        
+            case '2':            
+            case '1':        
                 return send_hepv2(rcinfo, data, len);                    
                 break;
                 
@@ -67,20 +68,20 @@ int send_hepv3 (rc_info_t *rcinfo, unsigned char *data, unsigned int len) {
     memcpy(hg->header.id, "\x48\x45\x50\x33", 4);
 
     /* IP proto */
-    hg->ip_family.chunk.vendor_id = htons(0x0000);
-    hg->ip_family.chunk.type_id   = htons(0x0001);
-    hg->ip_family.data = rcinfo->ip_family;
-    hg->ip_family.chunk.length = sizeof(hg->ip_family);
+    hg->ipproto.chunk.vendor_id = htons(0x0000);
+    hg->ipproto.chunk.type_id   = htons(0x0001);
+    hg->ipproto.data = rcinfo->ipproto;
+    hg->ipproto.chunk.length = sizeof(hg->ipproto);
     
     /* Proto ID */
-    hg->ip_proto.chunk.vendor_id = htons(0x0000);
-    hg->ip_proto.chunk.type_id   = htons(0x0002);
-    hg->ip_proto.data = rcinfo->ip_proto;
-    hg->ip_proto.chunk.length = sizeof(hg->ip_proto);
+    hg->proto_id.chunk.vendor_id = htons(0x0000);
+    hg->proto_id.chunk.type_id   = htons(0x0002);
+    hg->proto_id.data = rcinfo->proto_id;
+    hg->proto_id.chunk.length = sizeof(hg->proto_id);
     
 
     /* IPv4 */
-    if(rcinfo->ip_family == AF_INET) {
+    if(rcinfo->ipproto == AF_INET) {
         /* SRC IP */
         hg->src_ip4.chunk.vendor_id = htons(0x0000);
         hg->src_ip4.chunk.type_id   = htons(0x0003);
@@ -97,7 +98,7 @@ int send_hepv3 (rc_info_t *rcinfo, unsigned char *data, unsigned int len) {
     }
 #ifdef USE_IPV6
       /* IPv6 */
-    else if(rcinfo->ip_family == AF_INET6) {
+    else if(rcinfo->ipproto == AF_INET6) {
         /* SRC IPv6 */
         hg->src_ip6.chunk.vendor_id = htons(0x0000);
         hg->src_ip6.chunk.type_id   = htons(0x0005);
@@ -198,13 +199,12 @@ int send_hepv2 (rc_info_t *rcinfo, unsigned char *data, unsigned int len) {
 
     /* Version && proto */
     hdr.hp_v = hep_version;
-    hdr.hp_f = rcinfo->ip_family;
-    hdr.hp_p = rcinfo->ip_proto;
+    hdr.hp_p = rcinfo->ipproto;
     hdr.hp_sport = htons(rcinfo->src_port); /* src port */
     hdr.hp_dport = htons(rcinfo->dst_port); /* dst port */
 
     /* IP version */    
-    switch (hdr.hp_f) {        
+    switch (rcinfo->ipproto) {        
                 case AF_INET:
                     totlen  = sizeof(struct hep_iphdr);
                     break;
@@ -240,7 +240,7 @@ int send_hepv2 (rc_info_t *rcinfo, unsigned char *data, unsigned int len) {
     memcpy((void*) buffer, &hdr, sizeof(struct hep_hdr));
     buflen = sizeof(struct hep_hdr);
 
-    switch (hdr.hp_f) {
+    switch (rcinfo->ipproto) {
 
     	case AF_INET:
         	/* Source && Destination ipaddresses*/
