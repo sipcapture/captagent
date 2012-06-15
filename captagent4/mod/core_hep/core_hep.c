@@ -97,8 +97,8 @@ int send_hepv3 (rc_info_t *rcinfo, unsigned char *data, unsigned int len) {
         dst_ip4.chunk.type_id   = htons(0x0004);
         inet_pton(AF_INET, rcinfo->dst_ip, &dst_ip4.data);        
         dst_ip4.chunk.length = htons(sizeof(dst_ip4));
-        
-        iplen = dst_ip4.chunk.length + src_ip4.chunk.length;
+
+        iplen = sizeof(dst_ip4) + sizeof(src_ip4);        
     }
 #ifdef USE_IPV6
       /* IPv6 */
@@ -115,7 +115,7 @@ int send_hepv3 (rc_info_t *rcinfo, unsigned char *data, unsigned int len) {
         inet_pton(AF_INET6, rcinfo->dst_ip, &dst_ip6.data);
         dst_ip6.chunk.length = htons(sizeof(dst_ip6));    
         
-        iplen = dst_ip6.chunk.length + src_ip6.chunk.length;    
+        iplen = sizeof(dst_ip6) + sizeof(src_ip6);        
     }
 #endif
         
