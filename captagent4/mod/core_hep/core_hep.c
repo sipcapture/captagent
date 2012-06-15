@@ -160,7 +160,7 @@ int send_hepv3 (rc_info_t *rcinfo, unsigned char *data, unsigned int len) {
     /* Payload */
     payload_chunk.vendor_id = htons(0x0000);
     payload_chunk.type_id   = htons(0x000f);
-    payload_chunk.length    = htons(len);
+    payload_chunk.length    = htons(sizeof(payload_chunk) + len);
    
     /* total */
     hg->header.length = htons(sizeof(struct hep_generic) + sizeof(struct hep_chunk) + len + iplen);
