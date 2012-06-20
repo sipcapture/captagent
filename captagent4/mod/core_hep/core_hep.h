@@ -9,6 +9,7 @@
 #endif /* USE_IPV6 */
 
 int sock;
+struct addrinfo *ai;
 char *capt_host  = "213.148.130.41";
 char *capt_port  = "9000";
 char *capt_proto = "udp";
