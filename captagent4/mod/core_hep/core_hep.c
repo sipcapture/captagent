@@ -64,6 +64,7 @@ int send_hepv3 (rc_info_t *rcinfo, unsigned char *data, unsigned int len) {
     hep_chunk_ip6_t src_ip6, dst_ip6;    
 #endif            
     hep_chunk_t payload_chunk;
+    static int errors = 0;
 
     hg = malloc(sizeof(struct hep_generic));
     memset(hg, 0, sizeof(struct hep_generic));
@@ -97,8 +98,8 @@ int send_hepv3 (rc_info_t *rcinfo, unsigned char *data, unsigned int len) {
         dst_ip4.chunk.type_id   = htons(0x0004);
         inet_pton(AF_INET, rcinfo->dst_ip, &dst_ip4.data);        
         dst_ip4.chunk.length = htons(sizeof(dst_ip4));
-
-        iplen = sizeof(dst_ip4) + sizeof(src_ip4);        
+        
+        iplen = sizeof(dst_ip4) + sizeof(src_ip4); 
     }
 #ifdef USE_IPV6
       /* IPv6 */
@@ -115,7 +116,7 @@ int send_hepv3 (rc_info_t *rcinfo, unsigned char *data, unsigned int len) {
         inet_pton(AF_INET6, rcinfo->dst_ip, &dst_ip6.data);
         dst_ip6.chunk.length = htons(sizeof(dst_ip6));    
         
-        iplen = sizeof(dst_ip6) + sizeof(src_ip6);        
+        iplen = sizeof(dst_ip6) + sizeof(src_ip6);
     }
 #endif
         
@@ -163,7 +164,9 @@ int send_hepv3 (rc_info_t *rcinfo, unsigned char *data, unsigned int len) {
     payload_chunk.length    = htons(sizeof(payload_chunk) + len);
    
     /* total */
-    hg->header.length = htons(sizeof(struct hep_generic) + sizeof(struct hep_chunk) + len + iplen);
+    hg->header.length = htons(sizeof(struct hep_generic) + len + iplen + sizeof(hep_chunk_t));
+
+    //fprintf(stderr, "LEN: [%d] vs [%d] = IPLEN:[%d] LEN:[%d] CH:[%d]\n", hg->header.length, ntohs(hg->header.length), iplen, len, sizeof(struct hep_chunk));
 
     buffer = (void*)malloc(sizeof(struct hep_generic) + sizeof(struct hep_chunk) + len + iplen);
     if (buffer==0){
@@ -204,10 +207,19 @@ int send_hepv3 (rc_info_t *rcinfo, unsigned char *data, unsigned int len) {
     /* Now copying payload self */
     memcpy((void*) buffer+buflen, data, len);    
     buflen+=len;    
-    
+
+    /* make sleep after 100 erors*/
+    if(errors > 100) {
+        fprintf(stderr, "HEP server is down... retrying after sleep...\n");
+        sleep(2);
+        errors=0;
+    }
+
     /* send this packet out of our socket */
-    send_data(buffer, buflen); 
-    
+    if(!send_data(buffer, buflen)) {
+        errors++;    
+    }
+
     /* FREE */        
     if(buffer) free(buffer);
     if(hg) free(hg);        
@@ -223,7 +235,7 @@ int send_hepv2 (rc_info_t *rcinfo, unsigned char *data, unsigned int len) {
     struct hep_timehdr hep_time;
     struct hep_iphdr hep_ipheader;
     unsigned int totlen=0, buflen=0;
-
+    static int errors=0;
 #ifdef USE_IPV6
     struct hep_ip6hdr hep_ip6header;
 #endif /* USE IPV6 */
@@ -307,8 +319,17 @@ int send_hepv2 (rc_info_t *rcinfo, unsigned char *data, unsigned int len) {
      memcpy((void *)(buffer + buflen) , (void*)(data), len);
      buflen +=len;
 
+     /* make sleep after 100 erors*/
+     if(errors > 100) {
+        fprintf(stderr, "HEP server is down... retrying after sleep...\n");
+        sleep(2);
+        errors=0;
+     }
+
      /* send this packet out of our socket */
-     send_data(buffer, buflen);
+     if(!send_data(buffer, buflen)) {
+        errors++;    
+     }
 
      /* FREE */
      if(buffer) free(buffer);
@@ -324,13 +345,20 @@ error:
 int send_data (void *buf, unsigned int len) {
 
 	/* send this packet out of our socket */
-	if(!send(sock, buf, len, 0)) {
-		fprintf(stderr, "couldnot send data\n");
+	if(sendto(sock, buf, len, MSG_NOSIGNAL, NULL, 0) == -1) {
+		//fprintf(stderr, "couldnot send data [%d]\n");		
+				
+		if(init_hepsocket()) {
+	            fprintf(stderr,"capture: couldn't re-init socket");
+        	    return -1;
+	        }	        
+		
+		/* RESET ERRORS COUNTER */
 		return 0;
 	}	
+
 	return 1;
 }
-
 
 int unload_module(void)
 {
@@ -348,8 +376,8 @@ int unload_module(void)
 int load_module(xml_node *config)
 {
 	xml_node *modules;
-        int mode;
-        struct addrinfo *ai, hints[1] = {{ 0 }};
+        //struct addrinfo *ai, hints[1] = {{ 0 }};
+        struct addrinfo hints[1] = {{ 0 }};
         char *key, *value;
 
 	/* READ CONFIG */
@@ -412,24 +440,39 @@ next:
             return 2;
         }
 
-	sock = socket(ai->ai_family, ai->ai_socktype, ai->ai_protocol);
-        if (sock < 0) {
-                 fprintf(stderr,"Sender socket creation failed: %s\n", strerror(errno));
-                 return 3;
+        if(init_hepsocket()) {
+            fprintf(stderr,"capture: couldn't init socket");
+            return 2;            
         }
+        
+        return 0;
+}
 
-        mode = fcntl(sock, F_GETFL, 0);
-        mode |= O_NDELAY | O_NONBLOCK;
-        fcntl(sock, F_SETFL, mode);
+int init_hepsocket (void) {
 
-        if (connect(sock, ai->ai_addr, (socklen_t)(ai->ai_addrlen)) == -1) {
+    int mode;
+
+    if(sock) close(sock);
+
+    sock = socket(ai->ai_family, ai->ai_socktype, ai->ai_protocol);
+    if (sock < 0) {
+             fprintf(stderr,"Sender socket creation failed: %s\n", strerror(errno));
+             return 1;
+    }
+
+    mode = fcntl(sock, F_GETFL, 0);
+    mode |= O_NDELAY | O_NONBLOCK;
+    fcntl(sock, F_SETFL, mode);
+
+    if (connect(sock, ai->ai_addr, (socklen_t)(ai->ai_addrlen)) == -1) {
             if (errno != EINPROGRESS) {
                     fprintf(stderr,"Sender socket creation failed: %s\n", strerror(errno));
-                    return 4;
+                    return 1;
             }
-        }
+    }
 
-        return 0;
+    return 0;
+
 }
 
 
