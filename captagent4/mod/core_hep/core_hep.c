@@ -345,7 +345,7 @@ error:
 int send_data (void *buf, unsigned int len) {
 
 	/* send this packet out of our socket */
-	if(sendto(sock, buf, len, MSG_NOSIGNAL, NULL, 0) == -1) {
+	if(send(sock, buf, len, MSG_NOSIGNAL) == -1) {
 		//fprintf(stderr, "couldnot send data [%d]\n");		
 				
 		if(init_hepsocket()) {
