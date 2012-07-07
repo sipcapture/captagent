@@ -136,14 +136,14 @@ int send_hepv3 (rc_info_t *rcinfo, unsigned char *data, unsigned int len) {
     /* TIMESTAMP SEC */
     hg->time_sec.chunk.vendor_id = htons(0x0000);
     hg->time_sec.chunk.type_id   = htons(0x0009);
-    hg->time_sec.data = htons(rcinfo->time_sec);
+    hg->time_sec.data = htonl(rcinfo->time_sec);
     hg->time_sec.chunk.length = htons(sizeof(hg->time_sec));
     
 
     /* TIMESTAMP USEC */
     hg->time_usec.chunk.vendor_id = htons(0x0000);
     hg->time_usec.chunk.type_id   = htons(0x000a);
-    hg->time_usec.data = htons(rcinfo->time_usec);
+    hg->time_usec.data = htonl(rcinfo->time_usec);
     hg->time_usec.chunk.length = htons(sizeof(hg->time_usec));
     
     /* Protocol TYPE */
@@ -155,7 +155,7 @@ int send_hepv3 (rc_info_t *rcinfo, unsigned char *data, unsigned int len) {
     /* Capture ID */
     hg->capt_id.chunk.vendor_id = htons(0x0000);
     hg->capt_id.chunk.type_id   = htons(0x000c);
-    hg->capt_id.data = htons(0x0001);
+    hg->capt_id.data = htonl(0x0001);
     hg->capt_id.chunk.length = htons(sizeof(hg->capt_id));
 
     /* Payload */
