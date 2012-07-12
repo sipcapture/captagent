@@ -199,13 +199,7 @@ int dump_proto_packet(struct pcap_pkthdr *pkthdr, u_char *packet, uint8_t proto,
                 return -1;
         }
 
-
-        if(!isalpha(data[0])) {
-                //printf("SIP the message is too small 2: %d\n", len);
-                return -1;
-        }
-
-	//printf("SIP: [%.*s]\n", len, data);
+  //printf("SIP: [%.*s]\n", len, data);
 
 	rcinfo = malloc(sizeof(rc_info_t));
 	memset(rcinfo, 0, sizeof(rc_info_t));
