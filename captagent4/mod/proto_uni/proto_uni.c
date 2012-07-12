@@ -267,6 +267,50 @@ void* proto_collect( void* device ) {
                 fprintf(stderr,"Failed to install filter: %s\n", pcap_geterr(sniffer_proto));
                 return NULL;
         }
+        
+        /* detect link_offset. Thanks ngrep for this. */
+        switch(pcap_datalink(sniffer_proto)) {
+                case DLT_EN10MB:
+                    link_offset = ETHHDR_SIZE;
+                    break;
+
+                case DLT_IEEE802:
+                    link_offset = TOKENRING_SIZE;
+                    break;
+
+                case DLT_FDDI:
+                    link_offset = FDDIHDR_SIZE;
+                    break;
+
+                case DLT_SLIP:
+                    link_offset = SLIPHDR_SIZE;
+                    break;
+
+                case DLT_PPP:
+                    link_offset = PPPHDR_SIZE;
+                    break;
+
+                case DLT_LOOP:
+                case DLT_NULL:
+                    link_offset = LOOPHDR_SIZE;
+                    break;
+
+                case DLT_RAW:
+                    link_offset = RAWHDR_SIZE;
+                    break;
+
+                case DLT_LINUX_SLL:
+                    link_offset = ISDNHDR_SIZE;
+                    break;
+
+                case DLT_IEEE802_11:
+                    link_offset = IEEE80211HDR_SIZE;
+                    break;
+
+                default:
+                    fprintf(stderr, "fatal: unsupported interface type %u\n", pcap_datalink(sniffer_proto));
+                    exit(-1);
+        }
 
         while (pcap_loop(sniffer_proto, 0, (pcap_handler)callback_proto, 0));
 
