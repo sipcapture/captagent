@@ -1,5 +1,4 @@
 
-
 #define FILTER_LEN 4080
 
 /* SYNC this list: http://hep.sipcapture.org */
@@ -23,6 +22,16 @@ char *ip_proto = NULL;
 int proto_type = PROTO_SIP; /* DEFAULT SIP */
 int promisc = 1;
 
+/* header offsets */
+#define ETHHDR_SIZE 14
+#define TOKENRING_SIZE 22
+#define PPPHDR_SIZE 4
+#define SLIPHDR_SIZE 16
+#define RAWHDR_SIZE 0
+#define LOOPHDR_SIZE 4
+#define FDDIHDR_SIZE 21
+#define ISDNHDR_SIZE 16
+#define IEEE80211HDR_SIZE 32
 
 
           
