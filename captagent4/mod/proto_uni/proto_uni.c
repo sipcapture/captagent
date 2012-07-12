@@ -1,4 +1,3 @@
-
 #include <stdio.h>
 #include <string.h>
 #include <errno.h>
@@ -188,6 +187,18 @@ int dump_proto_packet(struct pcap_pkthdr *pkthdr, u_char *packet, uint8_t proto,
                 //printf("SIP the message is too small: %d\n", len);
                 return -1;
         }
+
+        /* SIP must have alpha */
+        if(proto_type == PROTO_SIP && !isalpha(data[0])) {
+                //printf("BAD SIP message: %d\n", len);
+                return -1;
+        }
+        /* gingle XMPP */
+        if(proto_type == PROTO_XMPP && memcmp("<iq", data, 3)) {
+                //printf("It's not a GINGLE call: %d\n", len);
+                return -1;
+        }
+
 
         if(!isalpha(data[0])) {
                 //printf("SIP the message is too small 2: %d\n", len);
