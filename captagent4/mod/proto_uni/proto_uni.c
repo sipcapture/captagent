@@ -362,13 +362,13 @@ int load_module(xml_node *config)
 
                         }
 
-                        if(!strncmp(key, "dev", 3)) usedev = value;
-                        else if(!strncmp(key, "port", 4)) port = atoi(value);
+                        if(!strncmp(key, "dev", 3)) usedev = value;                        
                         else if(!strncmp(key, "ip-proto", 8)) ip_proto = value;
                         else if(!strncmp(key, "proto-type", 10)) local_pt = value;
                         else if(!strncmp(key, "portrange", 9)) portrange = value;
                         else if(!strncmp(key, "promisc", 7) && !strncmp(value, "false", 5)) promisc = 0;
                         else if(!strncmp(key, "filter", 6)) userfilter = value;
+                        else if(!strncmp(key, "port", 4)) port = atoi(value);
                 }
 next:
 
