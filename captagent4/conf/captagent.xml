@@ -21,10 +21,10 @@
 	
 	<configuration name="core_hep.conf" description="HEP Socket">
 	  <settings>
-	    <param name="version" value="3"/>
+	    <param name="version" value="2"/>
 	    <param name="capture-host" value="capture.homercloud.org"/>
-	    <param name="capture-port" value="9000"/>
-	    <param name="capture-proto" value="tcp"/>
+	    <param name="capture-port" value="9000"/>      
+	    <param name="capture-proto" value="udp"/>
 	    <param name="capture-id" value="2001"/>
 	    <param name="capture-password" value="myHep"/>
 	  </settings>
@@ -36,6 +36,7 @@
 	  <settings>
 	    <param name="port" value="5060"/>
 	    <!-- <param name="portrange" value="5060-5090"/> -->
+       <!-- use -D flag for pcap import -->
 	    <param name="dev"  value="eth0"/>
 	    <param name="promisc" value="true"/>
 	    <param name="ip-proto" value="udp"/>
