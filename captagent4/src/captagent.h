@@ -1,5 +1,4 @@
 
-
 #define VERSION "4.0.1a"
 #define DEFAULT_CONFIG "/usr/local/etc/captagent/captagent.xml"
 #define DEFAULT_PIDFILE  "/var/run/captagent.pid"
@@ -12,4 +11,4 @@ int core_config (xml_node *config);
 
 int nofork = 1;
 int debug_level = 1;
-
+char *usefile = NULL;
