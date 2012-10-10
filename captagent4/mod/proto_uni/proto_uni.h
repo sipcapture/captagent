@@ -47,6 +47,9 @@ char *ip_proto = NULL;
 int proto_type = PROTO_SIP; /* DEFAULT SIP */
 int promisc = 1;
 
+extern char* usefile;
+extern int handler(int value);
+
 /* header offsets */
 #define ETHHDR_SIZE 14
 #define TOKENRING_SIZE 22
@@ -57,11 +60,8 @@ int promisc = 1;
 #define FDDIHDR_SIZE 21
 #define ISDNHDR_SIZE 16
 #define IEEE80211HDR_SIZE 32
-
-
-          
+         
 int load_module(xml_node *config);
-void handler(int value);
 
 int dump_proto_packet(struct pcap_pkthdr *, u_char *, uint8_t, unsigned char *, uint32_t,const char *,
             const char *, uint16_t, uint16_t, uint8_t,uint16_t, uint8_t, uint16_t, uint32_t, uint32_t);
