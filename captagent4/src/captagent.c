@@ -184,6 +184,7 @@ void usage(int8_t e) {
            "   -h  is help/usage\n"
            "   -v  is version information\n"
            "   -f  is the config file\n"
+           "   -D  is use specified pcap file instead of a device from the config\n"
            "   -c  is checkout\n"
            "");
         exit(e);
@@ -210,7 +211,10 @@ int main( int argc, char *argv[] ) {
                                 break;
 			case 'c':
                         	checkout = 1;
-                                break;                                
+                                break;      
+       case 'D':
+                                usefile = optarg;
+                                break;                         
                                 
 			default:
                                 abort();
