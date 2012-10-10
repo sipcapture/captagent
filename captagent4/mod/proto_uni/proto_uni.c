@@ -257,11 +257,16 @@ void* proto_collect( void* device ) {
         char filter_port[100], filter_proto[100], filter_user[800];
         uint16_t snaplen = 65535, timeout = 100;        
 
-
-
-        if((sniffer_proto = pcap_open_live((char *)device, snaplen, promisc, timeout, errbuf)) == NULL) {
+        if(device) {
+            if((sniffer_proto = pcap_open_live((char *)device, snaplen, promisc, timeout, errbuf)) == NULL) {
                 fprintf(stderr,"Failed to open packet sniffer on %s: pcap_open_live(): %s\n", (char *)device, errbuf);
                 return NULL;
+            }
+        } else  {
+            if((sniffer_proto = pcap_open_offline(usefile, errbuf)) == NULL) {
+                fprintf(stderr,"Failed to open packet sniffer on %s: pcap_open_offline(): %s\n", usefile, errbuf);
+                return NULL;
+            }
         }
 
 
@@ -339,6 +344,10 @@ void* proto_collect( void* device ) {
 
         while (pcap_loop(sniffer_proto, 0, (pcap_handler)callback_proto, 0));
 
+
+        /* terminate from here */
+        handler(1);
+
         return NULL;
 }
 
@@ -356,7 +365,7 @@ int unload_module(void)
 
 int load_module(xml_node *config)
 {
-        char *dev, *usedev = NULL;
+        char *dev = NULL, *usedev = NULL;
         char errbuf[PCAP_ERRBUF_SIZE];                                
         xml_node *modules;
         char *key, *value = NULL, *local_pt = NULL;
@@ -400,13 +409,15 @@ next:
                 modules = modules->next;
         }
 
-        dev = usedev ? usedev : pcap_lookupdev(errbuf);                
-
-        if (!dev) {
-                perror(errbuf);
-                return -1;
-        }                                           
-
+        /* DEV || FILE */
+        if(!usefile) {
+          dev = usedev ? usedev : pcap_lookupdev(errbuf);
+          if (!dev) {
+              perror(errbuf);
+              exit(-1);
+          }
+        }
+       
         if(port == 0 && portrange == NULL) {        
                 fprintf(stderr, "bad port or portranges in the config\n");
                 return -1;
