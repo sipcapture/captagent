@@ -404,6 +404,7 @@ int load_module(xml_node *config)
         //struct addrinfo *ai, hints[1] = {{ 0 }};
         struct addrinfo hints[1] = {{ 0 }};
         char *key, *value;
+        int s;
 
 	/* READ CONFIG */
 	modules = config;
@@ -460,8 +461,8 @@ next:
             return -1;
         }
 
-        if (getaddrinfo(capt_host, capt_port, hints, &ai)) {
-            fprintf(stderr,"capture: getaddrinfo() error");
+        if ((s = getaddrinfo(capt_host, capt_port, hints, &ai)) != 0) {            
+            fprintf(stderr, "capture: getaddrinfo: %s\n", gai_strerror(s));
             return 2;
         }
 
