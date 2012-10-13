@@ -198,7 +198,7 @@ int main( int argc, char *argv[] ) {
     const char **attr, **attr_mod;
     int i = 0, y = 0, c, checkout = 0;
 
-    while((c=getopt(argc, argv, "cvhfD:"))!=EOF) {
+    while((c=getopt(argc, argv, "cvhf:D:"))!=EOF) {
                 switch(c) {
                         case 'v':
 				printf("version: %s\n", VERSION);
