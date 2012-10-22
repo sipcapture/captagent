@@ -28,6 +28,7 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <sys/types.h>
+#include <sys/ioctl.h>
 #include <ctype.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
@@ -216,7 +217,6 @@ int send_hepv3 (rc_info_t *rcinfo, unsigned char *data, unsigned int len) {
       /* IPv6 */
     else if(rcinfo->ip_family == AF_INET6) {
         /* SRC IPv6 */
-        
         memcpy((void*) buffer+buflen, &src_ip4, sizeof(struct hep_chunk_ip6));
         buflen += sizeof(struct hep_chunk_ip6);
         
@@ -403,6 +403,46 @@ int unload_module(void)
 }
 
 
+void  select_loop (void)
+{
+	int n = 0;
+	int initfails = 0;
+	fd_set readfd;
+	time_t curtime = NULL, prevtime = NULL;
+	printf("select loop\n");
+
+	prevtime = time(NULL);
+	FD_ZERO(&readfd);
+	FD_SET(sock, &readfd);
+	while (1){
+		if (select(sock+1, &readfd, 0, 0, NULL) < 0){
+			perror("select failed\n");
+			handler(1);
+		}
+		printf("after select\n");
+		if (FD_ISSET(sock, &readfd)){
+			ioctl(sock, FIONREAD, &n);
+			printf("n =%d\n",n);
+			if (n == 0){
+				/* server disconnected*/
+		        if(init_hepsocket()) {
+		        	initfails++;
+		        }
+		        if (initfails > 10)
+		        {
+		        	time_t curtime = time (NULL);
+		        	if (curtime - prevtime < 2){
+		        		fprintf(stderr, "HEP server is down... retrying after sleep...\n");
+		        		sleep(2);
+		        	}
+		            initfails=0;
+		            prevtime = curtime;
+		        }
+			}
+		}
+	}
+}
+
 int load_module(xml_node *config)
 {
 	xml_node *modules;
@@ -476,6 +516,9 @@ next:
             return 2;            
         }
         
+        // start select thread
+        pthread_create(&call_thread, NULL, select_loop, NULL);
+
         return 0;
 }
 
