@@ -352,7 +352,7 @@ int send_hepv2 (rc_info_t *rcinfo, unsigned char *data, unsigned int len) {
      }
 
      /* send this packet out of our socket */
-     if(!send_data(buffer, buflen)) {
+     if(send_data(buffer, buflen)) {
         errors++;    
      }
 
@@ -370,19 +370,24 @@ error:
 int send_data (void *buf, unsigned int len) {
 
 	/* send this packet out of our socket */
-	if(send(sock, buf, len, MSG_NOSIGNAL) == -1) {
-		//fprintf(stderr, "couldnot send data [%d]\n");		
-				
+	if((send(sock, buf, len, MSG_NOSIGNAL )) == -1) {
+		//fprintf(stderr, "couldnot send data [%d]\n");
 		if(init_hepsocket()) {
 	            fprintf(stderr,"capture: couldn't re-init socket");
         	    return -1;
-	        }	        
-		
-		/* RESET ERRORS COUNTER */
-		return 0;
-	}	
+	        }
+		else {
+			/*retry sending the message*/
+			if (send(sock, buf, len, MSG_NOSIGNAL) == -1) {
+				return -2;
+			}
+			/* RESET ERRORS COUNTER */
+			return 0;
+		}
+	}
 
-	return 1;
+	/* RESET ERRORS COUNTER */
+	return 0;
 }
 
 int unload_module(void)
