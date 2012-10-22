@@ -491,9 +491,13 @@ int init_hepsocket (void) {
              return 1;
     }
 
-    mode = fcntl(sock, F_GETFL, 0);
-    mode |= O_NDELAY | O_NONBLOCK;
-    fcntl(sock, F_SETFL, mode);
+
+    if(!strncmp(capt_proto, "udp", 3)) {
+        mode = fcntl(sock, F_GETFL, 0);
+        mode |= O_NDELAY | O_NONBLOCK;
+        fcntl(sock, F_SETFL, mode);
+    }
+
 
     if (connect(sock, ai->ai_addr, (socklen_t)(ai->ai_addrlen)) == -1) {
             if (errno != EINPROGRESS) {
