@@ -409,7 +409,6 @@ void  select_loop (void)
 	int initfails = 0;
 	fd_set readfd;
 	time_t curtime = NULL, prevtime = NULL;
-	printf("select loop\n");
 
 	prevtime = time(NULL);
 	FD_ZERO(&readfd);
@@ -419,10 +418,8 @@ void  select_loop (void)
 			perror("select failed\n");
 			handler(1);
 		}
-		printf("after select\n");
 		if (FD_ISSET(sock, &readfd)){
 			ioctl(sock, FIONREAD, &n);
-			printf("n =%d\n",n);
 			if (n == 0){
 				/* server disconnected*/
 		        if(init_hepsocket()) {
