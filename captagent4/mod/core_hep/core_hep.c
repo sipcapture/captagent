@@ -56,8 +56,9 @@
 #include "src/api.h"
 #include "core_hep.h"
 
-
+static int count = 0;
 pthread_t call_thread;   
+pthread_mutex_t lock;
 
 int send_hep_basic (rc_info_t *rcinfo, unsigned char *data, unsigned int len) {
 
@@ -234,14 +235,14 @@ int send_hepv3 (rc_info_t *rcinfo, unsigned char *data, unsigned int len) {
     buflen+=len;    
 
     /* make sleep after 100 erors*/
-    if(errors > 100) {
-        fprintf(stderr, "HEP server is down... retrying after sleep...\n");
-        sleep(2);
-        errors=0;
-    }
+ //   if(errors > 100) {
+  //      fprintf(stderr, "HEP server is down... retrying after sleep...\n");
+  //      sleep(2);
+  //      errors=0;
+  //  }
 
     /* send this packet out of our socket */
-    if(!send_data(buffer, buflen)) {
+    if(send_data(buffer, buflen)) {
         errors++;    
     }
 
@@ -345,16 +346,19 @@ int send_hepv2 (rc_info_t *rcinfo, unsigned char *data, unsigned int len) {
      buflen +=len;
 
      /* make sleep after 100 erors*/
-     if(errors > 100) {
-        fprintf(stderr, "HEP server is down... retrying after sleep...\n");
-        sleep(2);
-        errors=0;
-     }
+     //if(errors > 100) {
+     //   fprintf(stderr, "HEP server is down... retrying after sleep...\n");
+     //   sleep(2);
+      //  errors=0;
+    // }
 
+     pthread_mutex_lock(&lock);
      /* send this packet out of our socket */
      if(send_data(buffer, buflen)) {
         errors++;    
      }
+
+     pthread_mutex_unlock(&lock);
 
      /* FREE */
      if(buffer) free(buffer);
@@ -370,22 +374,25 @@ error:
 int send_data (void *buf, unsigned int len) {
 
 	/* send this packet out of our socket */
-	if((send(sock, buf, len, MSG_NOSIGNAL )) == -1) {
-		//fprintf(stderr, "couldnot send data [%d]\n");
-		if(init_hepsocket()) {
-	            fprintf(stderr,"capture: couldn't re-init socket");
-        	    return -1;
-	        }
-		else {
-			/*retry sending the message*/
-			if (send(sock, buf, len, MSG_NOSIGNAL) == -1) {
-				return -2;
-			}
-			/* RESET ERRORS COUNTER */
-			return 0;
-		}
-	}
+	int r = 0;
+	void * p = buf;
+	int sentbytes = 0;
 
+	while (sentbytes < len){
+		if( ((r = send(sock, p, len - sentbytes, MSG_NOSIGNAL | MSG_DONTWAIT )) == -1) && (errno != EWOULDBLOCK ) && (errno != EAGAIN)) {
+			printf("send error\n");
+			
+			return -1;
+		}
+		if (r != len - sentbytes)
+			printf("send:multiple calls\n");
+
+		sentbytes += r;
+		p += r;
+
+
+	}
+	count++;
 	/* RESET ERRORS COUNTER */
 	return 0;
 }
@@ -394,9 +401,11 @@ int unload_module(void)
 {
         printf("unloaded module\n");
 
+        printf("count sends:%d\n", count);
 	 /* Close socket */
         close(sock);
         
+        pthread_mutex_destroy(&lock);
         //pthread_join(call_thread, NULL);
                 
         return 0;
@@ -429,8 +438,10 @@ void  select_loop (void)
 		        {
 		        	time_t curtime = time (NULL);
 		        	if (curtime - prevtime < 2){
+		        		pthread_mutex_lock(&lock);
 		        		fprintf(stderr, "HEP server is down... retrying after sleep...\n");
 		        		sleep(2);
+		        		pthread_mutex_unlock(&lock);
 		        	}
 		            initfails=0;
 		            prevtime = curtime;
@@ -516,6 +527,12 @@ next:
         // start select thread
         pthread_create(&call_thread, NULL, select_loop, NULL);
 
+        if (pthread_mutex_init(&lock, NULL) != 0)
+        {
+            fprintf(stderr,"mutex init failed\n");
+            return 3;
+        }
+
         return 0;
 }
 
@@ -532,11 +549,11 @@ int init_hepsocket (void) {
     }
 
 
-    if(!strncmp(capt_proto, "udp", 3)) {
         mode = fcntl(sock, F_GETFL, 0);
         mode |= O_NDELAY | O_NONBLOCK;
         fcntl(sock, F_SETFL, mode);
-    }
+
+
 
 
     if (connect(sock, ai->ai_addr, (socklen_t)(ai->ai_addrlen)) == -1) {
