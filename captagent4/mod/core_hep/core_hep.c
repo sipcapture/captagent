@@ -379,13 +379,12 @@ int send_data (void *buf, unsigned int len) {
 	int sentbytes = 0;
 
 	while (sentbytes < len){
-		if( ((r = send(sock, p, len - sentbytes, MSG_NOSIGNAL | MSG_DONTWAIT )) == -1) && (errno != EWOULDBLOCK ) && (errno != EAGAIN)) {
+		if( (r = send(sock, p, len - sentbytes, MSG_NOSIGNAL )) == -1) {
 			printf("send error\n");
-			
 			return -1;
 		}
 		if (r != len - sentbytes)
-			printf("send:multiple calls\n");
+			printf("send:multiple calls: %d\n", r);
 
 		sentbytes += r;
 		p += r;
@@ -549,9 +548,9 @@ int init_hepsocket (void) {
     }
 
 
-        mode = fcntl(sock, F_GETFL, 0);
-        mode |= O_NDELAY | O_NONBLOCK;
-        fcntl(sock, F_SETFL, mode);
+     //   mode = fcntl(sock, F_GETFL, 0);
+    //    mode |= O_NDELAY | O_NONBLOCK;
+   //     fcntl(sock, F_SETFL, mode);
 
 
 
