@@ -91,6 +91,7 @@ int send_hepv3 (rc_info_t *rcinfo, unsigned char *data, unsigned int len) {
     hep_chunk_ip6_t src_ip6, dst_ip6;    
 #endif            
     hep_chunk_t payload_chunk;
+    hep_chunk_t authkey_chunk;
     static int errors = 0;
 
     hg = malloc(sizeof(struct hep_generic));
