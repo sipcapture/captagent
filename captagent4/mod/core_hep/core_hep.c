@@ -85,7 +85,7 @@ int send_hepv3 (rc_info_t *rcinfo, unsigned char *data, unsigned int len) {
 
     struct hep_generic *hg=NULL;
     void* buffer;
-    unsigned int buflen=0, iplen=0;
+    unsigned int buflen=0, iplen=0,tlen=0;
     hep_chunk_ip4_t src_ip4, dst_ip4;
 #ifdef USE_IPV6
     hep_chunk_ip6_t src_ip6, dst_ip6;    
@@ -189,13 +189,26 @@ int send_hepv3 (rc_info_t *rcinfo, unsigned char *data, unsigned int len) {
     payload_chunk.vendor_id = htons(0x0000);
     payload_chunk.type_id   = htons(0x000f);
     payload_chunk.length    = htons(sizeof(payload_chunk) + len);
-   
+    
+    tlen = sizeof(struct hep_generic) + len + iplen + sizeof(hep_chunk_t);
+
+    /* auth key */
+    if(capt_password != NULL) {
+
+          tlen += sizeof(hep_chunk_t);
+          /* Auth key */
+          authkey_chunk.vendor_id = htons(0x0000);
+          authkey_chunk.type_id   = htons(0x000e);
+          authkey_chunk.length    = htons(sizeof(authkey_chunk) + strlen(capt_password));
+          tlen += strlen(capt_password);
+    }
+
     /* total */
-    hg->header.length = htons(sizeof(struct hep_generic) + len + iplen + sizeof(hep_chunk_t));
+    hg->header.length = htons(tlen);
 
     //fprintf(stderr, "LEN: [%d] vs [%d] = IPLEN:[%d] LEN:[%d] CH:[%d]\n", hg->header.length, ntohs(hg->header.length), iplen, len, sizeof(struct hep_chunk));
 
-    buffer = (void*)malloc(sizeof(struct hep_generic) + sizeof(struct hep_chunk) + len + iplen);
+    buffer = (void*)malloc(tlen);
     if (buffer==0){
         fprintf(stderr,"ERROR: out of memory\n");
         free(hg);
@@ -225,6 +238,17 @@ int send_hepv3 (rc_info_t *rcinfo, unsigned char *data, unsigned int len) {
         buflen += sizeof(struct hep_chunk_ip6);
     }
 #endif
+
+    /* AUTH KEY CHUNK */
+    if(capt_password != NULL) {
+
+        memcpy((void*) buffer+buflen, &authkey_chunk,  sizeof(struct hep_chunk));
+        buflen += sizeof(struct hep_chunk);
+
+        /* Now copying payload self */
+        memcpy((void*) buffer+buflen, capt_password, strlen(capt_password));
+        buflen+=strlen(capt_password);
+    }
 
     /* PAYLOAD CHUNK */
     memcpy((void*) buffer+buflen, &payload_chunk,  sizeof(struct hep_chunk));
