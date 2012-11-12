@@ -52,6 +52,7 @@
 #endif /* USE_IPV6 */
 
 #include <pcap.h>
+#include <zlib.h>
 
 #include "src/api.h"
 #include "core_hep.h"
@@ -59,13 +60,39 @@
 static int count = 0;
 pthread_t call_thread;   
 pthread_mutex_t lock;
+z_stream strm;
+
 
 int send_hep_basic (rc_info_t *rcinfo, unsigned char *data, unsigned int len) {
+
+	unsigned char *zipData = NULL;
+        unsigned long dlen;
+        int status = 0, sendzip = 0;
+
+        if(pl_compress && hep_version == 3) {
+                //dlen = len/1000+len*len+13;
+
+                dlen = compressBound(len);
+
+                zipData  = malloc(dlen); /* give a little bit memmory */
+
+                /* do compress */
+                status = compress( zipData, &dlen, data, len );
+                if( status != Z_OK ){
+                      fprintf(stderr, "data couldn't be compressed\n");
+                      sendzip = 0;
+                      if(zipData) free(zipData); /* release */
+                }                   
+                else {              
+                        sendzip = 1;
+                        len = dlen;
+                }
+        }
 
         switch(hep_version) {
         
             case 3:
-                return send_hepv3(rcinfo, data, len);
+		return send_hepv3(rcinfo, sendzip  ? zipData : data , len, sendzip);
                 break;
                 
             case 2:            
@@ -77,11 +104,13 @@ int send_hep_basic (rc_info_t *rcinfo, unsigned char *data, unsigned int len) {
                 fprintf(stderr, "Unsupported HEP version [%d]\n", hep_version);                
                 break;
         }
+
+	if(zipData) free(zipData);
         
         return 0;
 }
 
-int send_hepv3 (rc_info_t *rcinfo, unsigned char *data, unsigned int len) {
+int send_hepv3 (rc_info_t *rcinfo, unsigned char *data, unsigned int len, unsigned int sendzip) {
 
     struct hep_generic *hg=NULL;
     void* buffer;
@@ -188,7 +217,7 @@ int send_hepv3 (rc_info_t *rcinfo, unsigned char *data, unsigned int len) {
 
     /* Payload */
     payload_chunk.vendor_id = htons(0x0000);
-    payload_chunk.type_id   = htons(0x000f);
+    payload_chunk.type_id   = sendzip ? htons(0x0010) : htons(0x000f);
     payload_chunk.length    = htons(sizeof(payload_chunk) + len);
     
     tlen = sizeof(struct hep_generic) + len + iplen + sizeof(hep_chunk_t);
@@ -512,6 +541,7 @@ int load_module(xml_node *config)
                         else if(!strncmp(key, "capture-proto", 14)) capt_proto = value;
                         else if(!strncmp(key, "capture-password", 17)) capt_password = value;
                         else if(!strncmp(key, "capture-id", 11)) capt_id = atoi(value);
+                        else if(!strncmp(key, "payload-compression", 19) && !strncmp(value, "true", 5)) pl_compress = 1;
                         else if(!strncmp(key, "version", 7)) hep_version = atoi(value);
                                 	                	                	
 		}
