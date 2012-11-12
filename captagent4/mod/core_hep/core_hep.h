@@ -41,12 +41,13 @@ char *capt_proto = "udp";
 char *capt_password;
 int   capt_id = 101;
 int hep_version = 3;
-
+int usessl = 0;
+int pl_compress = 0;
 
 int load_module(xml_node *config);
 void handler(int value);
 
-int send_hepv3 (rc_info_t *rcinfo, unsigned char *data, unsigned int len);
+int send_hepv3 (rc_info_t *rcinfo, unsigned char *data, unsigned int len, unsigned int sendzip);
 int send_hepv2 (rc_info_t *rcinfo, unsigned char *data, unsigned int len);
 int send_data (void *buf, unsigned int len);
 
