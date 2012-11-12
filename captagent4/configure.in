@@ -41,9 +41,11 @@ AC_CHECK_LIB(pthread, pthread_create, , [AC_MSG_ERROR([captagent requires but ca
 AC_CHECK_LIB(dl, dlopen, , [AC_MSG_ERROR([captagent requires but cannot find libdl])])
 AC_CHECK_LIB(expat, XML_ParserCreate, , [AC_MSG_ERROR([captagent requires but cannot find libexpat])])
 AC_CHECK_LIB(pcap, pcap_open_live, ,[AC_CHECK_LIB(wpcap, pcap_open_live, ,[AC_MSG_ERROR([captagent requires but cannot find libpcap])])])
+AC_CHECK_LIB(z, inflate, , [AC_MSG_ERROR([captagent requires but cannot find lz])])
 
 # Checks for header files.
 AC_CHECK_HEADERS([pcap.h],,[AC_MSG_ERROR([captagent cannot find pcap.h])])
+AC_CHECK_HEADERS([zlib.h],,[AC_MSG_ERROR([captagent cannot find zlib.h])])
 AC_CHECK_HEADERS([arpa/inet.h fcntl.h netdb.h stdlib.h string.h sys/socket.h unistd.h])
 
 # Checks for typedefs, structures, and compiler characteristics.
