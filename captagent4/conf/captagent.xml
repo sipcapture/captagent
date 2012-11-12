@@ -21,12 +21,13 @@
 	
 	<configuration name="core_hep.conf" description="HEP Socket">
 	  <settings>
-	    <param name="version" value="2"/>
+	    <param name="version" value="3"/>
 	    <param name="capture-host" value="capture.homercloud.org"/>
 	    <param name="capture-port" value="9000"/>      
 	    <param name="capture-proto" value="udp"/>
 	    <param name="capture-id" value="2001"/>
 	    <param name="capture-password" value="myHep"/>
+      <param name="payload-compression" value="false" />
 	  </settings>
 	</configuration>	
 
