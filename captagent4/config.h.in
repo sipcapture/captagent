@@ -1,4 +1,4 @@
-/* config.h.in.  Generated from configure.in by autoheader.  */
+/* config.h.in.  Generated from configure.ac by autoheader.  */
 
 /* Define to 1 if you have the <arpa/inet.h> header file. */
 #undef HAVE_ARPA_INET_H
@@ -127,6 +127,12 @@
 
 /* Define to 1 if you have the ANSI C header files. */
 #undef STDC_HEADERS
+
+/* Use OpenSSL SSL library */
+#undef USE_SSL
+
+/* Use ZIP library */
+#undef USE_ZLIB
 
 /* Version number of package */
 #undef VERSION

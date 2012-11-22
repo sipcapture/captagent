@@ -186,6 +186,7 @@ void usage(int8_t e) {
            "   -f  is the config file\n"
            "   -D  is use specified pcap file instead of a device from the config\n"
            "   -c  is checkout\n"
+           "   -d  is daemon mode\n"
            "");
         exit(e);
 }
@@ -198,7 +199,7 @@ int main( int argc, char *argv[] ) {
     const char **attr, **attr_mod;
     int i = 0, y = 0, c, checkout = 0;
 
-    while((c=getopt(argc, argv, "cvhf:D:"))!=EOF) {
+    while((c=getopt(argc, argv, "dcvhf:D:"))!=EOF) {
                 switch(c) {
                         case 'v':
 				printf("version: %s\n", VERSION);
@@ -206,6 +207,9 @@ int main( int argc, char *argv[] ) {
 			case 'f':
 				file = optarg;
                                 break;
+			case 'd':
+				nofork = 0;
+                                break;                                
 			case 'h':
                         	usage(0);
                                 break;
@@ -329,7 +333,7 @@ int core_config (xml_node *config)
                         }
 
                         if(!strncmp(key, "debug", 5)) debug_level = atoi(value);
-                        else if(!strncmp(key, "daemon", 6) && !strncmp(value, "true", 5)) nofork = 0;
+                        else if(!strncmp(key, "daemon", 6) && !strncmp(value, "true", 5) && nofork == 1) nofork = 0;
                         else if(!strncmp(key, "path", 4)) module_path = value;
                 }
 next:

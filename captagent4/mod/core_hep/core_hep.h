@@ -25,6 +25,7 @@
 
 #define USE_IPV6
 
+#include "../../config.h"
 #include <netinet/ip.h>
 #include <netinet/tcp.h>
 #include <netinet/udp.h>

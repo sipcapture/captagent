@@ -3,7 +3,25 @@
 
 AC_PREREQ([2.61])
 
-AC_INIT([captagent], [trunk], [https://www.sipcapture.org])
+AC_INIT([captagent], [trunk], [http://www.sipcapture.org])
+
+AC_MSG_CHECKING([whether to use compression])
+AC_ARG_ENABLE(compression,
+   [  --enable-compression	Enable compression support)],
+   [ZLIB="$enableval"],
+   [ZLIB="no"]
+)
+AC_MSG_RESULT([$ZLIB])
+AC_SUBST([ZLIB])
+
+AC_MSG_CHECKING([whether to use ssl])
+AC_ARG_ENABLE(ssl,
+   [  --enable-ssl	Enable SSL support)],
+   [SSL="$enableval"],
+   [SSL="no"]
+)
+AC_MSG_RESULT([$SSL])
+AC_SUBST([SSL])
 
 AC_CONFIG_SRCDIR([src/captagent.c])
 
@@ -16,8 +34,6 @@ AC_CONFIG_HEADERS([config.h])
 
 CONFIG_CFLAGS="${CFLAGS}"
 CONFIG_LDFLAGS="${LDFLAGS}"
-
-AC_PROG_LIBTOOL
 
 MODULES='$$(grep -v "\#" $(captagent_builddir)/modules.list | sed -e "s|^.*/||" | sort | uniq )'
 AM_MAKEFLAGS='"OUR_MODULES=$(MODULESS)" `test -n "$(VERBOSE)" || echo -s`'
@@ -34,18 +50,42 @@ AC_PROG_CC([gcc cc])
 AC_PROG_INSTALL
 AC_PROG_LN_S
 AC_PROG_MAKE_SET
-AC_PROG_RANLIB
+AC_LIBTOOL_DLOPEN
+AC_PROG_LIBTOOL
+
 
 # Checks for libraries.
 AC_CHECK_LIB(pthread, pthread_create, , [AC_MSG_ERROR([captagent requires but cannot find pthread])])
 AC_CHECK_LIB(dl, dlopen, , [AC_MSG_ERROR([captagent requires but cannot find libdl])])
 AC_CHECK_LIB(expat, XML_ParserCreate, , [AC_MSG_ERROR([captagent requires but cannot find libexpat])])
 AC_CHECK_LIB(pcap, pcap_open_live, ,[AC_CHECK_LIB(wpcap, pcap_open_live, ,[AC_MSG_ERROR([captagent requires but cannot find libpcap])])])
-AC_CHECK_LIB(z, inflate, , [AC_MSG_ERROR([captagent requires but cannot find lz])])
+
+dnl
+dnl check for compression library
+dnl
+   
+if test "$ZLIB" = "yes"; then
+   AC_CHECKING([for zip Library and Header files])
+   AC_CHECK_HEADER(zlib.h,,[AC_MSG_ERROR([zlib.h headers not found.])])
+   AC_CHECK_LIB(z, inflate, [ LIBS="${LIBS} -lz" ], [AC_MSG_ERROR([captagent requires but cannot find lz])])
+   AC_DEFINE(USE_ZLIB, 1, [Use ZIP library])
+fi
+
+
+dnl
+dnl check for OpenSSL-SSL library
+dnl
+
+if test "$SSL" = "yes"; then
+   AC_CHECKING([for OpenSSL SSL Library and Header files])
+   AC_CHECK_HEADER(openssl/ssl.h,, [AC_MSG_ERROR([OpenSSL SSL headers not found.])])	
+   AC_CHECK_LIB(ssl, SSL_accept, [ LIBS="${LIBS} -lssl" ], [AC_MSG_ERROR([captagent requires but cannot find ssl])])
+   AC_DEFINE(USE_SSL, 1, [Use OpenSSL SSL library])
+fi
+
 
 # Checks for header files.
 AC_CHECK_HEADERS([pcap.h],,[AC_MSG_ERROR([captagent cannot find pcap.h])])
-AC_CHECK_HEADERS([zlib.h],,[AC_MSG_ERROR([captagent cannot find zlib.h])])
 AC_CHECK_HEADERS([arpa/inet.h fcntl.h netdb.h stdlib.h string.h sys/socket.h unistd.h])
 
 # Checks for typedefs, structures, and compiler characteristics.

@@ -52,15 +52,21 @@
 #endif /* USE_IPV6 */
 
 #include <pcap.h>
-#include <zlib.h>
 
 #include "src/api.h"
 #include "core_hep.h"
 
+#ifdef USE_ZLIB
+#include <zlib.h>
+#endif /* USE_ZLIB */
+
 static int count = 0;
 pthread_t call_thread;   
 pthread_mutex_t lock;
+
+#ifdef USE_ZLIB
 z_stream strm;
+#endif /* USE_ZLIB */
 
 
 int send_hep_basic (rc_info_t *rcinfo, unsigned char *data, unsigned int len) {
@@ -68,6 +74,8 @@ int send_hep_basic (rc_info_t *rcinfo, unsigned char *data, unsigned int len) {
 	unsigned char *zipData = NULL;
         unsigned long dlen;
         int status = 0, sendzip = 0;
+
+#ifdef USE_ZLIB
 
         if(pl_compress && hep_version == 3) {
                 //dlen = len/1000+len*len+13;
@@ -88,6 +96,8 @@ int send_hep_basic (rc_info_t *rcinfo, unsigned char *data, unsigned int len) {
                         len = dlen;
                 }
         }
+
+#endif /* USE_ZLIB */
 
         switch(hep_version) {
         
@@ -549,6 +559,11 @@ next:
 		
                 modules = modules->next;
 	}
+
+#ifndef USE_ZLIB   
+    if(pl_compress) printf("The captagent has not compiled with zlib. Please reconfigure with --enable-compression\n");    
+#endif /* USE_ZLIB */
+
 
         printf("Loaded load_module\n");
                                            
