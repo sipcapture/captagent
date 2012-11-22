@@ -34,16 +34,35 @@
 #include <netinet/ip6.h>
 #endif /* USE_IPV6 */
 
+
+#ifdef USE_ZLIB
+#include <zlib.h>
+#endif /* USE_ZLIB */
+
+#ifdef USE_SSL
+#include <openssl/ssl.h>
+#include <openssl/err.h>
+
+#endif /* USE_SSL */  
+
+
 int sock;
 struct addrinfo *ai;
-char *capt_host  = "213.148.130.41";
-char *capt_port  = "9000";
+char *capt_host  = "10.0.0.1";
+char *capt_port  = "9060";
 char *capt_proto = "udp";
 char *capt_password;
 int   capt_id = 101;
 int hep_version = 3;
 int usessl = 0;
 int pl_compress = 0;
+
+
+#ifdef USE_SSL
+SSL *ssl;
+SSL_CTX *ctx;
+SSL_CTX* initCTX(void);
+#endif /* USE_SSL */
 
 int load_module(xml_node *config);
 void handler(int value);

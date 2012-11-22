@@ -56,10 +56,6 @@
 #include "src/api.h"
 #include "core_hep.h"
 
-#ifdef USE_ZLIB
-#include <zlib.h>
-#endif /* USE_ZLIB */
-
 static int count = 0;
 pthread_t call_thread;   
 pthread_mutex_t lock;
@@ -442,20 +438,32 @@ int send_data (void *buf, unsigned int len) {
 	void * p = buf;
 	int sentbytes = 0;
 
-	while (sentbytes < len){
-		if( (r = send(sock, p, len - sentbytes, MSG_NOSIGNAL )) == -1) {
-			printf("send error\n");
-			return -1;
-		}
-		if (r != len - sentbytes)
-			printf("send:multiple calls: %d\n", r);
+	if(!usessl) {
+        	while (sentbytes < len){
+	        	if( (r = send(sock, p, len - sentbytes, MSG_NOSIGNAL )) == -1) {
+	    	        	printf("send error\n");
+        			return -1;
+	        	}
+	        	if (r != len - sentbytes)
+			    printf("send:multiple calls: %d\n", r);
 
-		sentbytes += r;
-		p += r;
-
-
-	}
-	count++;
+        		sentbytes += r;
+	        	p += r;
+        	}
+        	count++;
+        }
+#ifdef USE_SSL
+        else if(usessl) {
+            if(SSL_write(ssl, buf, len) < 0) {            
+		if(!initSSL()) {
+                	fprintf(stderr,"capture: couldn't re-init ssl socket");
+                        return -1;
+                }
+            }
+	    count++;
+        }
+#endif
+        
 	/* RESET ERRORS COUNTER */
 	return 0;
 }
@@ -466,10 +474,15 @@ int unload_module(void)
 
         printf("count sends:%d\n", count);
 	 /* Close socket */
-        close(sock);
+	if(sock) close(sock);
+
+#ifdef USE_SSL
+        if(ssl) SSL_free(ssl);
+        if(ctx) SSL_CTX_free(ctx);
+                        
+#endif /* use SSL */ 
         
         pthread_mutex_destroy(&lock);
-        //pthread_join(call_thread, NULL);
                 
         return 0;
 }
@@ -564,7 +577,6 @@ next:
     if(pl_compress) printf("The captagent has not compiled with zlib. Please reconfigure with --enable-compression\n");    
 #endif /* USE_ZLIB */
 
-
         printf("Loaded load_module\n");
                                            
         hints->ai_flags = AI_NUMERICSERV;
@@ -574,10 +586,25 @@ next:
             hints->ai_socktype = SOCK_DGRAM;
             hints->ai_protocol = IPPROTO_UDP;
         }        
-        else if(!strncmp(capt_proto, "tcp", 3)) {
+        else if(!strncmp(capt_proto, "tcp", 3) || !strncmp(capt_proto, "ssl", 3)) {
             hints->ai_socktype = SOCK_STREAM;
             hints->ai_protocol = IPPROTO_TCP;
+
+            /*TLS || SSL*/
+            if(!strncmp(capt_proto, "ssl", 3)) {
+
+#ifdef USE_SSL
+                usessl = 1;
+                 /* init SSL library */
+                SSL_library_init();
+#else
+		printf("The captagent has not compiled with ssl support. Please reconfigure with --enable-ssl\n");    
+
+#endif /* end USE_SSL */
+
+            }   
         }
+
         else {        
             printf("Unsupported protocol\n");
             return -1;
@@ -588,19 +615,28 @@ next:
             return 2;
         }
 
-        if(init_hepsocket()) {
-            fprintf(stderr,"capture: couldn't init socket");
-            return 2;            
-        }
-        
-        // start select thread
-        pthread_create(&call_thread, NULL, select_loop, NULL);
+	if(!usessl) {
 
-        if (pthread_mutex_init(&lock, NULL) != 0)
-        {
-            fprintf(stderr,"mutex init failed\n");
-            return 3;
-        }
+	        if(init_hepsocket()) {
+        	    fprintf(stderr,"capture: couldn't init socket");
+	            return 2;            
+        	}
+        
+	        // start select thread
+	        pthread_create(&call_thread, NULL, select_loop, NULL);
+
+	        if (pthread_mutex_init(&lock, NULL) != 0)
+        	{
+	            fprintf(stderr,"mutex init failed\n");
+        	    return 3;
+	        }
+	}
+#ifdef USE_SSL
+        else if(!initSSL()) {
+	        fprintf(stderr,"capture: couldn't init SSL socket");
+        	return 2;      
+	}
+#endif /* use SSL */  
 
         return 0;
 }
@@ -617,12 +653,9 @@ int init_hepsocket (void) {
              return 1;
     }
 
-
      //   mode = fcntl(sock, F_GETFL, 0);
     //    mode |= O_NDELAY | O_NONBLOCK;
    //     fcntl(sock, F_SETFL, mode);
-
-
 
 
     if (connect(sock, ai->ai_addr, (socklen_t)(ai->ai_addrlen)) == -1) {
@@ -635,6 +668,90 @@ int init_hepsocket (void) {
     return 0;
 
 }
+
+
+#ifdef USE_SSL
+SSL_CTX* initCTX(void) {
+        SSL_METHOD *method;
+        SSL_CTX *ctx;
+
+        OpenSSL_add_all_algorithms();  /* Load cryptos, et.al. */
+        SSL_load_error_strings();   /* Bring in and register error messages */
+
+        /* we use SSLv3 */
+        method = SSLv3_client_method();  /* Create new client-method instance */
+
+        ctx = SSL_CTX_new(method);   /* Create new context */
+        if ( ctx == NULL ) {
+                ERR_print_errors_fp(stderr);
+                abort();
+        }
+        return ctx;
+}
+ 
+ 
+void showCerts(SSL* ssl) {
+        
+        X509 *cert;
+        char *line;
+
+        cert = SSL_get_peer_certificate(ssl); /* get the server's certificate */
+        if ( cert != NULL ) {
+                fprintf(stderr,"Server certificates:\n");
+                line = X509_NAME_oneline(X509_get_subject_name(cert), 0, 0);
+                fprintf(stderr,"Subject: %s\n", line);
+                free(line);       /* free the malloc'ed string */
+                line = X509_NAME_oneline(X509_get_issuer_name(cert), 0, 0);
+                fprintf(stderr,"Issuer: %s\n", line);
+                free(line);       /* free the malloc'ed string */
+                X509_free(cert);     /* free the malloc'ed certificate copy */
+        }
+        else
+                fprintf(stderr,"No certificates.\n");
+}
+
+int initSSL(void) {
+
+        long ctx_options;
+
+        if(ssl) SSL_free(ssl);
+        if(ctx) SSL_CTX_free(ctx);
+
+        ctx = initCTX();
+
+        /* workaround bug openssl */
+        ctx_options = SSL_OP_ALL;   
+        ctx_options |= SSL_OP_NO_SSLv2;
+        SSL_CTX_set_options(ctx, ctx_options);
+                
+        /*extra*/
+        SSL_CTX_ctrl(ctx, BIO_C_SET_NBIO, 1, NULL);
+
+        if(init_hepsocket()) {
+                fprintf(stderr,"capture: couldn't init hep socket");
+                return -1;
+        }
+
+        /* create new SSL connection state */
+        ssl = SSL_new(ctx);
+
+        SSL_set_connect_state(ssl);
+
+        /* attach socket */
+        SSL_set_fd(ssl, sock);    /* attach the socket descriptor */
+                
+        /* perform the connection */
+        if ( SSL_connect(ssl) == -1 )  {
+              ERR_print_errors_fp(stderr);
+              return -1;
+        }                 
+                          
+        showCerts(ssl);   
+
+        return 1;
+}
+
+#endif /* use SSL */
 
 
 char *description(void)
