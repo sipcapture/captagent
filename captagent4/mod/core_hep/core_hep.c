@@ -638,7 +638,9 @@ next:
 	}
 #endif /* use SSL */  
 
-        return 0;
+       sigPipe();
+
+       return 0;
 }
 
 int init_hepsocket (void) {
@@ -760,5 +762,29 @@ char *description(void)
         char *description = "test description";
         
         return description;
+}
+
+int handlerPipe() {
+
+        printf("SIGPIPE... trying to reconnect...\n");
+        return 1;
+}
+
+
+int sigPipe()
+{
+
+        struct sigaction new_action;
+
+        /* sigation structure */
+        new_action.sa_handler = handlerPipe;
+        sigemptyset (&new_action.sa_mask);
+        new_action.sa_flags = 0;
+
+        if( sigaction (SIGPIPE, &new_action, NULL) == -1) {
+                perror("Failed to set new Handle");
+                return -1;
+        }
+
 }
 
