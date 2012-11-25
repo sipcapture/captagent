@@ -661,8 +661,6 @@ next:
 
 int init_hepsocket (void) {
 
-    int mode;
-
     if(sock) close(sock);
 
     sock = socket(ai->ai_family, ai->ai_socktype, ai->ai_protocol);
