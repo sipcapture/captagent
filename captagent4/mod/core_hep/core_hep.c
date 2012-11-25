@@ -456,7 +456,7 @@ int send_data (void *buf, unsigned int len) {
         else if(usessl) {
             if(SSL_write(ssl, buf, len) < 0) {            
 		if(initSSL()) {
-                	fprintf(stderr,"capture: couldn't re-init ssl socket");
+                	fprintf(stderr,"capture: couldn't re-init ssl socket\r\n");
                         return -1;
                 }
             }
@@ -622,7 +622,7 @@ next:
 	if(!usessl) {
 
 	        if(init_hepsocket()) {
-        	    fprintf(stderr,"capture: couldn't init socket");              
+        	    fprintf(stderr,"capture: couldn't init socket\r\n");              
 	            return 2;            
         	}
         
@@ -735,7 +735,7 @@ int initSSL(void) {
         */
 
         if(init_hepsocket()) {
-                fprintf(stderr,"capture: couldn't init hep socket");
+                fprintf(stderr,"capture: couldn't init hep socket\r\n");
                 return 1;
         }
 
