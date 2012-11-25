@@ -455,7 +455,7 @@ int send_data (void *buf, unsigned int len) {
 #ifdef USE_SSL
         else if(usessl) {
             if(SSL_write(ssl, buf, len) < 0) {            
-		if(!initSSL()) {
+		if(initSSL()) {
                 	fprintf(stderr,"capture: couldn't re-init ssl socket");
                         return -1;
                 }
@@ -632,8 +632,9 @@ next:
 	        }
 	}
 #ifdef USE_SSL
-        else if(!initSSL()) {
+        else if(initSSL()) {
 	        fprintf(stderr,"capture: couldn't init SSL socket");
+          //handler(1);
         	return 2;      
 	}
 #endif /* use SSL */  
@@ -745,12 +746,12 @@ int initSSL(void) {
         /* perform the connection */
         if ( SSL_connect(ssl) == -1 )  {
               ERR_print_errors_fp(stderr);
-              return -1;
+              return 1;
         }                 
                           
         showCerts(ssl);   
 
-        return 1;
+        return 0;
 }
 
 #endif /* use SSL */
