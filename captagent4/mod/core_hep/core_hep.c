@@ -717,8 +717,15 @@ int initSSL(void) {
 
         long ctx_options;
 
-        if(ssl) SSL_free(ssl);
+        /* if(ssl) SSL_free(ssl);
         if(ctx) SSL_CTX_free(ctx);
+        */
+
+        if(init_hepsocket()) {
+                fprintf(stderr,"capture: couldn't init hep socket");
+                return 1;
+        }
+
 
         ctx = initCTX();
 
@@ -729,11 +736,6 @@ int initSSL(void) {
                 
         /*extra*/
         SSL_CTX_ctrl(ctx, BIO_C_SET_NBIO, 1, NULL);
-
-        if(init_hepsocket()) {
-                fprintf(stderr,"capture: couldn't init hep socket");
-                return -1;
-        }
 
         /* create new SSL connection state */
         ssl = SSL_new(ctx);
