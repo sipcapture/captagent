@@ -622,7 +622,7 @@ next:
 	if(!usessl) {
 
 	        if(init_hepsocket()) {
-        	    fprintf(stderr,"capture: couldn't init socket");
+        	    fprintf(stderr,"capture: couldn't init socket");              
 	            return 2;            
         	}
         
@@ -635,12 +635,23 @@ next:
         	    return 3;
 	        }
 	}
-#ifdef USE_SSL
-        else if(initSSL()) {
-	        fprintf(stderr,"capture: couldn't init SSL socket");
-          //handler(1);
-        	return 2;      
-	}
+#ifdef USE_SSL       
+   	     else {
+                if(initSSL()) {
+                    fprintf(stderr,"capture: couldn't init SSL socket\r\n");
+                    handler(1);
+                    return 2;
+                }
+
+                // start select thread
+                pthread_create(&call_thread, NULL, select_loop, NULL);
+
+                if (pthread_mutex_init(&lock, NULL) != 0)
+                {
+                    fprintf(stderr,"mutex init failed\n");
+                    return 3;
+                }
+          }
 #endif /* use SSL */  
 
        sigPipe();
