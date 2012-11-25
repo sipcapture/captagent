@@ -507,9 +507,13 @@ void  select_loop (void)
 			ioctl(sock, FIONREAD, &n);
 			if (n == 0){
 				/* server disconnected*/
-		        if(init_hepsocket()) {
-		        	initfails++;
-		        }
+		         if(!usessl) {
+                   if(init_hepsocket()) initfails++;                                
+             }
+             else {
+                  if(initSSL()) initfails++;
+             }
+
 		        if (initfails > 10)
 		        {
 		        	time_t curtime = time (NULL);
