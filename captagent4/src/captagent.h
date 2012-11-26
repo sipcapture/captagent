@@ -1,4 +1,4 @@
-#define VERSION "4.0.2"
+#define VERSION "4.0.3"
 #define DEFAULT_CONFIG "/usr/local/etc/captagent/captagent.xml"
 #define DEFAULT_PIDFILE  "/var/run/captagent.pid"
 
