@@ -510,9 +510,11 @@ void  select_loop (void)
 		         if(!usessl) {
                    if(init_hepsocket()) initfails++;                                
              }
+#ifdef USE_SSL             
              else {
                   if(initSSL()) initfails++;
              }
+#endif /* USE_SSL */             
 
 		        if (initfails > 10)
 		        {
