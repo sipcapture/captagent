@@ -53,3 +53,6 @@ typedef enum msg_body_type {
 
 struct hep_module *hepmod;
 extern int send_message (rc_info_t *rcinfo, unsigned char *data, unsigned int len);
+extern char* get_basestat(char *module);
+struct module *module_list;
+

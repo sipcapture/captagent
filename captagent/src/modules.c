@@ -8,10 +8,6 @@
 #include "xmlread.h"
 #include "modules.h"
 
-
-static struct module *module_list=NULL;
-
-
 int register_module(char *resource_name, xml_node *config)
 {
         const char *error;
@@ -50,6 +46,10 @@ int register_module(char *resource_name, xml_node *config)
                 fprintf(stderr, "No description in module %s\n", fn);
                 errors++;
         }        
+        else if (!(m->statistic = dlsym(m->lib, "statistic"))) {
+                fprintf(stderr, "No statistic in module %s\n", fn);
+                errors++;
+        }                
                 
         if (errors) {
                 fprintf(stderr, "%d error(s) loading module %s, aborted\n", errors, fn);

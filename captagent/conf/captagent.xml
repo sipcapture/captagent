@@ -15,6 +15,7 @@
 	  <modules>	  
   	  	<load module="core_hep"/>
   	  	<load module="proto_uni"/>
+  	  	<load module="capt_cli"/>
 	  </modules>
 	</configuration>
 
@@ -52,6 +53,16 @@
 	    <!-- <param name="filter" value="not src port 5099"/> -->
 	  </settings>
 	</configuration>
+	
+	<!-- CLI  -->
+	
+	<configuration name="capt_cli.conf" description="CLI socket">
+	  <settings>
+	    <param name="cli-host" value="capture.homercloud.org"/>
+	    <param name="cli-port" value="8909"/>      
+	    <param name="cli-password" value="12345"/>
+	  </settings>
+	</configuration>	
 
 </document>
 

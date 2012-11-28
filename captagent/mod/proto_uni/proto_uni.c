@@ -188,21 +188,12 @@ int dump_proto_packet(struct pcap_pkthdr *pkthdr, u_char *packet, uint8_t proto,
 
         struct timeval tv;
         time_t curtime;
-        char *end;
-	static int count = 0;
 	char timebuffer[30];	
 	rc_info_t *rcinfo = NULL;
 
         gettimeofday(&tv,NULL);
 
-        //printf("COUNT: [%d] = PROTO: %d, L: %d, PORT S[%d], PORT D[%d]\n", count, proto, len, sport, dport);
-
-        /* END our packet */
-        end = (char *) data + len;
-
-        //printf("SIP: [%.*s]\n", (pkthdr->len - iphdr_len), (packet + iphdr_len));
-
-        count++;
+        sendPacketsCount++;
 
         curtime = tv.tv_sec;
         strftime(timebuffer,30,"%m-%d-%Y  %T.",localtime(&curtime));
@@ -424,8 +415,8 @@ next:
         }
 
         /* CHECK PROTO */
-        if(!strncmp(value, "sip", 3)) proto_type = PROTO_SIP;
-        else if(!strncmp(value, "xmpp", 4)) proto_type = PROTO_XMPP;                        
+        if(!strncmp(local_pt, "sip", 3)) proto_type = PROTO_SIP;
+        else if(!strncmp(local_pt, "xmpp", 4)) proto_type = PROTO_XMPP;                        
         else {
                 fprintf(stderr, "Unsupported protocol. Switched to SIP\n");
 		proto_type = PROTO_SIP;
@@ -448,3 +439,10 @@ char *description(void)
 }
 
 
+char *statistic(void)
+{
+        char buf[1024];
+        snprintf(buf, 1024, "Statistic of PROTO_UNI module:\r\nSend packets: [%i]\r\n", sendPacketsCount);
+        return &buf;
+}
+                        

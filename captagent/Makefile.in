@@ -222,7 +222,7 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 AUTOMAKE_OPTIONS = foreign
-SUBDIRS = src mod/core_hep mod/proto_uni
+SUBDIRS = src mod/core_hep mod/proto_uni mod/capt_cli
 all: config.h
 	$(MAKE) $(AM_MAKEFLAGS) all-recursive
 

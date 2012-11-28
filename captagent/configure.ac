@@ -104,5 +104,5 @@ AC_CHECK_FUNCS([gettimeofday memset select socket strdup strerror strndup])
 
 #AC_CONFIG_FILES([Makefile src/Makefile mod/Makefile])
 
-AC_OUTPUT(Makefile src/Makefile mod/core_hep/Makefile mod/proto_uni/Makefile)
+AC_OUTPUT(Makefile src/Makefile mod/core_hep/Makefile mod/proto_uni/Makefile mod/capt_cli/Makefile)
 

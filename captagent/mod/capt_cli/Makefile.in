@@ -38,7 +38,7 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
-subdir = mod/proto_uni
+subdir = mod/capt_cli
 DIST_COMMON = $(include_HEADERS) $(srcdir)/Makefile.am \
 	$(srcdir)/Makefile.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
@@ -78,12 +78,12 @@ am__uninstall_files_from_dir = { \
   }
 am__installdirs = "$(DESTDIR)$(moddir)" "$(DESTDIR)$(includedir)"
 LTLIBRARIES = $(mod_LTLIBRARIES)
-proto_uni_la_LIBADD =
-am_proto_uni_la_OBJECTS = proto_uni_la-proto_uni.lo
-proto_uni_la_OBJECTS = $(am_proto_uni_la_OBJECTS)
-proto_uni_la_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
-	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(proto_uni_la_CFLAGS) \
-	$(CFLAGS) $(proto_uni_la_LDFLAGS) $(LDFLAGS) -o $@
+capt_cli_la_LIBADD =
+am_capt_cli_la_OBJECTS = capt_cli_la-capt_cli.lo
+capt_cli_la_OBJECTS = $(am_capt_cli_la_OBJECTS)
+capt_cli_la_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
+	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(capt_cli_la_CFLAGS) \
+	$(CFLAGS) $(capt_cli_la_LDFLAGS) $(LDFLAGS) -o $@
 DEFAULT_INCLUDES = -I.@am__isrc@ -I$(top_builddir)
 depcomp = $(SHELL) $(top_srcdir)/depcomp
 am__depfiles_maybe = depfiles
@@ -97,8 +97,8 @@ CCLD = $(CC)
 LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) \
 	--mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) \
 	$(LDFLAGS) -o $@
-SOURCES = $(proto_uni_la_SOURCES)
-DIST_SOURCES = $(proto_uni_la_SOURCES)
+SOURCES = $(capt_cli_la_SOURCES)
+DIST_SOURCES = $(capt_cli_la_SOURCES)
 HEADERS = $(include_HEADERS)
 ETAGS = etags
 CTAGS = ctags
@@ -219,11 +219,11 @@ target_alias = @target_alias@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
-proto_uni_la_SOURCES = proto_uni.c proto_uni.h
-proto_uni_la_CFLAGS = -Wall ${MODULE_CFLAGS}
-proto_uni_la_LDFLAGS = -module -avoid-version 
-include_HEADERS = proto_uni.h
-mod_LTLIBRARIES = proto_uni.la
+capt_cli_la_SOURCES = capt_cli.c capt_cli.h
+capt_cli_la_CFLAGS = -Wall ${MODULE_CFLAGS}
+capt_cli_la_LDFLAGS = -module -avoid-version 
+include_HEADERS = capt_cli.h
+mod_LTLIBRARIES = capt_cli.la
 moddir = $(libdir)/captagent/modules
 INCLUDES = ${AP_INCLUDES}
 AM_CFLAGS = ${AM_CFLAGS}
@@ -241,9 +241,9 @@ $(srcdir)/Makefile.in:  $(srcdir)/Makefile.am  $(am__configure_deps)
 	      exit 1;; \
 	  esac; \
 	done; \
-	echo ' cd $(top_srcdir) && $(AUTOMAKE) --foreign mod/proto_uni/Makefile'; \
+	echo ' cd $(top_srcdir) && $(AUTOMAKE) --foreign mod/capt_cli/Makefile'; \
 	$(am__cd) $(top_srcdir) && \
-	  $(AUTOMAKE) --foreign mod/proto_uni/Makefile
+	  $(AUTOMAKE) --foreign mod/capt_cli/Makefile
 .PRECIOUS: Makefile
 Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
 	@case '$?' in \
@@ -293,8 +293,8 @@ clean-modLTLIBRARIES:
 	  echo "rm -f \"$${dir}/so_locations\""; \
 	  rm -f "$${dir}/so_locations"; \
 	done
-proto_uni.la: $(proto_uni_la_OBJECTS) $(proto_uni_la_DEPENDENCIES) $(EXTRA_proto_uni_la_DEPENDENCIES) 
-	$(proto_uni_la_LINK) -rpath $(moddir) $(proto_uni_la_OBJECTS) $(proto_uni_la_LIBADD) $(LIBS)
+capt_cli.la: $(capt_cli_la_OBJECTS) $(capt_cli_la_DEPENDENCIES) $(EXTRA_capt_cli_la_DEPENDENCIES) 
+	$(capt_cli_la_LINK) -rpath $(moddir) $(capt_cli_la_OBJECTS) $(capt_cli_la_LIBADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
@@ -302,7 +302,7 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/proto_uni_la-proto_uni.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/capt_cli_la-capt_cli.Plo@am__quote@
 
 .c.o:
 @am__fastdepCC_TRUE@	$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
@@ -325,12 +325,12 @@ distclean-compile:
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(LTCOMPILE) -c -o $@ $<
 
-proto_uni_la-proto_uni.lo: proto_uni.c
-@am__fastdepCC_TRUE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(proto_uni_la_CFLAGS) $(CFLAGS) -MT proto_uni_la-proto_uni.lo -MD -MP -MF $(DEPDIR)/proto_uni_la-proto_uni.Tpo -c -o proto_uni_la-proto_uni.lo `test -f 'proto_uni.c' || echo '$(srcdir)/'`proto_uni.c
-@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/proto_uni_la-proto_uni.Tpo $(DEPDIR)/proto_uni_la-proto_uni.Plo
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='proto_uni.c' object='proto_uni_la-proto_uni.lo' libtool=yes @AMDEPBACKSLASH@
+capt_cli_la-capt_cli.lo: capt_cli.c
+@am__fastdepCC_TRUE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(capt_cli_la_CFLAGS) $(CFLAGS) -MT capt_cli_la-capt_cli.lo -MD -MP -MF $(DEPDIR)/capt_cli_la-capt_cli.Tpo -c -o capt_cli_la-capt_cli.lo `test -f 'capt_cli.c' || echo '$(srcdir)/'`capt_cli.c
+@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/capt_cli_la-capt_cli.Tpo $(DEPDIR)/capt_cli_la-capt_cli.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='capt_cli.c' object='capt_cli_la-capt_cli.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(proto_uni_la_CFLAGS) $(CFLAGS) -c -o proto_uni_la-proto_uni.lo `test -f 'proto_uni.c' || echo '$(srcdir)/'`proto_uni.c
+@am__fastdepCC_FALSE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(capt_cli_la_CFLAGS) $(CFLAGS) -c -o capt_cli_la-capt_cli.lo `test -f 'capt_cli.c' || echo '$(srcdir)/'`capt_cli.c
 
 mostlyclean-libtool:
 	-rm -f *.lo
@@ -565,8 +565,8 @@ uninstall-am: uninstall-includeHEADERS uninstall-modLTLIBRARIES
 
 
 install: install-am
-	rm -f $(libdir)/captagent/modules/proto_uni.a
-	rm -f $(libdir)/captagent/modules/proto_uni.la
+	rm -f $(libdir)/captagent/modules/capt_cli.a
+	rm -f $(libdir)/captagent/modules/capt_cli.la
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.

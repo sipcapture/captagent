@@ -23,6 +23,7 @@
  *
 */
 
+#include "../../src/xmlread.h"
 
 #define FILTER_LEN 4080
 
@@ -46,6 +47,7 @@ char *userfilter=NULL;
 char *ip_proto = NULL;
 int proto_type = PROTO_SIP; /* DEFAULT SIP */
 int promisc = 1;
+static int sendPacketsCount=0;
 
 extern char* usefile;
 extern int handler(int value);

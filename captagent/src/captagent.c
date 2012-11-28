@@ -82,6 +82,35 @@ int send_message (rc_info_t *rcinfo, unsigned char *data, unsigned int len) {
         return 1;
 }
 
+char* get_basestat (char *module) {
+
+        char *res;      
+        char buf[MAX_STATS]; 
+        int pos = 0;
+
+	struct module *m = NULL;
+        m = module_list;
+        while(m) {
+
+                if(!strncmp(module, "all", 3)) {
+                        res = m->statistic(); 
+                        pos += snprintf(buf+pos, MAX_STATS - pos, "%s\r\n",res);
+                }
+                else {
+                        if(!strncmp(m->resource, module, strlen(module))) {
+                                res = m->statistic();                    
+                                return res;
+                        }                
+                }
+                
+                m = m->next;
+        }                
+        
+        if(pos) return buf;
+        
+        return res;
+}
+
 
 int daemonize(int nofork)
 {

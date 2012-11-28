@@ -26,9 +26,11 @@
 #define USE_IPV6
 
 #include "../../config.h"
+#include "../../src/xmlread.h"
 #include <netinet/ip.h>
 #include <netinet/tcp.h>
 #include <netinet/udp.h>
+#include <pthread.h>
 
 #ifdef USE_IPV6
 #include <netinet/ip6.h>
@@ -57,6 +59,7 @@ int hep_version = 3;
 int usessl = 0;
 int pl_compress = 0;
 
+static int sendPacketsCount = 0;
 
 #ifdef USE_SSL
 SSL *ssl;
@@ -70,7 +73,8 @@ void handler(int value);
 int send_hepv3 (rc_info_t *rcinfo, unsigned char *data, unsigned int len, unsigned int sendzip);
 int send_hepv2 (rc_info_t *rcinfo, unsigned char *data, unsigned int len);
 int send_data (void *buf, unsigned int len);
-
+int init_hepsocket (void);
+int sigPipe(void);
 
 /* HEPv3 types */
 

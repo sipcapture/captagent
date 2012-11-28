@@ -27,6 +27,7 @@ typedef struct module {
         int (*load_module)(struct xml_node *config);
         int (*unload_module)(void);
         char *(*description)(void);
+        char *(*statistic)(void);
         void *lib;
         char resource[256];
         struct module *next;
@@ -49,5 +50,6 @@ int load_module(void);                  /* Initialize the module */
 int unload_module(void);                /* Cleanup all module structures, sockets, etc */
 int usecount(void);                     /* How many channels provided by this module are in use? */
 char *description(void);                /* Description of this module */
+char *statistic(void);                  /* Statistic of this module */
 
 char *module_path;

@@ -56,7 +56,6 @@
 #include "src/api.h"
 #include "core_hep.h"
 
-static int count = 0;
 pthread_t call_thread;   
 pthread_mutex_t lock;
 
@@ -68,10 +67,11 @@ z_stream strm;
 int send_hep_basic (rc_info_t *rcinfo, unsigned char *data, unsigned int len) {
 
 	unsigned char *zipData = NULL;
-        unsigned long dlen;
-        int status = 0, sendzip = 0;
+        int sendzip = 0;
 
 #ifdef USE_ZLIB
+        int status = 0;
+        unsigned long dlen;
 
         if(pl_compress && hep_version == 3) {
                 //dlen = len/1000+len*len+13;
@@ -450,7 +450,7 @@ int send_data (void *buf, unsigned int len) {
         		sentbytes += r;
 	        	p += r;
         	}
-        	count++;
+        	sendPacketsCount++;
         }
 #ifdef USE_SSL
         else if(usessl) {
@@ -460,7 +460,7 @@ int send_data (void *buf, unsigned int len) {
                         return -1;
                 }
             }
-	    count++;
+	    sendPacketsCount++;
         }
 #endif
         
@@ -472,7 +472,7 @@ int unload_module(void)
 {
         printf("unloaded module\n");
 
-        printf("count sends:%d\n", count);
+        printf("count sends:%d\n", sendPacketsCount);
 	 /* Close socket */
 	if(sock) close(sock);
 
@@ -629,7 +629,7 @@ next:
         	}
         
 	        // start select thread
-	        pthread_create(&call_thread, NULL, select_loop, NULL);
+	        pthread_create(&call_thread, NULL, (void *)select_loop, NULL);
 
 	        if (pthread_mutex_init(&lock, NULL) != 0)
         	{
@@ -646,7 +646,7 @@ next:
                 }
 
                 // start select thread
-                pthread_create(&call_thread, NULL, select_loop, NULL);
+                pthread_create(&call_thread, NULL, (void *)select_loop, NULL);
 
                 if (pthread_mutex_init(&lock, NULL) != 0)
                 {
@@ -782,14 +782,21 @@ char *description(void)
         return description;
 }
 
-int handlerPipe() {
+char* statistic(void)
+{
+        char buf[1024];        
+        snprintf(buf, 1024, "Statistic of CORE_HEP module:\r\nSend packets: [%i]\r\n", sendPacketsCount);
+        return buf;
+}
+
+int handlerPipe(void) {
 
         printf("SIGPIPE... trying to reconnect...\n");
         return 1;
 }
 
 
-int sigPipe()
+int sigPipe(void)
 {
 
         struct sigaction new_action;
