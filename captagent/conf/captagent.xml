@@ -6,6 +6,7 @@
   	  <settings>
   	    <param name="debug" value="3"/>
 	    <param name="daemon" value="false"/>
+	    <param name="pid_file" value="/var/run/captagent.pid"/>
 	    <param name="path" value="/usr/local/lib/captagent/modules"/>	  
 	  </settings>
 	</configuration>
@@ -27,7 +28,7 @@
 	    <param name="capture-proto" value="udp"/>
 	    <param name="capture-id" value="2001"/>
 	    <param name="capture-password" value="myHep"/>
-      <param name="payload-compression" value="false" />
+	    <param name="payload-compression" value="false" />
 	  </settings>
 	</configuration>	
 
@@ -37,10 +38,16 @@
 	  <settings>
 	    <param name="port" value="5060"/>
 	    <!-- <param name="portrange" value="5060-5090"/> -->
-       <!-- use -D flag for pcap import -->
-	    <param name="dev"  value="eth0"/>
+            <!-- 
+            	use -D flag for pcap import 
+                use "any" for all interfaces in your system
+            -->
+	    <param name="dev"  value="eth0"/>	    
 	    <param name="promisc" value="true"/>
-	    <param name="ip-proto" value="udp"/>
+	    <!-- 
+	    	comment it if you want to see all IPProto (tcp/udp)
+	    -->
+	    <param name="ip-proto" value="udp"/>	    
 	    <param name="proto-type"  value="sip"/>
 	    <!-- <param name="filter" value="not src port 5099"/> -->
 	  </settings>
