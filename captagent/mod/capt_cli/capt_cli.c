@@ -72,12 +72,10 @@ int wait_connect (void) {
 	int  client_sock;
 
 	while( (client_sock = accept(sock, NULL, NULL)) ) {
-	        printf("Connection accepted\n");         
 	        if( pthread_create( &thread , NULL ,  read_clisocket , (void*) client_sock) < 0) {
 			perror("could not create thread");
 		        return 1;
 	        }         
-	        printf("Handler assigned\n");
 	}
 	
 	if(sock) close(sock);
