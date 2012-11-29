@@ -67,7 +67,7 @@ int unload_module(void)
         return 0;
 }
 
-int wait_connect (void) {
+void *wait_connect (void) {
 
 	int  client_sock;
 
@@ -192,10 +192,11 @@ next:
               return 2;            
       	}        
          
-	       if(wait_connect()){
-              fprintf(stderr,"something wrong with cli socket\r\n");              
-              return 3;
-         }
+        /* start waiting thread */
+        if( pthread_create(&thread , NULL , wait_connect, NULL) < 0) {
+                perror("could not create waiting CLI thread");
+                return 3;
+        }
         
         return 0;
 }
