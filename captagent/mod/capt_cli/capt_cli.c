@@ -62,7 +62,7 @@ int unload_module(void)
         printf("unloaded module capt_cli\n");
         
 	/* Close socket */
-	if(sock) close(sock);
+	if(server_sock) close(server_sock);
 
         return 0;
 }
@@ -71,14 +71,14 @@ int wait_connect (void) {
 
 	int  client_sock;
 
-	while( (client_sock = accept(sock, NULL, NULL)) ) {
+	while( (client_sock = accept(server_sock, NULL, NULL)) ) {
 	        if( pthread_create( &thread , NULL ,  read_clisocket , (void*) client_sock) < 0) {
 			perror("could not create thread");
 		        return 1;
 	        }         
 	}
 	
-	if(sock) close(sock);
+	if(server_sock) close(server_sock);
 	return 1;
 }
 
@@ -202,20 +202,20 @@ next:
 int init_clisocket (void) {
 
     unsigned int on = 1;
-    if(sock) close(sock);
+    if(server_sock) close(server_sock);
 
-    sock = socket(ai->ai_family, ai->ai_socktype, ai->ai_protocol);
-    if (sock < 0) {
+    server_sock = socket(ai->ai_family, ai->ai_socktype, ai->ai_protocol);
+    if (server_sock < 0) {
              fprintf(stderr,"Sender socket creation failed: %s\n", strerror(errno));
              return 1;
     }    
 
-    if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on)) < 0)
+    if (setsockopt(server_sock, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on)) < 0)
     {
         fprintf(stderr, "setsockopt(SO_REUSEADDR) failed");
     }
 
-    if (bind(sock, ai->ai_addr, (socklen_t)(ai->ai_addrlen)) < 0) {
+    if (bind(server_sock, ai->ai_addr, (socklen_t)(ai->ai_addrlen)) < 0) {
             if (errno != EINPROGRESS) {
                     fprintf(stderr,"BIND socket creation failed: %s\n", strerror(errno));
                     return 1;
@@ -223,7 +223,7 @@ int init_clisocket (void) {
     }
     
     
-    if (listen(sock, 5) < 0) {
+    if (listen(server_sock, 5) < 0) {
             fprintf(stderr,"Listener socket creation failed: %s\n", strerror(errno));
             return 1;            
     }
