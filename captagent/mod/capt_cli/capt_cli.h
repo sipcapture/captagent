@@ -50,7 +50,7 @@ void handler(int value);
 int init_clisocket (void);
 ssize_t write_line(int sockd, const void *vptr, size_t n);
 ssize_t read_line(int sockd, void *vptr, size_t maxlen);
-int wait_connect (void);
+void *wait_connect (void);
 void *read_clisocket(void *client);
 
 /* send counter */
