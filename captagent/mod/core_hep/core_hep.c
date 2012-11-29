@@ -470,7 +470,7 @@ int send_data (void *buf, unsigned int len) {
 
 int unload_module(void)
 {
-        printf("unloaded module\n");
+        printf("unloaded module core_hep\n");
 
         printf("count sends:%d\n", sendPacketsCount);
 	 /* Close socket */
@@ -583,7 +583,7 @@ next:
     if(pl_compress) printf("The captagent has not compiled with zlib. Please reconfigure with --enable-compression\n");    
 #endif /* USE_ZLIB */
 
-        printf("Loaded load_module\n");
+        printf("Loaded core_hep\n");
                                            
         hints->ai_flags = AI_NUMERICSERV;
         hints->ai_family = AF_UNSPEC;
@@ -671,9 +671,11 @@ int init_hepsocket (void) {
              return 1;
     }
 
-     //   mode = fcntl(sock, F_GETFL, 0);
-    //    mode |= O_NDELAY | O_NONBLOCK;
-   //     fcntl(sock, F_SETFL, mode);
+     /* 
+       mode = fcntl(sock, F_GETFL, 0);
+       mode |= O_NDELAY | O_NONBLOCK;
+       fcntl(sock, F_SETFL, mode);
+     */
 
 
     if (connect(sock, ai->ai_addr, (socklen_t)(ai->ai_addrlen)) == -1) {
