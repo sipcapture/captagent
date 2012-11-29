@@ -142,8 +142,9 @@ int load_module(xml_node *config)
         char *key, *value;
         int s;
 
-	/* READ CONFIG */
-	modules = config;
+   printf("Loaded capt_cli\n");
+	 /* READ CONFIG */
+	 modules = config;
 
 	while(1) {
         	if(modules ==  NULL) break;
@@ -189,9 +190,7 @@ next:
         if(init_clisocket()) {
               fprintf(stderr,"capture: couldn't init socket\r\n");              
               return 2;            
-      	}
-
-         printf("Loaded capt_cli\n");
+      	}        
          
 	       if(wait_connect()){
               fprintf(stderr,"something wrong with cli socket\r\n");              
