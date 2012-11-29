@@ -58,7 +58,7 @@
 	
 	<configuration name="capt_cli.conf" description="CLI socket">
 	  <settings>
-	    <param name="cli-host" value="capture.homercloud.org"/>
+	    <param name="cli-host" value="localhost"/>
 	    <param name="cli-port" value="8909"/>      
 	    <param name="cli-password" value="12345"/>
 	  </settings>
