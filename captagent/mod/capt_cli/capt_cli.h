@@ -39,10 +39,10 @@
 #define MAX_LINE 1000
 
 
-int sock;
+int server_sock;
 struct addrinfo *ai;
-char *cli_host  = "10.0.0.1";
-char *cli_port  = "9060";
+char *cli_host  = "localhost";
+char *cli_port  = "8909";
 char *cli_password;
 
 int load_module(xml_node *config);
