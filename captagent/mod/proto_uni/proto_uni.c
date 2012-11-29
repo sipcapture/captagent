@@ -347,7 +347,7 @@ void* proto_collect( void* device ) {
 
 int unload_module(void)
 {
-        printf("unloaded module\n");
+        printf("unloaded module proto_uni\n");
 	 /* Close socket */
         pcap_close(sniffer_proto);        
 
