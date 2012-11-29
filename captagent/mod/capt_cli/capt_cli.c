@@ -191,10 +191,12 @@ next:
               return 2;            
       	}
 
-	if(wait_connect()){
-		fprintf(stderr,"something wrong with cli socket\r\n");              
-		return 3;
-	}
+         printf("Loaded capt_cli\n");
+         
+	       if(wait_connect()){
+              fprintf(stderr,"something wrong with cli socket\r\n");              
+              return 3;
+         }
         
         return 0;
 }
