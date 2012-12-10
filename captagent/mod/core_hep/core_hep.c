@@ -171,13 +171,13 @@ int send_hepv3 (rc_info_t *rcinfo, unsigned char *data, unsigned int len, unsign
         src_ip6.chunk.vendor_id = htons(0x0000);
         src_ip6.chunk.type_id   = htons(0x0005);
         inet_pton(AF_INET6, rcinfo->src_ip, &src_ip6.data);
-        src_ip6.chunk.length = htons(sizeof(src_ip6));
+        src_ip6.chunk.length = htonl(sizeof(src_ip6));
         
         /* DST IPv6 */
         dst_ip6.chunk.vendor_id = htons(0x0000);
         dst_ip6.chunk.type_id   = htons(0x0006);
         inet_pton(AF_INET6, rcinfo->dst_ip, &dst_ip6.data);
-        dst_ip6.chunk.length = htons(sizeof(dst_ip6));    
+        dst_ip6.chunk.length = htonl(sizeof(dst_ip6));    
         
         iplen = sizeof(dst_ip6) + sizeof(src_ip6);
     }
