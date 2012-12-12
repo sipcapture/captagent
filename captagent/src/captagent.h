@@ -1,4 +1,4 @@
-#define VERSION "4.1.1"
+#define VERSION "4.1.2"
 #define DEFAULT_CONFIG "/usr/local/etc/captagent/captagent.xml"
 #define DEFAULT_PIDFILE  "/var/run/captagent.pid"
 #define MAX_STATS 3000
