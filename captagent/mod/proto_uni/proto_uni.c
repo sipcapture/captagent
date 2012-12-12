@@ -234,6 +234,8 @@ int dump_proto_packet(struct pcap_pkthdr *pkthdr, u_char *packet, uint8_t proto,
 	if(!send_message(rcinfo, data, (unsigned int) len)) {
 	         printf("Not duplicated\n");
         }
+        
+  if(rcinfo) free(rcinfo);
 
 	return 1;
 }
