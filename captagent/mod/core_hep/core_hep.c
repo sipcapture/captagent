@@ -218,7 +218,7 @@ int send_hepv3 (rc_info_t *rcinfo, unsigned char *data, unsigned int len, unsign
     /* Capture ID */
     hg->capt_id.chunk.vendor_id = htons(0x0000);
     hg->capt_id.chunk.type_id   = htons(0x000c);
-    hg->capt_id.data = htonl(0x0001);
+    hg->capt_id.data = htons(capt_id);
     hg->capt_id.chunk.length = htons(sizeof(hg->capt_id));
 
     /* Payload */
