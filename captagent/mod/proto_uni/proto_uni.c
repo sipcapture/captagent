@@ -66,9 +66,10 @@ pthread_t call_thread;
 void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet) 
 {
 
-	struct ip      *ip4_pkt = (struct ip *)    (packet + link_offset);
+
+	struct ip      *ip4_pkt = (struct ip *)    (packet + link_offset + ((ntohs((uint16_t)*(packet + 12)) == 0x8100)? 4:0) );
 #if USE_IPv6
-	struct ip6_hdr *ip6_pkt = (struct ip6_hdr*)(packet + link_offset);
+	struct ip6_hdr *ip6_pkt = (struct ip6_hdr*)(packet + link_offset + ((ntohs((uint16_t)*(packet + 12)) == 0x8100)? 4:0) );
 #endif
 
 	uint32_t ip_ver;
@@ -84,6 +85,7 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
 	unsigned char *data;
 	uint32_t len = pkthdr->caplen;
 	int ret;
+
 
 	ip_ver = ip4_pkt->ip_v;
 
@@ -274,9 +276,9 @@ void* proto_collect( void* device ) {
         if(userfilter != NULL) snprintf(filter_user, 800, "and %s", userfilter);
         
                
-        snprintf(filter_expr, FILTER_LEN, "%s %s %s", filter_port, ip_proto ? filter_proto : "", userfilter ? userfilter : "");                              
+        snprintf(filter_expr, FILTER_LEN, "%s%s %s %s",vlan?"vlan and ":"", filter_port, ip_proto ? filter_proto : "", userfilter ? userfilter : "");
         
-
+		fprintf(stdout, "expr:%s\n", filter_expr);
         /* create filter string */
 
         /* compile filter expression (global constant, see above) */
@@ -396,6 +398,7 @@ int load_module(xml_node *config)
                         else if(!strncmp(key, "promisc", 7) && !strncmp(value, "false", 5)) promisc = 0;
                         else if(!strncmp(key, "filter", 6)) userfilter = value;
                         else if(!strncmp(key, "port", 4)) port = atoi(value);
+                        else if(!strncmp(key, "vlan", 4) && !strncmp(value, "true", 4)) vlan = 1;
                 }
 next:
 

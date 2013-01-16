@@ -47,6 +47,8 @@ char *userfilter=NULL;
 char *ip_proto = NULL;
 int proto_type = PROTO_SIP; /* DEFAULT SIP */
 int promisc = 1;
+int vlan = 0; /*vlan filter*/
+
 static int sendPacketsCount=0;
 
 extern char* usefile;
