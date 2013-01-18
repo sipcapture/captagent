@@ -514,9 +514,9 @@ uninstall-am: uninstall-binPROGRAMS
 
 
 install: install-am
-	if test ! -f $(config); then \
-		mkdir -p /usr/local/etc/$(bin_PROGRAMS); \
-		cp $(top_srcdir)/conf/$(bin_PROGRAMS).xml /usr/local/etc/$(bin_PROGRAMS); \
+	if test ! -f "$(DESTDIR)/$(config)"; then \
+		mkdir -p $(DESTDIR)/usr/local/etc/$(bin_PROGRAMS); \
+		cp $(top_srcdir)/conf/$(bin_PROGRAMS).xml $(DESTDIR)/usr/local/etc/$(bin_PROGRAMS); \
 	fi;
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
