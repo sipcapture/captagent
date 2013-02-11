@@ -55,6 +55,8 @@
 
 #include "src/api.h"
 #include "proto_uni.h"
+#include "sip.h"
+
 
 uint8_t link_offset = 14;
 
@@ -161,6 +163,7 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
                     uint16_t udphdr_offset = (frag_offset) ? 0 : sizeof(*udp_pkt);
 
                     data = (unsigned char *)(udp_pkt) + udphdr_offset;
+
                     len -= link_offset + ip_hl + udphdr_offset;
 #if USE_IPv6
                     if (ip_ver == 6)
@@ -168,6 +171,7 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
 #endif
 
                     if ((int32_t)len < 0) len = 0;
+
 
                      ret = dump_proto_packet(pkthdr, packet, ip_proto, data, len, ip_src, ip_dst,
                         ntohs(udp_pkt->uh_sport), ntohs(udp_pkt->uh_dport), 0,
@@ -212,9 +216,17 @@ int dump_proto_packet(struct pcap_pkthdr *pkthdr, u_char *packet, uint8_t proto,
                 return -1;
         }
         /* gingle XMPP */
-        if(proto_type == PROTO_XMPP && memcmp("<iq", data, 3)) {
+        else if(proto_type == PROTO_XMPP && memcmp("<iq", data, 3)) {
                 //printf("It's not a GINGLE call: %d\n", len);
                 return -1;
+        }
+
+        if (proto_type == PROTO_SIP && sip_method){
+
+        	if ((sip_method_not == 1) ? (!sip_is_method(data, len,sip_method+1)): (sip_is_method (data, len,sip_method))){
+            	//printf("method not matched\n");
+            	return -1;
+        	}
         }
 
   //printf("SIP: [%.*s]\n", len, data);
@@ -399,6 +411,7 @@ int load_module(xml_node *config)
                         else if(!strncmp(key, "filter", 6)) userfilter = value;
                         else if(!strncmp(key, "port", 4)) port = atoi(value);
                         else if(!strncmp(key, "vlan", 4) && !strncmp(value, "true", 4)) vlan = 1;
+                        else if (!strncmp(key, "sip_method", 10)) sip_method = value;
                 }
 next:
 
@@ -424,8 +437,16 @@ next:
         else if(!strncmp(local_pt, "xmpp", 4)) proto_type = PROTO_XMPP;                        
         else {
                 fprintf(stderr, "Unsupported protocol. Switched to SIP\n");
-		proto_type = PROTO_SIP;
+                proto_type = PROTO_SIP;
         }                                        
+
+        /* check sip method */
+        if (proto_type == PROTO_SIP && sip_method )
+        {
+        	if (sip_method[0] == '!'){
+        		sip_method_not = 1;
+        	}
+        }
 
         // start thread
         pthread_create(&call_thread, NULL, proto_collect, (void *)dev);

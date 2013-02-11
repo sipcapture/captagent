@@ -48,6 +48,8 @@ char *ip_proto = NULL;
 int proto_type = PROTO_SIP; /* DEFAULT SIP */
 int promisc = 1;
 int vlan = 0; /*vlan filter*/
+char * sip_method = NULL;
+int sip_method_not = 0;
 
 static int sendPacketsCount=0;
 

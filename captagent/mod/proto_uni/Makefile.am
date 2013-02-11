@@ -1,11 +1,11 @@
 #
 #
  
-proto_uni_la_SOURCES = proto_uni.c proto_uni.h
+proto_uni_la_SOURCES = proto_uni.c proto_uni.h sip.c sip.h
 proto_uni_la_CFLAGS = -Wall ${MODULE_CFLAGS}
 proto_uni_la_LDFLAGS = -module -avoid-version 
 
-include_HEADERS = proto_uni.h
+include_HEADERS = proto_uni.h sip.h
 mod_LTLIBRARIES = proto_uni.la
 
 moddir = $(libdir)/captagent/modules

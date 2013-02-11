@@ -51,7 +51,12 @@
 	    <param name="ip-proto" value="udp"/>	    
 	    <param name="proto-type"  value="sip"/>
 	    <!-- <param name="filter" value="not src port 5099"/> -->
-	    <!-- <param name="vlan" value="false"/> -->
+		<!-- <param name="vlan" value="false"/> -->
+		<!--
+			 if capturing sip messages, you can filter by method
+			 you can specify which method to NOT match with !
+			 <param name="sip_method" value="INVITE"/>
+		-->
 	  </settings>
 	</configuration>
 	
