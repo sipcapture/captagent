@@ -60,6 +60,9 @@ void handler(int value)
 
         /* HEPMODE */
         if(hepmod) free(hepmod);
+        
+        /* destroy LOG */
+        destroy_log();
 
         if(!unregister_modules()) {
         	printf("DONE unload\n");
@@ -334,6 +337,8 @@ int core_config (xml_node *config)
         char *dev, *usedev = NULL;
         xml_node *modules;
         char *key, *value;
+
+        init_log("captagent", 1);
 
         printf("Loaded core config\n");
 
