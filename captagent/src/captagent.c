@@ -53,17 +53,17 @@ void handler(int value)
 
         fprintf(stderr, "The agent has been terminated\n");
 
+        if (pid_file) unlink(pid_file);        
+
         /* now we are free */
         xml_free( tree );        
 
         /* HEPMODE */
         if(hepmod) free(hepmod);
 
-        if (pid_file) unlink(pid_file);        
-
-	if(unregister_modules()) {
+        if(!unregister_modules()) {
         	printf("DONE unload\n");
-	}
+        }
 
         exit(0);
 }
