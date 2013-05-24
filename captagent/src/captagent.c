@@ -242,7 +242,8 @@ int main( int argc, char *argv[] ) {
 			case 'd':
 				nofork = 0;
                                 break;                                
-			case 'h':
+       case 'h':
+       case 'h':
                         	usage(0);
                                 break;
 			case 'c':
