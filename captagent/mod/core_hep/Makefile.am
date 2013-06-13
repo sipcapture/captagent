@@ -11,7 +11,8 @@ mod_LTLIBRARIES = core_hep.la
 moddir = $(libdir)/captagent/modules
 
 INCLUDES=${AP_INCLUDES}
-CFLAGS=${AM_CFLAGS}
+#CFLAGS=${AM_CFLAGS} 
+#
 
 install: install-am
 	rm -f $(libdir)/captagent/modules/core_hep.a
