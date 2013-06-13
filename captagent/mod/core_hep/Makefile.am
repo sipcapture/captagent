@@ -2,7 +2,7 @@
 #
  
 core_hep_la_SOURCES = core_hep.c core_hep.h
-core_hep_la_CFLAGS = -Wall ${MODULE_CFLAGS}
+core_hep_la_CFLAGS = -Wall ${MODULE_CFLAGS} ${AM_CFLAGS}
 core_hep_la_LDFLAGS = -module -avoid-version 
 
 include_HEADERS = core_hep.h
