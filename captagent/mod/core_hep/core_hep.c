@@ -63,7 +63,6 @@ pthread_mutex_t lock;
 z_stream strm;
 #endif /* USE_ZLIB */
 
-
 int send_hep_basic (rc_info_t *rcinfo, unsigned char *data, unsigned int len) {
 
 	unsigned char *zipData = NULL;
@@ -406,16 +405,30 @@ int send_hepv2 (rc_info_t *rcinfo, unsigned char *data, unsigned int len) {
      buflen +=len;
 
      /* make sleep after 100 erors*/
-     //if(errors > 100) {
-     //   fprintf(stderr, "HEP server is down... retrying after sleep...\n");
-     //   sleep(2);
-      //  errors=0;
-    // }
+     if(errors > 50) {
+        fprintf(stderr, "HEP server is down... retrying after sleep...\n");
+	if(!usessl) {
+             if(init_hepsocket()) { 
+		initfails++;
+		sleep(2);
+	     }
+        }
+#ifdef USE_SSL
+        else {
+	    if(initSSL()) {
+		initfails++;
+		sleep(2);
+	    }
+        }
+#endif /* USE SSL */
+
+        errors=0;
+     }
 
      pthread_mutex_lock(&lock);
      /* send this packet out of our socket */
      if(send_data(buffer, buflen)) {
-        errors++;    
+		errors++;    
      }
 
      pthread_mutex_unlock(&lock);
@@ -453,17 +466,14 @@ int send_data (void *buf, unsigned int len) {
         	sendPacketsCount++;
         }
 #ifdef USE_SSL
-        else if(usessl) {
+        else {
             if(SSL_write(ssl, buf, len) < 0) {            
-		if(initSSL()) {
-                	fprintf(stderr,"capture: couldn't re-init ssl socket\r\n");
-                        return -1;
-                }
+		fprintf(stderr,"capture: couldn't re-init ssl socket\r\n");
+                return -1;                
             }
 	    sendPacketsCount++;
         }
-#endif
-        
+#endif        
 	/* RESET ERRORS COUNTER */
 	return 0;
 }
@@ -493,7 +503,7 @@ void  select_loop (void)
 	int n = 0;
 	int initfails = 0;
 	fd_set readfd;
-	time_t curtime = NULL, prevtime = NULL;
+	time_t prevtime = NULL;
 
 	prevtime = time(NULL);
 	FD_ZERO(&readfd);
@@ -536,8 +546,6 @@ void  select_loop (void)
 int load_module(xml_node *config)
 {
 	xml_node *modules;
-        //struct addrinfo *ai, hints[1] = {{ 0 }};
-        struct addrinfo hints[1] = {{ 0 }};
         char *key, *value;
         int s;
 
@@ -626,16 +634,7 @@ next:
 	        if(init_hepsocket()) {
         	    fprintf(stderr,"capture: couldn't init socket\r\n");              
 	            return 2;            
-        	}
-        
-	        // start select thread
-	        pthread_create(&call_thread, NULL, (void *)select_loop, NULL);
-
-	        if (pthread_mutex_init(&lock, NULL) != 0)
-        	{
-	            fprintf(stderr,"mutex init failed\n");
-        	    return 3;
-	        }
+        	}        
 	}
 #ifdef USE_SSL       
    	     else {
@@ -663,30 +662,77 @@ next:
 
 int init_hepsocket (void) {
 
+    struct timeval tv; 
+    socklen_t lon;
+    long arg;
+    fd_set myset;
+    int valopt, res, ret = 0;
+
+
     if(sock) close(sock);
 
-    sock = socket(ai->ai_family, ai->ai_socktype, ai->ai_protocol);
-    if (sock < 0) {
+    if((sock = socket(ai->ai_family, ai->ai_socktype, ai->ai_protocol)) < 0) {
              fprintf(stderr,"Sender socket creation failed: %s\n", strerror(errno));
              return 1;
     }
 
-     /* 
-       mode = fcntl(sock, F_GETFL, 0);
-       mode |= O_NDELAY | O_NONBLOCK;
-       fcntl(sock, F_SETFL, mode);
-     */
+    // Set non-blocking 
+    if((arg = fcntl(sock, F_GETFL, NULL)) < 0) { 
+        fprintf(stderr, "Error fcntl(..., F_GETFL) (%s)\n", strerror(errno)); 
+        close(sock);        
+        return 1;
+    } 
+    arg |= O_NONBLOCK; 
+    if( fcntl(sock, F_SETFL, arg) < 0) { 
+        fprintf(stderr, "Error fcntl(..., F_SETFL) (%s)\n", strerror(errno)); 
+        close(sock);        
+        return 1; 
+    }        
 
+    if((res = connect(sock, ai->ai_addr, (socklen_t)(ai->ai_addrlen))) < 0) {
+	if (errno == EINPROGRESS) { 
+	        do { 
+	           tv.tv_sec = 5; 
+	           tv.tv_usec = 0; 
+        	   FD_ZERO(&myset); 
+	           FD_SET(sock, &myset); 
 
-    if (connect(sock, ai->ai_addr, (socklen_t)(ai->ai_addrlen)) == -1) {
-            if (errno != EINPROGRESS) {
-                    fprintf(stderr,"Sender socket creation failed: %s\n", strerror(errno));
-                    return 1;
-            }
+        	   res = select(sock + 1 , NULL, &myset, NULL, &tv); 
+           
+	           if (res < 0 && errno != EINTR) { 
+        	      fprintf(stderr, "Error connecting %d - %s\n", errno, strerror(errno)); 
+		      close(sock); 
+		      ret = 1;
+		      break;
+	           } 
+        	   else if (res > 0) { 
+        	      // Socket selected for write 
+              
+	              lon = sizeof(int); 
+        	      if (getsockopt(sock, SOL_SOCKET, SO_ERROR, (void*)(&valopt), &lon) < 0) { 
+			 close(sock); 
+        	         fprintf(stderr, "Error in getsockopt() %d - %s\n", errno, strerror(errno)); 
+        	         ret = 2;
+	              } 	
+        	      // Check the value returned... 
+	              if (valopt) { 
+			 close(sock); 
+	                 fprintf(stderr, "Error in delayed connection() %d - %s\n", valopt, strerror(valopt)); 
+	                 ret = 3;
+        	      } 
+	              break; 
+	           } 
+        	   else { 
+		      close(sock); 
+	              fprintf(stderr, "Timeout in select() - Cancelling!\n"); 
+	              ret = 4; 
+	              break;
+	           } 
+        	} while (1); 
+	}
     }
 
-    return 0;
-
+    return ret;
 }
 
 
