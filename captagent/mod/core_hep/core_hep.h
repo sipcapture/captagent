@@ -49,7 +49,9 @@
 
 
 int sock;
+long initfails = 0;
 struct addrinfo *ai;
+struct addrinfo hints[1] = {{ 0 }};
 char *capt_host  = "10.0.0.1";
 char *capt_port  = "9060";
 char *capt_proto = "udp";
