@@ -735,6 +735,32 @@ int init_hepsocket (void) {
     return ret;
 }
 
+int init_hepsocket_blocking (void) {
+
+    int res;
+    struct timeval tv;
+    fd_set myset;
+
+   if(sock) close(sock);
+
+    if((sock = socket(ai->ai_family, ai->ai_socktype, ai->ai_protocol)) < 0) {
+             fprintf(stderr,"Sender socket creation failed: %s\n", strerror(errno));
+             return 1;
+    }
+
+     if (connect(sock, ai->ai_addr, (socklen_t)(ai->ai_addrlen)) == -1) {
+         res = select(sock + 1 , NULL, &myset, NULL, &tv);
+         if (errno != EINPROGRESS) {
+             fprintf(stderr,"Sender socket creation failed: %s\n", strerror(errno));
+             return 1;    
+          }
+    }
+
+
+    return 0;
+}
+
+
 
 #ifdef USE_SSL
 SSL_CTX* initCTX(void) {
@@ -784,7 +810,7 @@ int initSSL(void) {
         if(ctx) SSL_CTX_free(ctx);
         */
 
-        if(init_hepsocket()) {
+        if(init_hepsocket_blocking()) {
                 fprintf(stderr,"capture: couldn't init hep socket\r\n");
                 return 1;
         }
