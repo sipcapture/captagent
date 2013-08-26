@@ -293,12 +293,27 @@ int send_hepv3 (rc_info_t *rcinfo, unsigned char *data, unsigned int len, unsign
     memcpy((void*) buffer+buflen, data, len);    
     buflen+=len;    
 
-    /* make sleep after 100 erors*/
- //   if(errors > 100) {
-  //      fprintf(stderr, "HEP server is down... retrying after sleep...\n");
-  //      sleep(2);
-  //      errors=0;
-  //  }
+    /* make sleep after 100 errors */
+     if(errors > 50) {
+        fprintf(stderr, "HEP server is down... retrying after sleep...\n");
+	if(!usessl) {
+             if(init_hepsocket()) { 
+		initfails++;
+		sleep(2);
+	     }
+	     else errors=0;
+        }
+#ifdef USE_SSL
+        else {
+	    if(initSSL()) {
+		initfails++;
+		sleep(2);
+	    }
+	    else errors=0;
+        }
+#endif /* USE SSL */
+
+     }
 
     /* send this packet out of our socket */
     if(send_data(buffer, buflen)) {
@@ -404,7 +419,7 @@ int send_hepv2 (rc_info_t *rcinfo, unsigned char *data, unsigned int len) {
      memcpy((void *)(buffer + buflen) , (void*)(data), len);
      buflen +=len;
 
-     /* make sleep after 100 erors*/
+     /* make sleep after 100 errors*/
      if(errors > 50) {
         fprintf(stderr, "HEP server is down... retrying after sleep...\n");
 	if(!usessl) {
@@ -412,26 +427,24 @@ int send_hepv2 (rc_info_t *rcinfo, unsigned char *data, unsigned int len) {
 		initfails++;
 		sleep(2);
 	     }
+	     else errors=0;
         }
 #ifdef USE_SSL
         else {
 	    if(initSSL()) {
 		initfails++;
-		sleep(2);
+		sleep(2);		
 	    }
+	    else errors=0;
         }
 #endif /* USE SSL */
 
-        errors=0;
      }
 
-     pthread_mutex_lock(&lock);
      /* send this packet out of our socket */
      if(send_data(buffer, buflen)) {
-		errors++;    
+             errors++;    
      }
-
-     pthread_mutex_unlock(&lock);
 
      /* FREE */
      if(buffer) free(buffer);
@@ -645,13 +658,14 @@ next:
                 }
 
                 // start select thread
-                pthread_create(&call_thread, NULL, (void *)select_loop, NULL);
+                /* pthread_create(&call_thread, NULL, (void *)select_loop, NULL);
 
                 if (pthread_mutex_init(&lock, NULL) != 0)
                 {
                     fprintf(stderr,"mutex init failed\n");
                     return 3;
                 }
+                */
           }
 #endif /* use SSL */  
 
@@ -886,4 +900,3 @@ int sigPipe(void)
         }
 
 }
-
