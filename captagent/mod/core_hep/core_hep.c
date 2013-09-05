@@ -297,20 +297,20 @@ int send_hepv3 (rc_info_t *rcinfo, unsigned char *data, unsigned int len, unsign
      if(errors > 50) {
         fprintf(stderr, "HEP server is down... retrying after sleep...\n");
 	if(!usessl) {
-             if(init_hepsocket()) { 
-		initfails++;
-		sleep(2);
-	     }
-	     else errors=0;
+	     sleep(2);
+             if(init_hepsocket_blocking()) { 
+				initfails++; 	
+	     	     }
+	     	     errors=0;
         }
 #ifdef USE_SSL
         else {
-	    if(initSSL()) {
-		initfails++;
 		sleep(2);
-	    }
-	    else errors=0;
-        }
+		 if(initSSL()) {
+	 	  	initfails++;
+	    		}
+	    		errors=0;
+       	 }
 #endif /* USE SSL */
 
      }
@@ -423,19 +423,19 @@ int send_hepv2 (rc_info_t *rcinfo, unsigned char *data, unsigned int len) {
      if(errors > 50) {
         fprintf(stderr, "HEP server is down... retrying after sleep...\n");
 	if(!usessl) {
-             if(init_hepsocket()) { 
-		initfails++;
-		sleep(2);
-	     }
-	     else errors=0;
+	     sleep(2);
+             if(init_hepsocket_blocking()) { 
+				initfails++;
+	     	     }
+	     	     errors=0;
         }
 #ifdef USE_SSL
         else {
-	    if(initSSL()) {
-		initfails++;
-		sleep(2);		
-	    }
-	    else errors=0;
+	    sleep(2);
+	    	    if(initSSL()) {
+				initfails++;  
+	    	    }
+	    	    errors=0;
         }
 #endif /* USE SSL */
 
@@ -465,7 +465,12 @@ int send_data (void *buf, unsigned int len) {
 	int sentbytes = 0;
 
 	if(!usessl) {
-        	while (sentbytes < len){
+	        	if(send(sock, p, len, 0) == -1) {
+	    	        	printf("send error\n");
+            			return -1;
+	        	}
+          	sendPacketsCount++;
+	  /* while (sentbytes < len){
 	        	if( (r = send(sock, p, len - sentbytes, MSG_NOSIGNAL )) == -1) {
 	    	        	printf("send error\n");
         			return -1;
@@ -477,6 +482,7 @@ int send_data (void *buf, unsigned int len) {
 	        	p += r;
         	}
         	sendPacketsCount++;
+	  */
         }
 #ifdef USE_SSL
         else {
@@ -637,14 +643,15 @@ next:
             return -1;
         }
 
-        if ((s = getaddrinfo(capt_host, capt_port, hints, &ai)) != 0) {            
+      /*  if ((s = getaddrinfo(capt_host, capt_port, hints, &ai)) != 0) {            
             fprintf(stderr, "capture: getaddrinfo: %s\n", gai_strerror(s));
             return 2;
         }
+      */
 
 	if(!usessl) {
 
-	        if(init_hepsocket()) {
+	        if(init_hepsocket_blocking()) {
         	    fprintf(stderr,"capture: couldn't init socket\r\n");              
 	            return 2;            
         	}        
@@ -680,10 +687,14 @@ int init_hepsocket (void) {
     socklen_t lon;
     long arg;
     fd_set myset;
-    int valopt, res, ret = 0;
-
+    int valopt, res, ret = 0, s;
 
     if(sock) close(sock);
+
+    if ((s = getaddrinfo(capt_host, capt_port, hints, &ai)) != 0) {            
+            fprintf(stderr, "capture: getaddrinfo: %s\n", gai_strerror(s));
+            return 2;
+    }
 
     if((sock = socket(ai->ai_family, ai->ai_socktype, ai->ai_protocol)) < 0) {
              fprintf(stderr,"Sender socket creation failed: %s\n", strerror(errno));
@@ -751,11 +762,16 @@ int init_hepsocket (void) {
 
 int init_hepsocket_blocking (void) {
 
-    int res;
+    int res, s;
     struct timeval tv;
     fd_set myset;
 
-   if(sock) close(sock);
+    if(sock) close(sock);
+
+    if ((s = getaddrinfo(capt_host, capt_port, hints, &ai)) != 0) {            
+            fprintf(stderr, "capture: getaddrinfo: %s\n", gai_strerror(s));
+            return 2;
+    }
 
     if((sock = socket(ai->ai_family, ai->ai_socktype, ai->ai_protocol)) < 0) {
              fprintf(stderr,"Sender socket creation failed: %s\n", strerror(errno));
