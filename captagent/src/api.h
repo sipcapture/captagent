@@ -1,7 +1,5 @@
 /* API params */
 
-#include <linux/types.h>
-
 #include <stdio.h>
 #include <string.h>
 #include <errno.h>
@@ -14,6 +12,9 @@
 #include <fcntl.h>
 #include <unistd.h>
 
+#ifdef OS_LINUX
+#include <linux/types.h>
+#endif /* OS_LINUX */
 
 typedef struct xml_node {
         char *key;
