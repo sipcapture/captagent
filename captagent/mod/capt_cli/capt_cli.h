@@ -28,6 +28,7 @@
 #include "../../config.h"
 #include "../../src/xmlread.h"
 #include <netinet/ip.h>
+#include <netinet/in.h>
 #include <netinet/tcp.h>
 #include <netinet/udp.h>
 
