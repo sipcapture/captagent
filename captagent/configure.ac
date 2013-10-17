@@ -53,10 +53,40 @@ AC_PROG_MAKE_SET
 AC_LIBTOOL_DLOPEN
 AC_PROG_LIBTOOL
 
+AC_CANONICAL_HOST
+case "${host}" in
+  *-*-darwin*)
+        AC_DEFINE([OS_DARWIN], [1], [Define to 1 if Operating System is Darwin])
+        AC_SUBST(OS_DARWIN, 1)
+        ;;
+  *-*-freebsd*)
+        AC_DEFINE([OS_FREEBSD], [1], [Define to 1 if Operating System is FreeBSD])
+        AC_SUBST(OS_FREEBSD, 1)
+        ;;
+  *-*-linux*)
+        AC_DEFINE([OS_LINUX], [1], [Define to 1 if Operating System is Linux])
+        AC_SUBST(OS_LINUX, 1)
+        ;;
+  *-*-netbsd*)
+        AC_DEFINE([OS_NETBSD], [1], [Define to 1 if Operating System is NETBSD])
+        AC_SUBST(OS_NETBSD, 1)
+        ;;
+  *-*-solaris2*)
+        AC_DEFINE([OS_SOLARIS], [1], [Define to 1 if Operating System is SOLARIS])
+        AC_SUBST(OS_SOLARIS, 1)
+        ;;
+  *)
+        AC_MSG_RESULT([Unsupported operating system: ${host}])
+        ;;
+esac
+
 
 # Checks for libraries.
 AC_CHECK_LIB(pthread, pthread_create, , [AC_MSG_ERROR([captagent requires but cannot find pthread])])
-AC_CHECK_LIB(dl, dlopen, , [AC_MSG_ERROR([captagent requires but cannot find libdl])])
+if test "$OS_LINUX" = 1 ; then
+  AC_CHECK_LIB(dl, dlopen, , [AC_MSG_ERROR([captagent requires but cannot find libdl])])
+fi
+
 AC_CHECK_LIB(expat, XML_ParserCreate, , [AC_MSG_ERROR([captagent requires but cannot find libexpat])])
 AC_CHECK_LIB(pcap, pcap_open_live, ,[AC_CHECK_LIB(wpcap, pcap_open_live, ,[AC_MSG_ERROR([captagent requires but cannot find libpcap])])])
 
