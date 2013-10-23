@@ -48,7 +48,7 @@ CONFIG_CLEAN_VPATH_FILES =
 am__installdirs = "$(DESTDIR)$(bindir)"
 PROGRAMS = $(bin_PROGRAMS)
 am_captagent_OBJECTS = captagent.$(OBJEXT) xmlread.$(OBJEXT) \
-	modules.$(OBJEXT)
+	modules.$(OBJEXT) log.$(OBJEXT)
 captagent_OBJECTS = $(am_captagent_OBJECTS)
 captagent_LDADD = $(LDADD)
 DEFAULT_INCLUDES = -I.@am__isrc@ -I$(top_builddir)
@@ -114,6 +114,11 @@ NM = @NM@
 NMEDIT = @NMEDIT@
 OBJDUMP = @OBJDUMP@
 OBJEXT = @OBJEXT@
+OS_DARWIN = @OS_DARWIN@
+OS_FREEBSD = @OS_FREEBSD@
+OS_LINUX = @OS_LINUX@
+OS_NETBSD = @OS_NETBSD@
+OS_SOLARIS = @OS_SOLARIS@
 OTOOL = @OTOOL@
 OTOOL64 = @OTOOL64@
 OUR_MODS = @OUR_MODS@
@@ -188,7 +193,7 @@ top_srcdir = @top_srcdir@
 
 #
 AM_CFLAGS = -g -fPIC -rdynamic
-captagent_SOURCES = captagent.c xmlread.c modules.c
+captagent_SOURCES = captagent.c xmlread.c modules.c log.c
 config = /usr/local/etc/$(bin_PROGRAMS)/$(bin_PROGRAMS).xml
 all: all-am
 
@@ -278,6 +283,7 @@ distclean-compile:
 	-rm -f *.tab.c
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/captagent.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/log.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/modules.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/xmlread.Po@am__quote@
 

@@ -143,6 +143,11 @@ NM = @NM@
 NMEDIT = @NMEDIT@
 OBJDUMP = @OBJDUMP@
 OBJEXT = @OBJEXT@
+OS_DARWIN = @OS_DARWIN@
+OS_FREEBSD = @OS_FREEBSD@
+OS_LINUX = @OS_LINUX@
+OS_NETBSD = @OS_NETBSD@
+OS_SOLARIS = @OS_SOLARIS@
 OTOOL = @OTOOL@
 OTOOL64 = @OTOOL64@
 OUR_MODS = @OUR_MODS@
@@ -215,13 +220,12 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 proto_uni_la_SOURCES = proto_uni.c proto_uni.h sip.c sip.h
-proto_uni_la_CFLAGS = -Wall ${MODULE_CFLAGS}
+proto_uni_la_CFLAGS = -Wall ${MODULE_CFLAGS} ${AM_CFLAGS}
 proto_uni_la_LDFLAGS = -module -avoid-version 
 include_HEADERS = proto_uni.h sip.h
 mod_LTLIBRARIES = proto_uni.la
 moddir = $(libdir)/captagent/modules
 INCLUDES = ${AP_INCLUDES}
-AM_CFLAGS = ${AM_CFLAGS}
 CLEANFILES = *.la *.lo *.o *.so *.slo .libs/*
 all: all-am
 

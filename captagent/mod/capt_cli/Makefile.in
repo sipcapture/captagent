@@ -142,6 +142,11 @@ NM = @NM@
 NMEDIT = @NMEDIT@
 OBJDUMP = @OBJDUMP@
 OBJEXT = @OBJEXT@
+OS_DARWIN = @OS_DARWIN@
+OS_FREEBSD = @OS_FREEBSD@
+OS_LINUX = @OS_LINUX@
+OS_NETBSD = @OS_NETBSD@
+OS_SOLARIS = @OS_SOLARIS@
 OTOOL = @OTOOL@
 OTOOL64 = @OTOOL64@
 OUR_MODS = @OUR_MODS@
@@ -214,13 +219,12 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 capt_cli_la_SOURCES = capt_cli.c capt_cli.h
-capt_cli_la_CFLAGS = -Wall ${MODULE_CFLAGS}
+capt_cli_la_CFLAGS = -Wall ${MODULE_CFLAGS} ${AM_CFLAGS}
 capt_cli_la_LDFLAGS = -module -avoid-version 
 include_HEADERS = capt_cli.h
 mod_LTLIBRARIES = capt_cli.la
 moddir = $(libdir)/captagent/modules
 INCLUDES = ${AP_INCLUDES}
-AM_CFLAGS = ${AM_CFLAGS}
 CLEANFILES = *.la *.lo *.o *.so *.slo .libs/*
 all: all-am
 

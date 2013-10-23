@@ -618,6 +618,11 @@ ac_subst_vars='am__EXEEXT_FALSE
 am__EXEEXT_TRUE
 LTLIBOBJS
 LIBOBJS
+OS_SOLARIS
+OS_NETBSD
+OS_LINUX
+OS_FREEBSD
+OS_DARWIN
 CPP
 OTOOL64
 OTOOL
@@ -11289,6 +11294,49 @@ CC="$lt_save_CC"
 
 
 
+case "${host}" in
+  *-*-darwin*)
+
+$as_echo "#define OS_DARWIN 1" >>confdefs.h
+
+        OS_DARWIN=1
+
+        ;;
+  *-*-freebsd*)
+
+$as_echo "#define OS_FREEBSD 1" >>confdefs.h
+
+        OS_FREEBSD=1
+
+        ;;
+  *-*-linux*)
+
+$as_echo "#define OS_LINUX 1" >>confdefs.h
+
+        OS_LINUX=1
+
+        ;;
+  *-*-netbsd*)
+
+$as_echo "#define OS_NETBSD 1" >>confdefs.h
+
+        OS_NETBSD=1
+
+        ;;
+  *-*-solaris2*)
+
+$as_echo "#define OS_SOLARIS 1" >>confdefs.h
+
+        OS_SOLARIS=1
+
+        ;;
+  *)
+        { $as_echo "$as_me:${as_lineno-$LINENO}: result: Unsupported operating system: ${host}" >&5
+$as_echo "Unsupported operating system: ${host}" >&6; }
+        ;;
+esac
+
+
 # Checks for libraries.
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for pthread_create in -lpthread" >&5
 $as_echo_n "checking for pthread_create in -lpthread... " >&6; }
@@ -11337,7 +11385,8 @@ else
   as_fn_error $? "captagent requires but cannot find pthread" "$LINENO" 5
 fi
 
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for dlopen in -ldl" >&5
+if test "$OS_LINUX" = 1 ; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for dlopen in -ldl" >&5
 $as_echo_n "checking for dlopen in -ldl... " >&6; }
 if ${ac_cv_lib_dl_dlopen+:} false; then :
   $as_echo_n "(cached) " >&6
@@ -11382,6 +11431,8 @@ _ACEOF
 
 else
   as_fn_error $? "captagent requires but cannot find libdl" "$LINENO" 5
+fi
+
 fi
 
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for XML_ParserCreate in -lexpat" >&5

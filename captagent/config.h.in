@@ -104,6 +104,21 @@
    */
 #undef LT_OBJDIR
 
+/* Define to 1 if Operating System is Darwin */
+#undef OS_DARWIN
+
+/* Define to 1 if Operating System is FreeBSD */
+#undef OS_FREEBSD
+
+/* Define to 1 if Operating System is Linux */
+#undef OS_LINUX
+
+/* Define to 1 if Operating System is NETBSD */
+#undef OS_NETBSD
+
+/* Define to 1 if Operating System is SOLARIS */
+#undef OS_SOLARIS
+
 /* Name of package */
 #undef PACKAGE
 
