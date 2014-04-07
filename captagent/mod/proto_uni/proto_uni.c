@@ -261,9 +261,8 @@ void* proto_collect( void* device ) {
 
         struct bpf_program filter;
         char errbuf[PCAP_ERRBUF_SIZE];
-        char filter_expr[FILTER_LEN];
-        char filter_port[100], filter_proto[100], filter_user[800];
-        uint16_t snaplen = 65535, timeout = 100;        
+        char *filter_expr;
+        uint16_t snaplen = 65535, timeout = 100, len = 200, ret = 0;        
 
         if(device) {
             if((sniffer_proto = pcap_open_live((char *)device, snaplen, promisc, timeout, errbuf)) == NULL) {
@@ -277,34 +276,45 @@ void* proto_collect( void* device ) {
             }
         }
 
-
+        len += (portrange != NULL) ? strlen(portrange) : 10;        
+        len += (ip_proto != NULL) ? strlen(ip_proto) : 0;
+        len += (userfilter != NULL) ? strlen(userfilter) : 0;
+        
+        filter_expr = malloc(sizeof(char) * len);
+        
+        /* FILTER VLAN */
+        if(vlan) ret += snprintf(filter_expr, len, "vlan and ");                                          
+            
         /* FILTER */
-        if(portrange != NULL) snprintf(filter_port, 100, "portrange %s", portrange);        
-        else snprintf(filter_port, 100, "port %d", port);        
+        if(portrange != NULL) ret += snprintf(filter_expr+ret, (len - ret), "portrange %s ", portrange);        
+        else ret += snprintf(filter_expr+ret, (len - ret), "port %d ", port);        
 
         /* PROTO */
-        if(ip_proto != NULL) snprintf(filter_proto, 100, "and %s", ip_proto);
+        if(ip_proto != NULL) ret += snprintf(filter_expr+ret, (len - ret), "and %s ", ip_proto);
 
         /* CUSTOM FILTER */
-        if(userfilter != NULL) snprintf(filter_user, 800, "and %s", userfilter);
-        
+        if(userfilter != NULL) ret += snprintf(filter_expr+ret, (len - ret), " %s ", userfilter);
                
-        snprintf(filter_expr, FILTER_LEN, "%s%s %s %s",vlan?"vlan and ":"", filter_port, ip_proto ? filter_proto : "", userfilter ? userfilter : "");
+        //snprintf(filter_expr, FILTER_LEN, "%s%s %s %s",vlan?"vlan and ":"", filter_port, ip_proto ? filter_proto : "", userfilter ? userfilter : "");
         
-		fprintf(stdout, "expr:%s\n", filter_expr);
+	fprintf(stdout, "expr:%s\n", filter_expr);
         /* create filter string */
 
         /* compile filter expression (global constant, see above) */
         if (pcap_compile(sniffer_proto, &filter, filter_expr, 1, 0) == -1) {
                 fprintf(stderr,"Failed to compile filter \"%s\": %s\n", filter_expr, pcap_geterr(sniffer_proto));
+                if(filter_expr) free(filter_expr);
                 return NULL;
         }
 
         /* install filter on sniffer session */
         if (pcap_setfilter(sniffer_proto, &filter)) {
                 fprintf(stderr,"Failed to install filter: %s\n", pcap_geterr(sniffer_proto));
+                if(filter_expr) free(filter_expr);
                 return NULL;
         }
+
+        if(filter_expr) free(filter_expr);
         
         /* detect link_offset. Thanks ngrep for this. */
         switch(pcap_datalink(sniffer_proto)) {
