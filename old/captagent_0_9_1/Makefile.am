@@ -5,7 +5,7 @@
 bin_PROGRAMS = captagent
 
 captagent_LDFLAGS = \
-	-lpcap
+	-lpcap -lsocket
 
 captagent_CFLAGS = \
 	-g -Wall -DUSE_IPV6 -DUSE_HEP2 -DUSE_CONFFILE
