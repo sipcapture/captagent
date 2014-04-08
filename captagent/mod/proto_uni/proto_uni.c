@@ -69,10 +69,16 @@ pthread_t call_thread;
 void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet) 
 {
 
-
-	struct ip      *ip4_pkt = (struct ip *)    (packet + link_offset + ((ntohs((uint16_t)*(packet + 12)) == 0x8100)? 4:0) );
+  /* Pat Callahan's patch for MPLS */
+  unsigned char ethaddr[3], mplsaddr[3];
+        
+  memcpy(&ethaddr, (packet + 12), 2);
+  memcpy(&mplsaddr, (packet + 16), 2);
+        
+  //struct ip      *ip4_pkt = (struct ip *)    (packet + link_offset + ((ntohs((uint16_t)*(packet + 12)) == 0x8100)? 4:0) );  
+  struct ip      *ip4_pkt = (struct ip *)    (packet + link_offset + ((ntohs((uint16_t)*(&ethaddr)) == 0x8100)? (ntohs((uint16_t)*(&mplsaddr)) == 0x8847)? 8:4:0) );
 #if USE_IPv6
-	struct ip6_hdr *ip6_pkt = (struct ip6_hdr*)(packet + link_offset + ((ntohs((uint16_t)*(packet + 12)) == 0x8100)? 4:0) );
+        struct ip6_hdr *ip6_pkt = (struct ip6_hdr*)(packet + link_offset + ((ntohs((uint16_t)*(packet + 12)) == 0x8100)? 4:0) );
 #endif
 
 	uint32_t ip_ver;
