@@ -58,27 +58,34 @@
 #include "proto_uni.h"
 #include "sip.h"
 
-
 uint8_t link_offset = 14;
+uint8_t hdr_offset = 0;
 
 pcap_t *sniffer_proto;
 pthread_t call_thread;   
 
+unsigned char* ethaddr = NULL;
+unsigned char* mplsaddr = NULL;
 
 /* Callback function that is passed to pcap_loop() */ 
 void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet) 
 {
 
-  /* Pat Callahan's patch for MPLS */
-  unsigned char ethaddr[3], mplsaddr[3];
-        
-  memcpy(&ethaddr, (packet + 12), 2);
-  memcpy(&mplsaddr, (packet + 16), 2);
-        
-  //struct ip      *ip4_pkt = (struct ip *)    (packet + link_offset + ((ntohs((uint16_t)*(packet + 12)) == 0x8100)? 4:0) );  
-  struct ip      *ip4_pkt = (struct ip *)    (packet + link_offset + ((ntohs((uint16_t)*(&ethaddr)) == 0x8100)? (ntohs((uint16_t)*(&mplsaddr)) == 0x8847)? 8:4:0) );
+	/* Pat Callahan's patch for MPLS */
+	memcpy(&ethaddr, (packet + 12), 2);
+        memcpy(&mplsaddr, (packet + 16), 2);
+
+        if (ntohs((uint16_t)*(&ethaddr)) == 0x8100) {
+          if (ntohs((uint16_t)*(&mplsaddr)) == 0x8847) {
+             hdr_offset = 8;
+          } else {
+             hdr_offset = 4;
+          }
+        }
+
+        struct ip      *ip4_pkt = (struct ip *)    (packet + link_offset + hdr_offset);
 #if USE_IPv6
-        struct ip6_hdr *ip6_pkt = (struct ip6_hdr*)(packet + link_offset + ((ntohs((uint16_t)*(packet + 12)) == 0x8100)? 4:0) );
+        struct ip6_hdr *ip6_pkt = (struct ip6_hdr*)(packet + link_offset + ((ntohs((uint16_t)*(packet + 12)) == 0x8100)? 4: 0) );
 #endif
 
 	uint32_t ip_ver;
@@ -230,7 +237,7 @@ int dump_proto_packet(struct pcap_pkthdr *pkthdr, u_char *packet, uint8_t proto,
 
         if (proto_type == PROTO_SIP && sip_method){
 
-        	if ((sip_method_not == 1) ? (!sip_is_method(data, len,sip_method+1)): (sip_is_method (data, len,sip_method))){
+        	if ((sip_method_not == 1) ? (!sip_is_method((const char*)data, len,sip_method+1)): (sip_is_method ((const char*) data, len,sip_method))){
             	//printf("method not matched\n");
             	return -1;
         	}
@@ -482,10 +489,9 @@ char *description(void)
 }
 
 
-char *statistic(void)
+int statistic(char *buf)
 {
-        char buf[1024];
         snprintf(buf, 1024, "Statistic of PROTO_UNI module:\r\nSend packets: [%i]\r\n", sendPacketsCount);
-        return &buf;
+        return 1;
 }
                         

@@ -48,7 +48,7 @@ void destroy_log(void) {
 }
   
  
-void log_stdout(char * format, va_list ap)
+void log_stdout(const char * format, va_list ap)
 {
         vfprintf(stdout, format, ap);
         fflush(stdout);

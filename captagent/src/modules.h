@@ -27,7 +27,7 @@ typedef struct module {
         int (*load_module)(struct xml_node *config);
         int (*unload_module)(void);
         char *(*description)(void);
-        char *(*statistic)(void);
+        char *(*statistic)(char *);
         void *lib;
         char resource[256];
         struct module *next;

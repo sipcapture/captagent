@@ -73,19 +73,19 @@ void *wait_connect (void) {
 	int  client_sock;
 
 	while( (client_sock = accept(server_sock, NULL, NULL)) ) {
-	        if( pthread_create( &thread , NULL ,  read_clisocket , (void*) client_sock) < 0) {
+	        if( pthread_create( &thread , NULL ,  read_clisocket , (void *) client_sock) < 0) {
 			perror("could not create thread");
 		        return 1;
 	        }         
 	}
 	
 	if(server_sock) close(server_sock);
-	return 1;
 }
 
 
 void *read_clisocket(void *client){
     char buffer[MAX_LINE]; 
+    char stats[MAX_STATS];
     char *message = "\r\nWelcome to CLI of Captagent\r\n";
     int ret;
     int mysocket = (int*) client;
@@ -115,9 +115,11 @@ void *read_clisocket(void *client){
                 command = "all";
 	    }	
 
-            message = get_basestat(command);		            
-	    if(message == NULL) message = "No stats";        
-	    write_line(mysocket, message, strlen(message));
+            if(get_basestat(command, stats) == 0) {		            
+	           sprintf(stats, "No stats");
+            }
+            
+	    write_line(mysocket, stats, strlen(stats));
 	}	
 
 	else {
@@ -298,10 +300,9 @@ ssize_t write_line(int sockd, const void *vptr, size_t n) {
     return n;
 }
 
-char* statistic(void)
+int statistic(char *buf)
 {
-        char buf[1024];
         snprintf(buf, 1024, "Statistic of capt_cli module\r\n");
-        return &buf;
+        return 1;
 }
                         

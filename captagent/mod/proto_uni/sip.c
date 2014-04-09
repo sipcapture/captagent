@@ -17,11 +17,11 @@ enum sip_type {
  * Find the first occurrence of find in s, where the search is limited to the
  * first slen characters of s (case insensitive).
  */
-char *strncasestr(const char* s, const char * find, uint16_t slen) {
+const char *strncasestr(const char* s, const char * find, uint16_t slen) {
 
 	char c, sc;
 	uint16_t len;
-	char * tmp = s;
+	const char * tmp = s;
 
 	if ((c = *find++) != '\0') {
 		len = strlen(find);
@@ -63,7 +63,7 @@ inline static char* eat_token_end(const char* p, const char* pend)
 	return (char *)p;
 }
 
-char * get_hdr_field (char * buf, uint32_t len){
+char * get_hdr_field (const char * buf, uint32_t len){
 
 	char * tmp = buf;
 	char * end = tmp + len;
@@ -86,9 +86,9 @@ char * get_hdr_field (char * buf, uint32_t len){
 
 int sip_is_method(const char * buf, uint32_t len , const char * method){
 
-	char * tmp = NULL;
+	const char * tmp = NULL;
 	short int method_len = strlen (method);
-	char * end = buf + len;
+	const char * end = buf + len;
 	enum sip_type type = TYPE_REQUEST;
 
 	/* eat crlf from the beginning */

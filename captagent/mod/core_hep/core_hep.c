@@ -461,9 +461,9 @@ error:
 int send_data (void *buf, unsigned int len) {
 
 	/* send this packet out of our socket */
-	int r = 0;
+	//int r = 0;
 	void * p = buf;
-	int sentbytes = 0;
+	//int sentbytes = 0;
 
 	if(!usessl) {
 	        	if(send(sock, p, len, 0) == -1) {
@@ -523,9 +523,9 @@ void  select_loop (void)
 	int n = 0;
 	int initfails = 0;
 	fd_set readfd;
-	time_t prevtime = NULL;
-
-	prevtime = time(NULL);
+	time_t prevtime = time(NULL);
+	
+	
 	FD_ZERO(&readfd);
 	FD_SET(sock, &readfd);
 	while (1){
@@ -567,7 +567,7 @@ int load_module(xml_node *config)
 {
 	xml_node *modules;
         char *key, *value;
-        int s;
+        //int s;
 
 	/* READ CONFIG */
 	modules = config;
@@ -763,7 +763,7 @@ int init_hepsocket (void) {
 
 int init_hepsocket_blocking (void) {
 
-    int res, s;
+    int s;
     struct timeval tv;
     fd_set myset;
 
@@ -780,7 +780,7 @@ int init_hepsocket_blocking (void) {
     }
 
      if (connect(sock, ai->ai_addr, (socklen_t)(ai->ai_addrlen)) == -1) {
-         res = select(sock + 1 , NULL, &myset, NULL, &tv);
+         select(sock + 1 , NULL, &myset, NULL, &tv);
          if (errno != EINPROGRESS) {
              fprintf(stderr,"Sender socket creation failed: %s\n", strerror(errno));
              return 1;    
@@ -887,11 +887,10 @@ char *description(void)
         return description;
 }
 
-char* statistic(void)
+int statistic(char *buf)
 {
-        char buf[1024];        
         snprintf(buf, 1024, "Statistic of CORE_HEP module:\r\nSend packets: [%i]\r\n", sendPacketsCount);
-        return buf;
+        return 1;
 }
 
 int handlerPipe(void) {
@@ -917,3 +916,5 @@ int sigPipe(void)
         }
 
 }
+
+

@@ -38,7 +38,7 @@
 
 #define LISTENQ  1024
 #define MAX_LINE 1000
-
+#define MAX_STATS 3000
 
 int server_sock;
 struct addrinfo *ai;

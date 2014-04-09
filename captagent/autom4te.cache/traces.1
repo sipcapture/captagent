@@ -158,7 +158,7 @@ m4trace:configure.ac:40: -1- AC_SUBST_TRACE([OUR_MODS])
 m4trace:configure.ac:40: -1- m4_pattern_allow([^OUR_MODS$])
 m4trace:configure.ac:45: -1- AM_INIT_AUTOMAKE
 m4trace:configure.ac:45: -1- m4_pattern_allow([^AM_[A-Z]+FLAGS$])
-m4trace:configure.ac:45: -1- AM_AUTOMAKE_VERSION([1.11.1])
+m4trace:configure.ac:45: -1- AM_AUTOMAKE_VERSION([1.11.6])
 m4trace:configure.ac:45: -1- AC_REQUIRE_AUX_FILE([install-sh])
 m4trace:configure.ac:45: -1- AC_SUBST([INSTALL_PROGRAM])
 m4trace:configure.ac:45: -1- AC_SUBST_TRACE([INSTALL_PROGRAM])
@@ -231,7 +231,7 @@ m4trace:configure.ac:45: -1- m4_pattern_allow([^SET_MAKE$])
 m4trace:configure.ac:45: -1- AC_SUBST([am__leading_dot])
 m4trace:configure.ac:45: -1- AC_SUBST_TRACE([am__leading_dot])
 m4trace:configure.ac:45: -1- m4_pattern_allow([^am__leading_dot$])
-m4trace:configure.ac:45: -1- AC_SUBST([AMTAR])
+m4trace:configure.ac:45: -1- AC_SUBST([AMTAR], ['$${TAR-tar}'])
 m4trace:configure.ac:45: -1- AC_SUBST_TRACE([AMTAR])
 m4trace:configure.ac:45: -1- m4_pattern_allow([^AMTAR$])
 m4trace:configure.ac:45: -1- AC_SUBST([am__tar])
@@ -289,6 +289,10 @@ m4trace:configure.ac:48: -1- AC_SUBST([AMDEPBACKSLASH])
 m4trace:configure.ac:48: -1- AC_SUBST_TRACE([AMDEPBACKSLASH])
 m4trace:configure.ac:48: -1- m4_pattern_allow([^AMDEPBACKSLASH$])
 m4trace:configure.ac:48: -1- _AM_SUBST_NOTMAKE([AMDEPBACKSLASH])
+m4trace:configure.ac:48: -1- AC_SUBST([am__nodep])
+m4trace:configure.ac:48: -1- AC_SUBST_TRACE([am__nodep])
+m4trace:configure.ac:48: -1- m4_pattern_allow([^am__nodep$])
+m4trace:configure.ac:48: -1- _AM_SUBST_NOTMAKE([am__nodep])
 m4trace:configure.ac:48: -1- AC_SUBST([CCDEPMODE], [depmode=$am_cv_CC_dependencies_compiler_type])
 m4trace:configure.ac:48: -1- AC_SUBST_TRACE([CCDEPMODE])
 m4trace:configure.ac:48: -1- m4_pattern_allow([^CCDEPMODE$])
@@ -310,14 +314,14 @@ m4trace:configure.ac:52: -1- AC_SUBST([SET_MAKE])
 m4trace:configure.ac:52: -1- AC_SUBST_TRACE([SET_MAKE])
 m4trace:configure.ac:52: -1- m4_pattern_allow([^SET_MAKE$])
 m4trace:configure.ac:53: -1- _m4_warn([obsolete], [The macro `AC_LIBTOOL_DLOPEN' is obsolete.
-You should run autoupdate.], [aclocal.m4:7965: AC_LIBTOOL_DLOPEN is expanded from...
+You should run autoupdate.], [aclocal.m4:8092: AC_LIBTOOL_DLOPEN is expanded from...
 configure.ac:53: the top level])
 m4trace:configure.ac:53: -1- _m4_warn([obsolete], [AC_LIBTOOL_DLOPEN: Remove this warning and the call to _LT_SET_OPTION when you
-put the `dlopen' option into LT_INIT's first parameter.], [aclocal.m4:7965: AC_LIBTOOL_DLOPEN is expanded from...
+put the `dlopen' option into LT_INIT's first parameter.], [aclocal.m4:8092: AC_LIBTOOL_DLOPEN is expanded from...
 configure.ac:53: the top level])
 m4trace:configure.ac:54: -1- AC_PROG_LIBTOOL
 m4trace:configure.ac:54: -1- _m4_warn([obsolete], [The macro `AC_PROG_LIBTOOL' is obsolete.
-You should run autoupdate.], [aclocal.m4:128: AC_PROG_LIBTOOL is expanded from...
+You should run autoupdate.], [aclocal.m4:129: AC_PROG_LIBTOOL is expanded from...
 configure.ac:54: the top level])
 m4trace:configure.ac:54: -1- LT_INIT
 m4trace:configure.ac:54: -1- m4_pattern_forbid([^_?LT_[A-Z_]+$])
@@ -525,14 +529,14 @@ m4trace:configure.ac:91: -1- AH_OUTPUT([HAVE_LIBWPCAP], [/* Define to 1 if you h
 m4trace:configure.ac:91: -1- AC_DEFINE_TRACE_LITERAL([HAVE_LIBWPCAP])
 m4trace:configure.ac:91: -1- m4_pattern_allow([^HAVE_LIBWPCAP$])
 m4trace:configure.ac:98: -1- _m4_warn([obsolete], [The macro `AC_CHECKING' is obsolete.
-You should run autoupdate.], [../../lib/autoconf/general.m4:2267: AC_CHECKING is expanded from...
+You should run autoupdate.], [../../lib/autoconf/general.m4:2266: AC_CHECKING is expanded from...
 configure.ac:98: the top level])
 m4trace:configure.ac:101: -1- AC_DEFINE_TRACE_LITERAL([USE_ZLIB])
 m4trace:configure.ac:101: -1- m4_pattern_allow([^USE_ZLIB$])
 m4trace:configure.ac:101: -1- AH_OUTPUT([USE_ZLIB], [/* Use ZIP library */
 @%:@undef USE_ZLIB])
 m4trace:configure.ac:110: -1- _m4_warn([obsolete], [The macro `AC_CHECKING' is obsolete.
-You should run autoupdate.], [../../lib/autoconf/general.m4:2267: AC_CHECKING is expanded from...
+You should run autoupdate.], [../../lib/autoconf/general.m4:2266: AC_CHECKING is expanded from...
 configure.ac:110: the top level])
 m4trace:configure.ac:113: -1- AC_DEFINE_TRACE_LITERAL([USE_SSL])
 m4trace:configure.ac:113: -1- m4_pattern_allow([^USE_SSL$])
