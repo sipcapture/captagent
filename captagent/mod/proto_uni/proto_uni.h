@@ -41,7 +41,7 @@
 #define PROTO_H322   0x0b
 #define PROTO_H321   0x0c
 
-int port = 5060; /* default port is SIP */
+int port = 0; 
 char *portrange = NULL;
 char *userfilter=NULL;
 char *ip_proto = NULL;
