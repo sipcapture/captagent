@@ -298,21 +298,20 @@ void* proto_collect( void* device ) {
         filter_expr = malloc(sizeof(char) * len);
         
         /* FILTER VLAN */
-        if(vlan) ret += snprintf(filter_expr, len, "vlan and ");                                          
-            
+        if(vlan) ret += snprintf(filter_expr, len, "vlan");
+
         /* FILTER */
-        if(portrange != NULL) ret += snprintf(filter_expr+ret, (len - ret), "portrange %s ", portrange);        
-        else ret += snprintf(filter_expr+ret, (len - ret), "port %d ", port);        
+        if(portrange != NULL) ret += snprintf(filter_expr+ret, (len - ret), "%s portrange %s ", ret ? " and": "", portrange);
+        else if(port > 0) ret += snprintf(filter_expr+ret, (len - ret), "%s port %d ", ret ? " and": "", port);
 
         /* PROTO */
-        if(ip_proto != NULL) ret += snprintf(filter_expr+ret, (len - ret), "and %s ", ip_proto);
+        if(ip_proto != NULL) ret += snprintf(filter_expr+ret, (len - ret), "%s %s ", ret ? " and": "", ip_proto);
 
         /* CUSTOM FILTER */
         if(userfilter != NULL) ret += snprintf(filter_expr+ret, (len - ret), " %s ", userfilter);
-               
-        //snprintf(filter_expr, FILTER_LEN, "%s%s %s %s",vlan?"vlan and ":"", filter_port, ip_proto ? filter_proto : "", userfilter ? userfilter : "");
         
-	fprintf(stdout, "expr:%s\n", filter_expr);
+        
+	      fprintf(stdout, "expr:%s\n", filter_expr);
         /* create filter string */
 
         /* compile filter expression (global constant, see above) */
@@ -453,10 +452,12 @@ next:
           }
         }
        
+        /*
         if(port == 0 && portrange == NULL) {        
                 fprintf(stderr, "bad port or portranges in the config\n");
                 return -1;
         }
+        */
 
         /* CHECK PROTO */
         if(!strncmp(local_pt, "sip", 3)) proto_type = PROTO_SIP;
