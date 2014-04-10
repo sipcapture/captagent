@@ -156,7 +156,8 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
                     uint16_t tcphdr_offset = frag_offset ? 0 : (uint16_t) (tcp_pkt->th_off * 4);
 
                     data = (unsigned char *)(tcp_pkt) + tcphdr_offset;
-                    len -= link_offset + ip_hl + tcphdr_offset;
+                    
+                    len -= link_offset + ip_hl + tcphdr_offset + hdr_offset;
 
 #if USE_IPv6
                     if (ip_ver == 6)
@@ -177,8 +178,9 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
                     uint16_t udphdr_offset = (frag_offset) ? 0 : sizeof(*udp_pkt);
 
                     data = (unsigned char *)(udp_pkt) + udphdr_offset;
+                    
+                    len -= link_offset + ip_hl + udphdr_offset + hdr_offset;
 
-                    len -= link_offset + ip_hl + udphdr_offset;
 #if USE_IPv6
                     if (ip_ver == 6)
                         len -= ntohs(ip6_pkt->ip6_plen);
