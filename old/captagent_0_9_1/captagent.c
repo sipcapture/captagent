@@ -715,7 +715,7 @@ int dump_proto_packet(struct pcap_pkthdr *pkthdr, u_char *packet, uint8_t proto,
 
 int send_hep_basic (rc_info_t *rcinfo, unsigned char *data, unsigned int len) {
 
-        switch(hep_version) {
+        switch(hepversion) {
         
             case 3:
 		return send_hepv3(rcinfo, data , len);
@@ -727,7 +727,7 @@ int send_hep_basic (rc_info_t *rcinfo, unsigned char *data, unsigned int len) {
                 break;
                 
             default:
-                fprintf(stderr, "Unsupported HEP version [%d]\n", hep_version);                
+                fprintf(stderr, "Unsupported HEP version [%d]\n", hepversion);                
                 break;
         }
 
@@ -934,7 +934,7 @@ int send_hepv2 (rc_info_t *rcinfo, unsigned char *data, unsigned int len) {
 #endif /* USE IPV6 */
 
     /* Version && proto */
-    hdr.hp_v = hep_version;
+    hdr.hp_v = hepversion;
     hdr.hp_f = rcinfo->ip_family;
     hdr.hp_p = rcinfo->ip_proto;
     hdr.hp_sport = htons(rcinfo->src_port); /* src port */
@@ -959,7 +959,7 @@ int send_hepv2 (rc_info_t *rcinfo, unsigned char *data, unsigned int len) {
     totlen += sizeof(struct hep_hdr);
     totlen += len;
 
-    if(hep_version == 2) {
+    if(hepversion == 2) {
     	totlen += sizeof(struct hep_timehdr);
         hep_time.tv_sec = rcinfo->time_sec;
         hep_time.tv_usec = rcinfo->time_usec;
@@ -1003,7 +1003,7 @@ int send_hepv2 (rc_info_t *rcinfo, unsigned char *data, unsigned int len) {
      }
 
      /* Version 2 has timestamp, captnode ID */
-     if(hep_version == 2) {
+     if(hepversion == 2) {
      	/* TIMING  */
         memcpy((void*)buffer + buflen, &hep_time, sizeof(struct hep_timehdr));
         buflen += sizeof(struct hep_timehdr);
