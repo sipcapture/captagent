@@ -49,7 +49,6 @@
 #include <netinet/ip6.h>
 #endif /* USE_IPV6 */
 #define __FAVOR_BSD 
-#include <netinet/if_ether.h>
 #include <arpa/inet.h>
 #include <sys/types.h>
 #include <netdb.h>
@@ -63,6 +62,7 @@
 /* Solaris */
 #include <net/if.h>
 #include <net/if_arp.h>
+#include <netinet/if_ether.h>
 
 #include "core_hep.h"
 #include "minIni/minIni.h"
