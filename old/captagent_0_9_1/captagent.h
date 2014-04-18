@@ -18,6 +18,10 @@ struct ethhdr_vlan {
 };
 
 
+#ifndef	IP_OFFMASK
+#define	IP_OFFMASK	0x1fff
+#endif
+
 #define PROTO_SIP    0x01
 
 /* FreeBSD or Solaris */
