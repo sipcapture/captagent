@@ -54,6 +54,9 @@
 
 #include <pcap.h>
 
+/* reasambling */
+#include "ipreasm.h"
+
 #include "src/api.h"
 #include "proto_uni.h"
 #include "sip.h"
@@ -102,6 +105,21 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
 	uint32_t len = pkthdr->caplen;
 	int ret;
 
+	if (reasm != NULL) {
+		unsigned new_len;
+        	u_char *new_p = malloc(len - link_offset - ((ntohs((uint16_t)*(packet + 12)) == 0x8100)? 4:0));
+		memcpy(new_p, ip4_pkt, len - link_offset - ((ntohs((uint16_t)*(packet + 12)) == 0x8100)? 4:0));
+	        packet = reasm_ip_next(reasm, new_p, len - link_offset - ((ntohs((uint16_t)*(packet + 12)) == 0x8100)? 4:0), (reasm_time_t) 1000000UL * pkthdr->ts.tv_sec + pkthdr->ts.tv_usec, &new_len);
+        	if (packet == NULL) return;
+	        len = new_len + link_offset + ((ntohs((uint16_t)*(packet + 12)) == 0x8100)? 4:0);
+        	pkthdr->len = new_len;
+	        pkthdr->caplen = new_len;
+	
+	        ip4_pkt = (struct ip *)  packet;
+#if USE_IPv6
+	        ip6_pkt = (struct ip6_hdr*)packet;
+#endif
+	}
 
 	ip_ver = ip4_pkt->ip_v;
 
@@ -265,7 +283,7 @@ int dump_proto_packet(struct pcap_pkthdr *pkthdr, u_char *packet, uint8_t proto,
 	         printf("Not duplicated\n");
         }
         
-  if(rcinfo) free(rcinfo);
+        if(rcinfo) free(rcinfo);
 
 	return 1;
 }
@@ -294,6 +312,7 @@ void* proto_collect( void* device ) {
         len += (portrange != NULL) ? strlen(portrange) : 10;        
         len += (ip_proto != NULL) ? strlen(ip_proto) : 0;
         len += (userfilter != NULL) ? strlen(userfilter) : 0;
+        len += (reasm_enable) ? strlen(BPF_DEFRAGMENTION_FILTER) : 0;
         
         filter_expr = malloc(sizeof(char) * len);
         
@@ -306,12 +325,14 @@ void* proto_collect( void* device ) {
 
         /* PROTO */
         if(ip_proto != NULL) ret += snprintf(filter_expr+ret, (len - ret), "%s %s ", ret ? " and": "", ip_proto);
+        
+        /* REASM */
+        if(reasm_enable) ret += snprintf(filter_expr+ret, (len - ret), BPF_DEFRAGMENTION_FILTER);
 
         /* CUSTOM FILTER */
         if(userfilter != NULL) ret += snprintf(filter_expr+ret, (len - ret), " %s ", userfilter);
-        
-        
-	      fprintf(stdout, "expr:%s\n", filter_expr);
+                
+        fprintf(stdout, "expr:%s\n", filter_expr);
         /* create filter string */
 
         /* compile filter expression (global constant, see above) */
@@ -374,6 +395,12 @@ void* proto_collect( void* device ) {
                     exit(-1);
         }
 
+        /* REASM */
+        if(reasm_enable) {
+                reasm = reasm_ip_new ();
+                reasm_ip_set_timeout (reasm, 30000000);
+        }                                
+
         while (pcap_loop(sniffer_proto, 0, (pcap_handler)callback_proto, 0));
 
 
@@ -389,6 +416,9 @@ void* proto_collect( void* device ) {
 int unload_module(void)
 {
         printf("unloaded module proto_uni\n");
+
+        if (reasm != NULL) reasm_ip_free(reasm);
+                    
 	 /* Close socket */
         pcap_close(sniffer_proto);        
 
@@ -436,6 +466,7 @@ int load_module(xml_node *config)
                         else if(!strncmp(key, "filter", 6)) userfilter = value;
                         else if(!strncmp(key, "port", 4)) port = atoi(value);
                         else if(!strncmp(key, "vlan", 4) && !strncmp(value, "true", 4)) vlan = 1;
+                        else if(!strncmp(key, "reasm", 5) && !strncmp(value, "true", 4)) reasm_enable = 1;
                         else if (!strncmp(key, "sip_method", 10)) sip_method = value;
                 }
 next:
