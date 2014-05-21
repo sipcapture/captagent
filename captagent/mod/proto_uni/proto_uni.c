@@ -101,8 +101,10 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
 	char ip_src[INET6_ADDRSTRLEN + 1],
 		ip_dst[INET6_ADDRSTRLEN + 1];
 
-	unsigned char *data;
+        unsigned char *data, *datatcp;
+	    
 	uint32_t len = pkthdr->caplen;
+        uint8_t  psh = 0;
 	int ret;
 
 	if (reasm != NULL) {
@@ -185,9 +187,33 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
                     if ((int32_t)len < 0)
                         len = 0;
 
-                    ret = dump_proto_packet(pkthdr, packet, ip_proto, data, len, ip_src, ip_dst, 
-                            ntohs(tcp_pkt->th_sport), ntohs(tcp_pkt->th_dport), tcp_pkt->th_flags,
-                            tcphdr_offset, fragmented, frag_offset, frag_id, ip_ver);
+                    if(reasm != NULL && tcpdefrag_enable && (len > 0) && (tcp_pkt->th_flags & TH_ACK)) {
+
+			unsigned new_len;
+			u_char *new_p_2 = malloc(len);
+			memcpy(new_p_2, data, len);
+	
+			if((tcp_pkt->th_flags & TH_PUSH)) psh = 1;
+
+	                datatcp = reasm_ip_next_tcp(reasm, new_p_2, len , (reasm_time_t) 1000000UL * pkthdr->ts.tv_sec + pkthdr->ts.tv_usec, &new_len, &ip4_pkt->ip_src, &ip4_pkt->ip_dst, ntohs(tcp_pkt->th_sport), ntohs(tcp_pkt->th_dport), psh);
+
+        	        if (datatcp == NULL) return;
+
+	                len = new_len;
+
+	                dump_proto_packet(pkthdr, packet, ip_proto, datatcp, len,
+        	                ip_src, ip_dst, ntohs(tcp_pkt->th_sport), ntohs(tcp_pkt->th_dport), tcp_pkt->th_flags,
+                	        tcphdr_offset, fragmented, frag_offset, frag_id, ip_ver);
+
+	                /* clear datatcp */
+        	        free(datatcp);
+                    
+                    }
+                    else {
+                            ret = dump_proto_packet(pkthdr, packet, ip_proto, data, len, ip_src, ip_dst, 
+                                    ntohs(tcp_pkt->th_sport), ntohs(tcp_pkt->th_dport), tcp_pkt->th_flags,
+                                    tcphdr_offset, fragmented, frag_offset, frag_id, ip_ver);
+                    }
                                         
                 } break;
 
