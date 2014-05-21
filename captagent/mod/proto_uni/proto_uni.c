@@ -467,6 +467,7 @@ int load_module(xml_node *config)
                         else if(!strncmp(key, "port", 4)) port = atoi(value);
                         else if(!strncmp(key, "vlan", 4) && !strncmp(value, "true", 4)) vlan = 1;
                         else if(!strncmp(key, "reasm", 5) && !strncmp(value, "true", 4)) reasm_enable = 1;
+                        else if(!strncmp(key, "tcpdefrag", 9) && !strncmp(value, "true", 4)) tcpdefrag_enable = 1;
                         else if (!strncmp(key, "sip_method", 10)) sip_method = value;
                 }
 next:

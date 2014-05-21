@@ -53,6 +53,7 @@ int sip_method_not = 0;
 
 /* ip reasm */
 int reasm_enable = 0;
+int tcpdefrag_enable = 0;
 struct reasm_ip *reasm = NULL;
 
 static int sendPacketsCount=0;

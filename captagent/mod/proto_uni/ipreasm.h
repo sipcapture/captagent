@@ -39,6 +39,11 @@ void reasm_ip_free (struct reasm_ip *reasm);
  */
 unsigned char *reasm_ip_next (struct reasm_ip *reasm, unsigned char *packet, unsigned len, reasm_time_t timestamp, unsigned *output_len);
 
+unsigned char *reasm_ip_next_tcp (struct reasm_ip *reasm, unsigned char *packet, unsigned len, reasm_time_t timestamp, unsigned *output_len, struct in_addr *ip_src, struct in_addr *ip_dst, uint16_t sport, uint16_t dport, uint8_t psh);
+
+//static struct reasm_frag_entry * parse_packet_tcp (unsigned char *packet, unsigned len, enum reasm_proto *protocol, union reasm_id *id, unsigned *hash, bool *last_frag);
+
+
 /*
  * Set the timeout after which a noncompleted reassembly expires, in
  * abstract time units (see above for the definition of reasm_time_t).

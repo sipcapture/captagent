@@ -1,7 +1,9 @@
 /*
  * ipreasm -- Routines for reassembly of fragmented IPv4 and IPv6 packets.
+ * added tcp stream reassembling
  *
  * Copyright (c) 2007  Jan Andres <jandres@gmx.net>
+ * Copyright (c) 2014  Alexandr Dubovikov  <alexandr.dubovikov@gmail.com>
  *
  */
 
@@ -48,6 +50,8 @@ struct reasm_id_ipv4 {
 	uint8_t ip_src[4], ip_dst[4];
 	uint16_t ip_id;
 	uint8_t ip_proto;
+	uint16_t sport;
+	uint16_t dport;
 };
 
 
@@ -57,6 +61,8 @@ struct reasm_id_ipv4 {
 struct reasm_id_ipv6 {
 	uint8_t ip_src[16], ip_dst[16];
 	uint32_t ip_id;
+	uint16_t sport;
+	uint16_t dport;
 };
 
 
@@ -125,6 +131,8 @@ static unsigned reasm_ipv6_hash (const struct reasm_id_ipv6 *id);
  */
 static bool add_fragment (struct reasm_ip_entry *entry, struct reasm_frag_entry *frag, bool last_frag);
 
+static bool add_fragment_tcp (struct reasm_ip_entry *entry, struct reasm_frag_entry *frag, bool last_frag);
+
 /*
  * Is the entry complete, ready for reassembly?
  */
@@ -134,6 +142,8 @@ static bool is_complete (struct reasm_ip_entry *entry);
  * Create the reassembled packet.
  */
 static unsigned char *assemble (struct reasm_ip_entry *entry, unsigned *output_len);
+
+static unsigned char *assemble_tcp (struct reasm_ip_entry *entry, unsigned *output_len);
 
 /*
  * Drop and free entries.
@@ -159,6 +169,7 @@ static struct reasm_frag_entry *frag_from_ipv6 (unsigned char *packet, uint32_t 
  * Compare packet identification tuples for specified protocol.
  */
 static bool reasm_id_equal (enum reasm_proto proto, const union reasm_id *left, const union reasm_id *right);
+static bool reasm_id_equal_tcp (enum reasm_proto proto, const union reasm_id *left, const union reasm_id *right);
 
 /*
  * Create fragment structure from an IPv4 or IPv6 packet. Returns NULL
@@ -181,6 +192,8 @@ reasm_ipv4_hash (const struct reasm_id_ipv4 *id)
 	hash = 59U * hash + id->ip_id;
 
 	hash = 47U * hash + id->ip_proto;
+	hash = 47U * hash + id->dport;
+	hash = 47U * hash + id->sport;
 
 	return hash;
 }
@@ -199,7 +212,8 @@ reasm_ipv6_hash (const struct reasm_id_ipv6 *id)
 	}
 
 	hash = 59U * hash + id->ip_id;
-
+	hash = 47U * hash + id->dport;
+	hash = 47U * hash + id->sport;
 	return hash;
 }
 #endif /* USE_IPv6 */
@@ -297,6 +311,129 @@ reasm_ip_next (struct reasm_ip *reasm, unsigned char *packet, unsigned len, reas
 }
 
 
+unsigned char *
+reasm_ip_next_tcp (struct reasm_ip *reasm, unsigned char *packet, unsigned len, reasm_time_t timestamp, unsigned *output_len, struct in_addr *ip_src, struct in_addr *ip_dst, uint16_t sport, uint16_t dport, uint8_t psh)
+{
+	enum reasm_proto proto;
+	union reasm_id id;
+	unsigned hash;
+	bool last_frag;
+
+
+	process_timeouts (reasm, timestamp);
+		
+	struct reasm_frag_entry *frag = NULL;
+	frag = malloc (sizeof (*frag));
+        if (frag == NULL)
+        	abort ();
+	
+	*frag = (struct reasm_frag_entry) {
+        	.len = len,
+                .offset = 10 * 8,
+                .data_offset = len,
+                .data = packet,
+	};
+	
+	memcpy (id.ipv4.ip_src, ip_src, 4);
+        memcpy (id.ipv4.ip_dst, ip_dst, 4);
+        id.ipv4.ip_id = 200;
+        id.ipv4.ip_proto = 5;
+        id.ipv4.sport = sport;
+        id.ipv4.dport = dport;
+        
+        hash = reasm_ipv4_hash (&id.ipv4);
+        
+	hash %= REASM_IP_HASH_SIZE;
+	struct reasm_ip_entry *entry = reasm->table[hash];
+		
+	while (entry != NULL && (!reasm_id_equal (proto, &id, &entry->id)))
+		entry = entry->next;
+	
+	/* no buffer, go out */
+	if(psh == 1 && entry == NULL) {
+		free(frag);
+		*output_len = len;
+		return packet;
+	}		
+
+	if (entry == NULL) {
+	
+		entry = malloc (sizeof (*entry));
+		if (entry == NULL) {
+			free (frag);
+			abort ();
+		}
+
+		struct reasm_frag_entry *list_head = malloc (sizeof (*list_head));
+		if (list_head == NULL) {
+			free (frag);
+			free (entry);
+			abort ();
+		}
+
+		*entry = (struct reasm_ip_entry) {
+			.id = id,
+			.len = 0,
+			.holes = 1,
+			.frags = list_head,
+			.hash = hash,
+			.protocol = proto,
+			.timeout = timestamp + reasm->timeout,
+			.state = STATE_ACTIVE,
+			.prev = NULL,
+			.next = reasm->table[hash],
+			.time_prev = reasm->time_last,
+			.time_next = NULL,
+		};
+
+		*list_head = (struct reasm_frag_entry) {
+			.len = 0,
+			.offset = 0,
+			.data_offset = 0,
+			.data = NULL,
+		};
+
+		if (entry->next != NULL)
+			entry->next->prev = entry;
+		reasm->table[hash] = entry;
+
+		if (reasm->time_last != NULL)
+			reasm->time_last->time_next = entry;
+		else
+			reasm->time_first = entry;
+		reasm->time_last = entry;
+
+		reasm->waiting++;
+		if (reasm->waiting > reasm->max_waiting)
+			reasm->max_waiting = reasm->waiting;
+	}
+
+	if (entry->state != STATE_ACTIVE) {
+		reasm->dropped_frags++;
+		return NULL;
+	}
+
+
+	
+	if (!add_fragment_tcp (entry, frag, last_frag)) {
+		entry->state = STATE_INVALID;
+		reasm->dropped_frags += entry->frag_count + 1;
+		return NULL;
+	}
+
+	if(psh == 0) return NULL;
+	
+	unsigned char *r = assemble_tcp (entry, output_len);
+
+	//printf("TCP REASSEM: [%d]\n", *output_len);
+	//printf("MESSAGE: [%s]\n", r);
+	
+	drop_entry (reasm, entry);
+	return r;
+}
+
+
+
 static bool
 add_fragment (struct reasm_ip_entry *entry, struct reasm_frag_entry *frag, bool last_frag)
 {
@@ -385,6 +522,41 @@ add_fragment (struct reasm_ip_entry *entry, struct reasm_frag_entry *frag, bool 
 }
 
 
+static bool
+add_fragment_tcp (struct reasm_ip_entry *entry, struct reasm_frag_entry *frag, bool last_frag)
+{
+	/*
+	 * When a fragment is inserted into the list, different cases can occur
+	 * concerning the number of holes.
+	 * - The new fragment can be inserted in the middle of a hole, such that
+	 *   it will split the hole in two. The number of holes increases by 1.
+	 * - The new fragment can be attached to one end of a hole, such that
+	 *   the rest of the hole remains at the opposite side of the fragment.
+	 *   The number of holes remains constant.
+	 * - The new fragment can fill a hole completely. The number of holes
+	 *   decreases by 1.
+	 */
+
+	struct reasm_frag_entry *cur = entry->frags, *next = cur->next;
+
+	entry->len+=frag->len;
+
+	while (cur->next != NULL) cur = cur->next;
+	next = cur->next;
+
+	/* Fragment is to be inserted between cur and next; next may be NULL. */
+
+	if (frag->len != 0) {
+		frag->next = cur->next;
+		cur->next = frag;
+		entry->frag_count++;
+	} 
+	
+	return true;
+}
+
+
+
 struct reasm_ip *
 reasm_ip_new (void)
 {
@@ -467,6 +639,46 @@ assemble (struct reasm_ip_entry *entry, unsigned *output_len)
 
 		default:
 			abort ();
+	}
+
+	return p;
+}
+
+
+static unsigned char *
+assemble_tcp (struct reasm_ip_entry *entry, unsigned *output_len)
+{
+	struct reasm_frag_entry *frag = entry->frags->next; /* skip list head */
+	unsigned offset0 = frag->data_offset;
+	unsigned char *p = malloc (entry->len + offset0);
+	unsigned tlen = 0;
+	
+	printf("TOTAL LEN: %d\n", entry->len);
+	
+	if (p == NULL)
+		abort ();
+
+	switch (entry->protocol) {
+		case PROTO_IPV4:
+			break;
+
+#if USE_IPv6
+		case PROTO_IPV6:
+			offset0 -= 8; /* size of frag header */
+			break;
+#endif /* USE_IPv6 */
+
+		default:
+			abort ();
+	}
+
+	*output_len = entry->len;
+
+	/* join all the payload fragments together */
+	while (frag != NULL) {		
+		memcpy (p + tlen, frag->data, frag->len);
+		tlen += frag->len;			
+		frag = frag->next;
 	}
 
 	return p;
@@ -660,6 +872,31 @@ reasm_id_equal (enum reasm_proto proto, const union reasm_id *left, const union 
 }
 
 
+static bool
+reasm_id_equal_tcp (enum reasm_proto proto, const union reasm_id *left, const union reasm_id *right)
+{
+	switch (proto) {
+		case PROTO_IPV4:
+			return memcmp (left->ipv4.ip_src, right->ipv4.ip_src, 4) == 0
+				&& memcmp (left->ipv4.ip_dst, right->ipv4.ip_dst, 4) == 0
+				&& left->ipv4.ip_id == right->ipv4.ip_id
+				&& left->ipv4.sport == right->ipv4.sport
+				&& left->ipv4.dport == right->ipv4.dport
+				&& left->ipv4.ip_proto == right->ipv4.ip_proto;
+#if USE_IPv6
+		case PROTO_IPV6:
+			return memcmp (left->ipv6.ip_src, right->ipv6.ip_src, 16) == 0
+				&& memcmp (left->ipv6.ip_dst, right->ipv6.ip_dst, 16) == 0
+				&& left->ipv6.sport == right->ipv6.sport
+				&& left->ipv6.dport == right->ipv6.dport
+				&& left->ipv6.ip_id == right->ipv6.ip_id;
+#endif /* USE_IPv6 */
+		default:
+			abort ();
+	}
+}
+
+
 static struct reasm_frag_entry *
 parse_packet (unsigned char *packet, unsigned len, enum reasm_proto *protocol, union reasm_id *id, unsigned *hash, bool *last_frag)
 {
@@ -715,3 +952,60 @@ parse_packet (unsigned char *packet, unsigned len, enum reasm_proto *protocol, u
 
 	return frag;
 }
+
+static struct reasm_frag_entry *
+parse_packet_tcp (unsigned char *packet, unsigned len, enum reasm_proto *protocol, union reasm_id *id, unsigned *hash, bool *last_frag)
+{
+	struct ip *ip_header = (struct ip *) packet;
+	struct reasm_frag_entry *frag = NULL;
+
+	switch (ip_header->ip_v) {
+		case 4: {
+			*protocol = PROTO_IPV4;
+			uint16_t offset = ntohs (ip_header->ip_off);
+			if (len >= ntohs (ip_header->ip_len) && (offset & (IP_MF | IP_OFFMASK)) != 0) {
+				frag = malloc (sizeof (*frag));
+				if (frag == NULL)
+					abort ();
+
+				*frag = (struct reasm_frag_entry) {
+					.len = ntohs (ip_header->ip_len) - ip_header->ip_hl * 4,
+					.offset = (offset & IP_OFFMASK) * 8,
+					.data_offset = ip_header->ip_hl * 4,
+					.data = packet,
+				};
+
+				*last_frag = (offset & IP_MF) == 0;
+
+				memcpy (id->ipv4.ip_src, &ip_header->ip_src, 4);
+				memcpy (id->ipv4.ip_dst, &ip_header->ip_dst, 4);
+				id->ipv4.ip_id = ntohs (ip_header->ip_id);
+				id->ipv4.ip_proto = ip_header->ip_p;
+
+				*hash = reasm_ipv4_hash (&id->ipv4);
+			}
+			break;
+		}
+
+#if USE_IPv6
+		case 6: {
+			struct ip6_hdr *ip6_header = (struct ip6_hdr *) packet;
+			*protocol = PROTO_IPV6;
+			if (len >= ntohs (ip6_header->ip6_plen) + 40)
+				frag = frag_from_ipv6 (packet, &id->ipv6.ip_id, last_frag);
+			if (frag != NULL) {
+				memcpy (id->ipv6.ip_src, &ip6_header->ip6_src, 16);
+				memcpy (id->ipv6.ip_dst, &ip6_header->ip6_dst, 16);
+				*hash = reasm_ipv6_hash (&id->ipv6);
+			}
+			break;
+		}
+#endif /* USE_IPv6 */
+
+		default:
+			break;
+	}
+
+	return frag;
+}
+
