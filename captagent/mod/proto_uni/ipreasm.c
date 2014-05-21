@@ -653,7 +653,7 @@ assemble_tcp (struct reasm_ip_entry *entry, unsigned *output_len)
 	unsigned char *p = malloc (entry->len + offset0);
 	unsigned tlen = 0;
 	
-	printf("TOTAL LEN: %d\n", entry->len);
+	//printf("TOTAL LEN: %d\n", entry->len);
 	
 	if (p == NULL)
 		abort ();
