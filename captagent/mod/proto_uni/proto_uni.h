@@ -54,14 +54,16 @@ int sip_method_not = 0;
 /* ip reasm */
 int reasm_enable = 0;
 int tcpdefrag_enable = 0;
+int buildin_reasm_filter = 0;
 struct reasm_ip *reasm = NULL;
+struct tcpreasm_ip *tcpreasm = NULL;
 
 static int sendPacketsCount=0;
 
 extern char* usefile;
 extern int handler(int value);
 
-#define BPF_DEFRAGMENTION_FILTER " or (ip[6:2] & 0x3fff != 0)"
+#define BPF_DEFRAGMENTION_FILTER "(ip[6:2] & 0x3fff != 0)"
 
 /* header offsets */
 #define ETHHDR_SIZE 14

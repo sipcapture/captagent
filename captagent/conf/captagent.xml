@@ -52,9 +52,11 @@
 	    <param name="proto-type"  value="sip"/>
 	    <param name="reasm"  value="false"/>
 	    <param name="tcpdefrag"  value="false"/>
+	    <param name="buildin-reasm-filter" value="false"/>	                
 	    <!-- <param name="filter" value="not src port 5099"/> -->
 		<!-- <param name="vlan" value="false"/> -->
 		<!--
+			((ip[6:2] &amp; 0x3fff != 0) - syntax for REASM packets
 			 if capturing sip messages, you can filter by method
 			 you can specify which method to NOT match with !
 			 <param name="sip_method" value="INVITE"/>

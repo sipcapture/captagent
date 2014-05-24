@@ -1,7 +1,7 @@
 #
 #
  
-proto_uni_la_SOURCES = proto_uni.c proto_uni.h sip.c sip.h ipreasm.c ipreasm.h
+proto_uni_la_SOURCES = proto_uni.c proto_uni.h sip.c sip.h ipreasm.c ipreasm.h tcpreasm.c tcpreasm.h
 proto_uni_la_CFLAGS = -Wall ${MODULE_CFLAGS} ${AM_CFLAGS}
 proto_uni_la_LDFLAGS = -module -avoid-version 
 

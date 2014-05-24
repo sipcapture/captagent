@@ -56,6 +56,7 @@
 
 /* reasambling */
 #include "ipreasm.h"
+#include "tcpreasm.h"
 
 #include "src/api.h"
 #include "proto_uni.h"
@@ -107,7 +108,7 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
         uint8_t  psh = 0;
 	int ret;
 
-	if (reasm != NULL) {
+	if (reasm != NULL && reasm_enable) {
 		unsigned new_len;
         	u_char *new_p = malloc(len - link_offset - ((ntohs((uint16_t)*(packet + 12)) == 0x8100)? 4:0));
 		memcpy(new_p, ip4_pkt, len - link_offset - ((ntohs((uint16_t)*(packet + 12)) == 0x8100)? 4:0));
@@ -187,20 +188,20 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
                     if ((int32_t)len < 0)
                         len = 0;
 
-                    if(reasm != NULL && tcpdefrag_enable && (len > 0) && (tcp_pkt->th_flags & TH_ACK)) {
+                    if(tcpreasm != NULL && tcpdefrag_enable && (len > 0) && (tcp_pkt->th_flags & TH_ACK)) {
 
 			unsigned new_len;
-			u_char *new_p_2 = malloc(len);
+			u_char *new_p_2 = malloc(len+10);
 			memcpy(new_p_2, data, len);
 	
 			if((tcp_pkt->th_flags & TH_PUSH)) psh = 1;
-
-	                datatcp = reasm_ip_next_tcp(reasm, new_p_2, len , (reasm_time_t) 1000000UL * pkthdr->ts.tv_sec + pkthdr->ts.tv_usec, &new_len, &ip4_pkt->ip_src, &ip4_pkt->ip_dst, ntohs(tcp_pkt->th_sport), ntohs(tcp_pkt->th_dport), psh);
+			
+	                datatcp = tcpreasm_ip_next_tcp(tcpreasm, new_p_2, len , (tcpreasm_time_t) 1000000UL * pkthdr->ts.tv_sec + pkthdr->ts.tv_usec, &new_len, &ip4_pkt->ip_src, &ip4_pkt->ip_dst, ntohs(tcp_pkt->th_sport), ntohs(tcp_pkt->th_dport), psh);
 
         	        if (datatcp == NULL) return;
-
+        	        
 	                len = new_len;
-
+	                
 	                dump_proto_packet(pkthdr, packet, ip_proto, datatcp, len,
         	                ip_src, ip_dst, ntohs(tcp_pkt->th_sport), ntohs(tcp_pkt->th_dport), tcp_pkt->th_flags,
                 	        tcphdr_offset, fragmented, frag_offset, frag_id, ip_ver);
@@ -210,6 +211,7 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
                     
                     }
                     else {
+                    
                             ret = dump_proto_packet(pkthdr, packet, ip_proto, data, len, ip_src, ip_dst, 
                                     ntohs(tcp_pkt->th_sport), ntohs(tcp_pkt->th_dport), tcp_pkt->th_flags,
                                     tcphdr_offset, fragmented, frag_offset, frag_id, ip_ver);
@@ -231,7 +233,6 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
 #endif
 
                     if ((int32_t)len < 0) len = 0;
-
 
                      ret = dump_proto_packet(pkthdr, packet, ip_proto, data, len, ip_src, ip_dst,
                         ntohs(udp_pkt->uh_sport), ntohs(udp_pkt->uh_dport), 0,
@@ -289,7 +290,7 @@ int dump_proto_packet(struct pcap_pkthdr *pkthdr, u_char *packet, uint8_t proto,
         	}
         }
 
-  //printf("SIP: [%.*s]\n", len, data);
+        //printf("SIP: [%.*s]\n", len, data);
 
 	rcinfo = malloc(sizeof(rc_info_t));
 	memset(rcinfo, 0, sizeof(rc_info_t));
@@ -307,14 +308,12 @@ int dump_proto_packet(struct pcap_pkthdr *pkthdr, u_char *packet, uint8_t proto,
 	/* Duplcate */
 	if(!send_message(rcinfo, data, (unsigned int) len)) {
 	         printf("Not duplicated\n");
-        }
+        }        
         
         if(rcinfo) free(rcinfo);
 
 	return 1;
 }
-
-
 
 void* proto_collect( void* device ) {
 
@@ -338,13 +337,16 @@ void* proto_collect( void* device ) {
         len += (portrange != NULL) ? strlen(portrange) : 10;        
         len += (ip_proto != NULL) ? strlen(ip_proto) : 0;
         len += (userfilter != NULL) ? strlen(userfilter) : 0;
-        len += (reasm_enable) ? strlen(BPF_DEFRAGMENTION_FILTER) : 0;
+        len += (reasm_enable && buildin_reasm_filter) ? strlen(BPF_DEFRAGMENTION_FILTER) : 0;
         
         filter_expr = malloc(sizeof(char) * len);
         
-        /* FILTER VLAN */
-        if(vlan) ret += snprintf(filter_expr, len, "vlan");
-
+        /* REASM */
+        if(reasm_enable && buildin_reasm_filter) ret += snprintf(filter_expr, len, BPF_DEFRAGMENTION_FILTER);
+        
+        /* FILTER VLAN */        
+        if(vlan) ret += snprintf(filter_expr+ret, (len - ret), ret ? " or  vlan " : "vlan ");
+                
         /* FILTER */
         if(portrange != NULL) ret += snprintf(filter_expr+ret, (len - ret), "%s portrange %s ", ret ? " and": "", portrange);
         else if(port > 0) ret += snprintf(filter_expr+ret, (len - ret), "%s port %d ", ret ? " and": "", port);
@@ -352,14 +354,14 @@ void* proto_collect( void* device ) {
         /* PROTO */
         if(ip_proto != NULL) ret += snprintf(filter_expr+ret, (len - ret), "%s %s ", ret ? " and": "", ip_proto);
         
-        /* REASM */
-        if(reasm_enable) ret += snprintf(filter_expr+ret, (len - ret), BPF_DEFRAGMENTION_FILTER);
-
         /* CUSTOM FILTER */
-        if(userfilter != NULL) ret += snprintf(filter_expr+ret, (len - ret), " %s ", userfilter);
-                
-        fprintf(stdout, "expr:%s\n", filter_expr);
+        if(userfilter != NULL) ret += snprintf(filter_expr+ret, (len - ret), " %s", userfilter);
+        
         /* create filter string */
+
+        //((ip[6:2] & 0x3fff != 0))
+        
+        //fprintf(stdout, "expr:%s\n", filter_expr);
 
         /* compile filter expression (global constant, see above) */
         if (pcap_compile(sniffer_proto, &filter, filter_expr, 1, 0) == -1) {
@@ -426,6 +428,11 @@ void* proto_collect( void* device ) {
                 reasm = reasm_ip_new ();
                 reasm_ip_set_timeout (reasm, 30000000);
         }                                
+        
+        if(tcpdefrag_enable) {
+                tcpreasm = tcpreasm_ip_new ();
+                tcpreasm_ip_set_timeout (tcpreasm, 30000000);
+        }                                
 
         while (pcap_loop(sniffer_proto, 0, (pcap_handler)callback_proto, 0));
 
@@ -444,6 +451,7 @@ int unload_module(void)
         printf("unloaded module proto_uni\n");
 
         if (reasm != NULL) reasm_ip_free(reasm);
+        if (tcpreasm != NULL) tcpreasm_ip_free(tcpreasm);
                     
 	 /* Close socket */
         pcap_close(sniffer_proto);        
@@ -493,6 +501,7 @@ int load_module(xml_node *config)
                         else if(!strncmp(key, "port", 4)) port = atoi(value);
                         else if(!strncmp(key, "vlan", 4) && !strncmp(value, "true", 4)) vlan = 1;
                         else if(!strncmp(key, "reasm", 5) && !strncmp(value, "true", 4)) reasm_enable = 1;
+                        else if(!strncmp(key, "buildin-reasm-filter", 20) && !strncmp(value, "true", 4)) buildin_reasm_filter = 1;
                         else if(!strncmp(key, "tcpdefrag", 9) && !strncmp(value, "true", 4)) tcpdefrag_enable = 1;
                         else if (!strncmp(key, "sip_method", 10)) sip_method = value;
                 }

@@ -132,6 +132,7 @@ int send_hepv3 (rc_info_t *rcinfo, unsigned char *data, unsigned int len, unsign
     hg = malloc(sizeof(struct hep_generic));
     memset(hg, 0, sizeof(struct hep_generic));
 
+
     /* header set */
     memcpy(hg->header.id, "\x48\x45\x50\x33", 4);
 
@@ -461,17 +462,36 @@ error:
 int send_data (void *buf, unsigned int len) {
 
 	/* send this packet out of our socket */
-	//int r = 0;
+	int r = 0;
 	void * p = buf;
-	//int sentbytes = 0;
+	int sentbytes = 0;
 
 	if(!usessl) {
-	        	if(send(sock, p, len, 0) == -1) {
+                size_t sendlen = send(sock, p, len, 0);
+                if(sendlen == -1) {
 	    	        	printf("send error\n");
             			return -1;
 	        	}
           	sendPacketsCount++;
-	  /* while (sentbytes < len){
+          	
+          	/*
+                size_t sendlen = len < 1024 ? len : 1024;
+                size_t remlen  = len;
+                const void *curpos = buf;
+                
+                printf("SENDING!!!!!!!!!!!\n");
+                while (remlen > 0)
+                {
+                        ssize_t len = send(sock, curpos, sendlen, MSG_NOSIGNAL);
+                        if (len == -1) return -1;
+                        curpos += len;
+                        remlen -= len;
+                        sendlen = (remlen < 1024) ? remlen : 1024;
+                }
+                */
+          	
+        /*  	
+	 while (sentbytes < len){
 	        	if( (r = send(sock, p, len - sentbytes, MSG_NOSIGNAL )) == -1) {
 	    	        	printf("send error\n");
         			return -1;
@@ -483,7 +503,8 @@ int send_data (void *buf, unsigned int len) {
 	        	p += r;
         	}
         	sendPacketsCount++;
-	  */
+        */        
+	  
         }
 #ifdef USE_SSL
         else {
