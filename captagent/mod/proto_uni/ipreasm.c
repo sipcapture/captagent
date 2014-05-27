@@ -131,8 +131,6 @@ static unsigned reasm_ipv6_hash (const struct reasm_id_ipv6 *id);
  */
 static bool add_fragment (struct reasm_ip_entry *entry, struct reasm_frag_entry *frag, bool last_frag);
 
-static bool add_fragment_tcp (struct reasm_ip_entry *entry, struct reasm_frag_entry *frag, bool last_frag);
-
 /*
  * Is the entry complete, ready for reassembly?
  */
@@ -142,8 +140,6 @@ static bool is_complete (struct reasm_ip_entry *entry);
  * Create the reassembled packet.
  */
 static unsigned char *assemble (struct reasm_ip_entry *entry, unsigned *output_len);
-
-static unsigned char *assemble_tcp (struct reasm_ip_entry *entry, unsigned *output_len);
 
 /*
  * Drop and free entries.
@@ -169,7 +165,6 @@ static struct reasm_frag_entry *frag_from_ipv6 (unsigned char *packet, uint32_t 
  * Compare packet identification tuples for specified protocol.
  */
 static bool reasm_id_equal (enum reasm_proto proto, const union reasm_id *left, const union reasm_id *right);
-static bool reasm_id_equal_tcp (enum reasm_proto proto, const union reasm_id *left, const union reasm_id *right);
 
 /*
  * Create fragment structure from an IPv4 or IPv6 packet. Returns NULL
@@ -244,14 +239,14 @@ reasm_ip_next (struct reasm_ip *reasm, unsigned char *packet, unsigned len, reas
 		entry = malloc (sizeof (*entry));
 		if (entry == NULL) {
 			free (frag);
-			abort ();
+			return NULL;
 		}
 
 		struct reasm_frag_entry *list_head = malloc (sizeof (*list_head));
 		if (list_head == NULL) {
 			free (frag);
 			free (entry);
-			abort ();
+			return NULL;
 		}
 
 		*entry = (struct reasm_ip_entry) {
@@ -309,129 +304,6 @@ reasm_ip_next (struct reasm_ip *reasm, unsigned char *packet, unsigned len, reas
 	drop_entry (reasm, entry);
 	return r;
 }
-
-
-unsigned char *
-reasm_ip_next_tcp (struct reasm_ip *reasm, unsigned char *packet, unsigned len, reasm_time_t timestamp, unsigned *output_len, struct in_addr *ip_src, struct in_addr *ip_dst, uint16_t sport, uint16_t dport, uint8_t psh)
-{
-	enum reasm_proto proto;
-	union reasm_id id;
-	unsigned hash;
-	bool last_frag;
-
-
-	process_timeouts (reasm, timestamp);
-		
-	struct reasm_frag_entry *frag = NULL;
-	frag = malloc (sizeof (*frag));
-        if (frag == NULL)
-        	abort ();
-	
-	*frag = (struct reasm_frag_entry) {
-        	.len = len,
-                .offset = 10 * 8,
-                .data_offset = len,
-                .data = packet,
-	};
-	
-	memcpy (id.ipv4.ip_src, ip_src, 4);
-        memcpy (id.ipv4.ip_dst, ip_dst, 4);
-        id.ipv4.ip_id = 200;
-        id.ipv4.ip_proto = 5;
-        id.ipv4.sport = sport;
-        id.ipv4.dport = dport;
-        
-        hash = reasm_ipv4_hash (&id.ipv4);
-        
-	hash %= REASM_IP_HASH_SIZE;
-	struct reasm_ip_entry *entry = reasm->table[hash];
-		
-	while (entry != NULL && (!reasm_id_equal (proto, &id, &entry->id)))
-		entry = entry->next;
-	
-	/* no buffer, go out */
-	if(psh == 1 && entry == NULL) {
-		free(frag);
-		*output_len = len;
-		return packet;
-	}		
-
-	if (entry == NULL) {
-	
-		entry = malloc (sizeof (*entry));
-		if (entry == NULL) {
-			free (frag);
-			abort ();
-		}
-
-		struct reasm_frag_entry *list_head = malloc (sizeof (*list_head));
-		if (list_head == NULL) {
-			free (frag);
-			free (entry);
-			abort ();
-		}
-
-		*entry = (struct reasm_ip_entry) {
-			.id = id,
-			.len = 0,
-			.holes = 1,
-			.frags = list_head,
-			.hash = hash,
-			.protocol = proto,
-			.timeout = timestamp + reasm->timeout,
-			.state = STATE_ACTIVE,
-			.prev = NULL,
-			.next = reasm->table[hash],
-			.time_prev = reasm->time_last,
-			.time_next = NULL,
-		};
-
-		*list_head = (struct reasm_frag_entry) {
-			.len = 0,
-			.offset = 0,
-			.data_offset = 0,
-			.data = NULL,
-		};
-
-		if (entry->next != NULL)
-			entry->next->prev = entry;
-		reasm->table[hash] = entry;
-
-		if (reasm->time_last != NULL)
-			reasm->time_last->time_next = entry;
-		else
-			reasm->time_first = entry;
-		reasm->time_last = entry;
-
-		reasm->waiting++;
-		if (reasm->waiting > reasm->max_waiting)
-			reasm->max_waiting = reasm->waiting;
-	}
-
-	if (entry->state != STATE_ACTIVE) {
-		reasm->dropped_frags++;
-		return NULL;
-	}
-
-
-	
-	if (!add_fragment_tcp (entry, frag, last_frag)) {
-		entry->state = STATE_INVALID;
-		reasm->dropped_frags += entry->frag_count + 1;
-		return NULL;
-	}
-
-	if(psh == 0) return NULL;
-	
-	unsigned char *r = assemble_tcp (entry, output_len);
-
-	//printf("TCP REASSEM: [%d]\n", *output_len);
-	//printf("MESSAGE: [%s]\n", r);
-	
-	drop_entry (reasm, entry);
-	return r;
-}
-
 
 
 static bool
@@ -592,7 +464,7 @@ assemble (struct reasm_ip_entry *entry, unsigned *output_len)
 	unsigned offset0 = frag->data_offset;
 	unsigned char *p = malloc (entry->len + offset0);
 	if (p == NULL)
-		abort ();
+		return NULL;
 
 	switch (entry->protocol) {
 		case PROTO_IPV4:
@@ -605,7 +477,7 @@ assemble (struct reasm_ip_entry *entry, unsigned *output_len)
 #endif /* USE_IPv6 */
 
 		default:
-			abort ();
+			break;
 	}
 
 	*output_len = entry->len + offset0;
@@ -637,48 +509,12 @@ assemble (struct reasm_ip_entry *entry, unsigned *output_len)
 		}
 #endif /* USE_IPv6 */
 
-		default:
-			abort ();
-	}
-
-	return p;
-}
-
-
-static unsigned char *
-assemble_tcp (struct reasm_ip_entry *entry, unsigned *output_len)
-{
-	struct reasm_frag_entry *frag = entry->frags->next; /* skip list head */
-	unsigned offset0 = frag->data_offset;
-	unsigned char *p = malloc (entry->len + offset0);
-	unsigned tlen = 0;
-	
-	//printf("TOTAL LEN: %d\n", entry->len);
-	
-	if (p == NULL)
-		abort ();
-
-	switch (entry->protocol) {
-		case PROTO_IPV4:
+		default: {
+			struct ip *ip_header = (struct ip *) p;
+			ip_header->ip_len = htons (offset0 + entry->len);
+			ip_header->ip_off = 0;
 			break;
-
-#if USE_IPv6
-		case PROTO_IPV6:
-			offset0 -= 8; /* size of frag header */
-			break;
-#endif /* USE_IPv6 */
-
-		default:
-			abort ();
-	}
-
-	*output_len = entry->len;
-
-	/* join all the payload fragments together */
-	while (frag != NULL) {		
-		memcpy (p + tlen, frag->data, frag->len);
-		tlen += frag->len;			
-		frag = frag->next;
+		}
 	}
 
 	return p;
@@ -821,7 +657,7 @@ frag_from_ipv6 (unsigned char *packet, uint32_t *ip_id, bool *last_frag)
 
 	struct reasm_frag_entry *frag = malloc (sizeof (*frag));
 	if (frag == NULL)
-		abort ();
+		return NULL;
 
 	struct ip6_frag *frag_header = (struct ip6_frag *) (packet + offset);
 	offset += 8;
@@ -867,32 +703,7 @@ reasm_id_equal (enum reasm_proto proto, const union reasm_id *left, const union 
 				&& left->ipv6.ip_id == right->ipv6.ip_id;
 #endif /* USE_IPv6 */
 		default:
-			abort ();
-	}
-}
-
-
-static bool
-reasm_id_equal_tcp (enum reasm_proto proto, const union reasm_id *left, const union reasm_id *right)
-{
-	switch (proto) {
-		case PROTO_IPV4:
-			return memcmp (left->ipv4.ip_src, right->ipv4.ip_src, 4) == 0
-				&& memcmp (left->ipv4.ip_dst, right->ipv4.ip_dst, 4) == 0
-				&& left->ipv4.ip_id == right->ipv4.ip_id
-				&& left->ipv4.sport == right->ipv4.sport
-				&& left->ipv4.dport == right->ipv4.dport
-				&& left->ipv4.ip_proto == right->ipv4.ip_proto;
-#if USE_IPv6
-		case PROTO_IPV6:
-			return memcmp (left->ipv6.ip_src, right->ipv6.ip_src, 16) == 0
-				&& memcmp (left->ipv6.ip_dst, right->ipv6.ip_dst, 16) == 0
-				&& left->ipv6.sport == right->ipv6.sport
-				&& left->ipv6.dport == right->ipv6.dport
-				&& left->ipv6.ip_id == right->ipv6.ip_id;
-#endif /* USE_IPv6 */
-		default:
-			abort ();
+			return true;
 	}
 }
 
@@ -910,7 +721,7 @@ parse_packet (unsigned char *packet, unsigned len, enum reasm_proto *protocol, u
 			if (len >= ntohs (ip_header->ip_len) && (offset & (IP_MF | IP_OFFMASK)) != 0) {
 				frag = malloc (sizeof (*frag));
 				if (frag == NULL)
-					abort ();
+					return NULL;
 
 				*frag = (struct reasm_frag_entry) {
 					.len = ntohs (ip_header->ip_len) - ip_header->ip_hl * 4,
@@ -966,7 +777,7 @@ parse_packet_tcp (unsigned char *packet, unsigned len, enum reasm_proto *protoco
 			if (len >= ntohs (ip_header->ip_len) && (offset & (IP_MF | IP_OFFMASK)) != 0) {
 				frag = malloc (sizeof (*frag));
 				if (frag == NULL)
-					abort ();
+					return NULL;
 
 				*frag = (struct reasm_frag_entry) {
 					.len = ntohs (ip_header->ip_len) - ip_header->ip_hl * 4,

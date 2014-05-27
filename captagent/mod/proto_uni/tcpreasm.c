@@ -163,12 +163,6 @@ static struct tcpreasm_frag_entry *frag_from_ipv6 (unsigned char *packet, uint32
  */
 static bool tcpreasm_id_equal_tcp (enum tcpreasm_proto proto, const union tcpreasm_id *left, const union tcpreasm_id *right);
 
-/*
- * Create fragment structure from an IPv4 or IPv6 packet. Returns NULL
- * if the input is not a fragment.
- */
-static struct tcpreasm_frag_entry *parse_packet (unsigned char *packet, unsigned len, enum tcpreasm_proto *protocol, union tcpreasm_id *id, unsigned *hash, bool *last_frag);
-
 
 static unsigned
 tcpreasm_ipv4_hash (const struct tcpreasm_id_ipv4 *id)
@@ -225,7 +219,7 @@ tcpreasm_ip_next_tcp (struct tcpreasm_ip *tcpreasm, unsigned char *packet, unsig
 	struct tcpreasm_frag_entry *frag = NULL;
 	frag = malloc (sizeof (*frag));
         if (frag == NULL)
-        	abort ();
+        	return NULL;
 
 	*frag = (struct tcpreasm_frag_entry) {
         	.len = len,
@@ -261,14 +255,14 @@ tcpreasm_ip_next_tcp (struct tcpreasm_ip *tcpreasm, unsigned char *packet, unsig
 		entry = malloc (sizeof (*entry));
 		if (entry == NULL) {
 			free (frag);
-			abort ();
+			return NULL;
 		}
 
 		struct tcpreasm_frag_entry *list_head = malloc (sizeof (*list_head));
 		if (list_head == NULL) {
 			free (frag);
 			free (entry);
-			abort ();
+			return NULL;
 		}
 
 		*entry = (struct tcpreasm_ip_entry) {
@@ -411,7 +405,7 @@ assemble_tcp (struct tcpreasm_ip_entry *entry, unsigned *output_len)
 	//printf("TOTAL LEN: %d\n", entry->len);
 	
 	if (p == NULL)
-		abort ();
+		return NULL;
 
 	switch (entry->protocol) {
 		case PROTO_IPV4:
@@ -576,7 +570,7 @@ frag_from_ipv6 (unsigned char *packet, uint32_t *ip_id, bool *last_frag)
 
 	struct tcpreasm_frag_entry *frag = malloc (sizeof (*frag));
 	if (frag == NULL)
-		abort ();
+		return NULL;
 
 	struct ip6_frag *frag_header = (struct ip6_frag *) (packet + offset);
 	offset += 8;
@@ -628,62 +622,5 @@ tcpreasm_id_equal_tcp (enum tcpreasm_proto proto, const union tcpreasm_id *left,
 		default:
 			return false;
 	}
-}
-
-
-static struct tcpreasm_frag_entry *
-parse_packet_tcp (unsigned char *packet, unsigned len, enum tcpreasm_proto *protocol, union tcpreasm_id *id, unsigned *hash, bool *last_frag)
-{
-	struct ip *ip_header = (struct ip *) packet;
-	struct tcpreasm_frag_entry *frag = NULL;
-
-	switch (ip_header->ip_v) {
-		case 4: {
-			*protocol = PROTO_IPV4;
-			uint16_t offset = ntohs (ip_header->ip_off);
-			if (len >= ntohs (ip_header->ip_len) && (offset & (IP_MF | IP_OFFMASK)) != 0) {
-				frag = malloc (sizeof (*frag));
-				if (frag == NULL)
-					abort ();
-
-				*frag = (struct tcpreasm_frag_entry) {
-					.len = ntohs (ip_header->ip_len) - ip_header->ip_hl * 4,
-					.offset = (offset & IP_OFFMASK) * 8,
-					.data_offset = ip_header->ip_hl * 4,
-					.data = packet,
-				};
-
-				*last_frag = (offset & IP_MF) == 0;
-
-				memcpy (id->ipv4.ip_src, &ip_header->ip_src, 4);
-				memcpy (id->ipv4.ip_dst, &ip_header->ip_dst, 4);
-				id->ipv4.ip_id = ntohs (ip_header->ip_id);
-				id->ipv4.ip_proto = ip_header->ip_p;
-
-				*hash = tcpreasm_ipv4_hash (&id->ipv4);
-			}
-			break;
-		}
-
-#if USE_IPv6
-		case 6: {
-			struct ip6_hdr *ip6_header = (struct ip6_hdr *) packet;
-			*protocol = PROTO_IPV6;
-			if (len >= ntohs (ip6_header->ip6_plen) + 40)
-				frag = frag_from_ipv6 (packet, &id->ipv6.ip_id, last_frag);
-			if (frag != NULL) {
-				memcpy (id->ipv6.ip_src, &ip6_header->ip6_src, 16);
-				memcpy (id->ipv6.ip_dst, &ip6_header->ip6_dst, 16);
-				*hash = tcpreasm_ipv6_hash (&id->ipv6);
-			}
-			break;
-		}
-#endif /* USE_IPv6 */
-
-		default:
-			break;
-	}
-
-	return frag;
 }
 
