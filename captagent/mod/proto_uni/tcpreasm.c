@@ -424,7 +424,7 @@ assemble_tcp (struct tcpreasm_ip_entry *entry, unsigned *output_len)
 #endif /* USE_IPv6 */
 
 		default:
-			abort ();
+			break;
 	}
 
 	*output_len = entry->len;
@@ -626,7 +626,7 @@ tcpreasm_id_equal_tcp (enum tcpreasm_proto proto, const union tcpreasm_id *left,
 				&& left->ipv6.ip_id == right->ipv6.ip_id;
 #endif /* USE_IPv6 */
 		default:
-			abort ();
+			return false;
 	}
 }
 
