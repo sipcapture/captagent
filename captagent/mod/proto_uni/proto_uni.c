@@ -188,6 +188,8 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
                     if ((int32_t)len < 0)
                         len = 0;
 
+                    if(debug_proto_uni_enable) printf("TCP Message: LEN:[%d], [%.*s]\n", len, len, data);
+
                     if(tcpreasm != NULL && tcpdefrag_enable && (len > 0) && (tcp_pkt->th_flags & TH_ACK)) {
 
 			unsigned new_len;
@@ -195,12 +197,20 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
 			memcpy(new_p_2, data, len);
 	
 			if((tcp_pkt->th_flags & TH_PUSH)) psh = 1;
+
+					
+			if(debug_proto_uni_enable)
+			        printf("DEFRAG TCP process: EN:[%d], LEN:[%d], ACK:[%d], PSH[%d]\n", 
+			                        tcpdefrag_enable, len, (tcp_pkt->th_flags & TH_ACK), psh);
 			
 	                datatcp = tcpreasm_ip_next_tcp(tcpreasm, new_p_2, len , (tcpreasm_time_t) 1000000UL * pkthdr->ts.tv_sec + pkthdr->ts.tv_usec, &new_len, &ip4_pkt->ip_src, &ip4_pkt->ip_dst, ntohs(tcp_pkt->th_sport), ntohs(tcp_pkt->th_dport), psh);
 
         	        if (datatcp == NULL) return;
-        	        
+        	                	        
 	                len = new_len;
+	                
+	                if(debug_proto_uni_enable)
+	                        printf("COMPLETE TCP DEFRAG: LEN[%d], PACKET:[%s]\n", len, datatcp);
 	                
 	                dump_proto_packet(pkthdr, packet, ip_proto, datatcp, len,
         	                ip_src, ip_dst, ntohs(tcp_pkt->th_sport), ntohs(tcp_pkt->th_dport), tcp_pkt->th_flags,
@@ -212,6 +222,8 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
                     }
                     else {
                     
+                            if(debug_proto_uni_enable)
+	                        printf("NORMAL TCP PACKET: LEN[%d], ACK: [%d], PACKET: [%s]\n", len, (tcp_pkt->th_flags & TH_ACK), data);
                             ret = dump_proto_packet(pkthdr, packet, ip_proto, data, len, ip_src, ip_dst, 
                                     ntohs(tcp_pkt->th_sport), ntohs(tcp_pkt->th_dport), tcp_pkt->th_flags,
                                     tcphdr_offset, fragmented, frag_offset, frag_id, ip_ver);
@@ -304,6 +316,9 @@ int dump_proto_packet(struct pcap_pkthdr *pkthdr, u_char *packet, uint8_t proto,
         rcinfo->time_sec   = pkthdr->ts.tv_sec;
         rcinfo->time_usec  = pkthdr->ts.tv_usec;
         rcinfo->proto_type = proto_type;
+        
+        if(debug_proto_uni_enable)
+                printf("SENDING PACKET: Len: [%d]\n", len);
 
 	/* Duplcate */
 	if(!send_message(rcinfo, data, (unsigned int) len)) {
@@ -480,7 +495,6 @@ int load_module(xml_node *config)
                         if(strncmp(modules->attr[2], "value", 5) || strncmp(modules->attr[0], "name", 4)) {
                             fprintf(stderr, "bad keys in the config\n");
                             goto next;
-
                         }
 
                         key =  modules->attr[1];
@@ -501,6 +515,7 @@ int load_module(xml_node *config)
                         else if(!strncmp(key, "port", 4)) port = atoi(value);
                         else if(!strncmp(key, "vlan", 4) && !strncmp(value, "true", 4)) vlan = 1;
                         else if(!strncmp(key, "reasm", 5) && !strncmp(value, "true", 4)) reasm_enable = 1;
+                        else if(!strncmp(key, "debug", 5) && !strncmp(value, "true", 4)) debug_proto_uni_enable = 1;
                         else if(!strncmp(key, "buildin-reasm-filter", 20) && !strncmp(value, "true", 4)) buildin_reasm_filter = 1;
                         else if(!strncmp(key, "tcpdefrag", 9) && !strncmp(value, "true", 4)) tcpdefrag_enable = 1;
                         else if (!strncmp(key, "sip_method", 10)) sip_method = value;

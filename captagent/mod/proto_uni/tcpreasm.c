@@ -226,7 +226,7 @@ tcpreasm_ip_next_tcp (struct tcpreasm_ip *tcpreasm, unsigned char *packet, unsig
 	frag = malloc (sizeof (*frag));
         if (frag == NULL)
         	abort ();
-	
+
 	*frag = (struct tcpreasm_frag_entry) {
         	.len = len,
                 .offset = 10 * 8,

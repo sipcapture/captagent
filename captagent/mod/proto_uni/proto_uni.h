@@ -55,6 +55,7 @@ int sip_method_not = 0;
 int reasm_enable = 0;
 int tcpdefrag_enable = 0;
 int buildin_reasm_filter = 0;
+int debug_proto_uni_enable = 0;
 struct reasm_ip *reasm = NULL;
 struct tcpreasm_ip *tcpreasm = NULL;
 

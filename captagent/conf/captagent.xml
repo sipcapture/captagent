@@ -52,6 +52,7 @@
 	    <param name="proto-type"  value="sip"/>
 	    <param name="reasm"  value="false"/>
 	    <param name="tcpdefrag"  value="false"/>
+	    <param name="debug" value ="false"/>	                
 	    <param name="buildin-reasm-filter" value="false"/>	                
 	    <!-- <param name="filter" value="not src port 5099"/> -->
 		<!-- <param name="vlan" value="false"/> -->
