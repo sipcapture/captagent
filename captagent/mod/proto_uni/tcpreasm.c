@@ -90,7 +90,7 @@ struct tcpreasm_frag_entry {
  */
 struct tcpreasm_ip_entry {
 	union tcpreasm_id id;
-	unsigned len, holes, frag_count, hash;
+	unsigned len, holes, frag_count, hash, mss;
 	tcpreasm_time_t timeout;
 	enum entry_state state;
 	enum tcpreasm_proto protocol;
@@ -278,6 +278,7 @@ tcpreasm_ip_next_tcp (struct tcpreasm_ip *tcpreasm, unsigned char *packet, unsig
 			.frags = list_head,
 			.hash = hash,
 			.protocol = proto,
+			.mss = len,
 			.timeout = timestamp + tcpreasm->timeout,
 			.state = STATE_ACTIVE,
 			.prev = NULL,
@@ -313,7 +314,7 @@ tcpreasm_ip_next_tcp (struct tcpreasm_ip *tcpreasm, unsigned char *packet, unsig
 		return NULL;
 	}
 
-
+	
 	
 	if (!add_fragment_tcp (entry, frag, last_frag)) {
 		entry->state = STATE_INVALID;
@@ -322,6 +323,9 @@ tcpreasm_ip_next_tcp (struct tcpreasm_ip *tcpreasm, unsigned char *packet, unsig
 	}
 
 	if(psh == 0) return NULL;
+	
+	/* workaround for ACK/PSH big messages */
+	if(entry->mss == len) return NULL;
 	
 	unsigned char *r = assemble_tcp (entry, output_len);
 
