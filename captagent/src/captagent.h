@@ -10,6 +10,7 @@ xml_node *get_module_config( const char *mod_name, xml_node *mytree);
 int core_config (xml_node *config);
 
 int nofork = 1;
+int foreground = 0;
 int debug_level = 1;
 char *usefile = NULL;
 

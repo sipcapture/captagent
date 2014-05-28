@@ -220,6 +220,7 @@ void usage(int8_t e) {
            "   -D  is use specified pcap file instead of a device from the config\n"
            "   -c  is checkout\n"
            "   -d  is daemon mode\n"
+           "   -n  is foreground mode\n"
            "");
         exit(e);
 }
@@ -232,7 +233,7 @@ int main( int argc, char *argv[] ) {
     const char **attr, **attr_mod;
     int i = 0, y = 0, c, checkout = 0;
 
-    while((c=getopt(argc, argv, "dcvhf:D:"))!=EOF) {
+    while((c=getopt(argc, argv, "dcvnhf:D:"))!=EOF) {
                 switch(c) {
                         case 'v':
 				printf("version: %s\n", VERSION);
@@ -243,16 +244,19 @@ int main( int argc, char *argv[] ) {
 			case 'd':
 				nofork = 0;
                                 break;                                
-       case '?':
-       case 'h':
+                        case '?':
+                        case 'h':
                         	usage(0);
                                 break;
 			case 'c':
                         	checkout = 1;
                                 break;      
-       case 'D':
+                        case 'D':
                                 usefile = optarg;
                                 break;                         
+			case 'n':
+				foreground = 1;
+                                break;                                                                
                                 
 			default:
                                 abort();
@@ -281,6 +285,8 @@ int main( int argc, char *argv[] ) {
                     fprintf(stderr, "Config for core found\n");
             }    
     }
+    
+    if(foreground) nofork = 1;
     
     if(daemonize(nofork) != 0){
                 fprintf(stderr,"Daemoniize failed: %s\n", strerror(errno));
