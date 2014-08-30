@@ -32,13 +32,17 @@ OPTIONS="-f $CONFIG"
 [ -f /etc/sysconfig/$prog ] && . /etc/sysconfig/$prog
 
 start() {
-	echo -n $"Starting $prog: "
-	# there is something at end of this output which is needed to
-	# report proper [ OK ] status in CentOS scripts
-	$cap $OPTIONS && success || failure
-	RETVAL=$?
-	echo
-	[ $RETVAL = 0 ] && touch /var/lock/subsys/$prog
+  if [ -e /var/run/captagent.pid ]; then
+        echo "[OK] Captagent is already running with PID: `cat /var/run/captagent.pid`"
+  else  
+        echo -n $"Starting $prog: "
+         # there is something at end of this output which is needed to
+         # report proper [ OK ] status in CentOS scripts
+         $cap $OPTIONS && success || failure
+         RETVAL=$?
+         echo
+         [ $RETVAL = 0 ] && touch /var/lock/subsys/$prog
+  fi       
 }
 
 stop() {
@@ -50,7 +54,6 @@ stop() {
 }
 
 status() {
-	RETVAL=0
   if [ -e /var/run/captagent.pid ]; then
              echo "[OK] Captagent is running with PID: `cat /var/run/captagent.pid`"
   else
