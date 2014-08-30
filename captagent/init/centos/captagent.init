@@ -24,6 +24,11 @@ cap=/usr/local/bin/captagent
 prog=captagent
 RETVAL=0
 
+[ -z "$CONFIG" ]  && CONFIG=/usr/local/etc/captagent/captagent.xml
+
+OPTIONS="-f $CONFIG"
+
+
 [ -f /etc/sysconfig/$prog ] && . /etc/sysconfig/$prog
 
 start() {
@@ -55,9 +60,6 @@ status() {
 	return $RETVAL
 }
 
-[ -z "$CONFIG" ]  && CONFIG=/usr/local/etc/captagent/captagent.xml
-
-OPTIONS="-f $CONFIG"
 
 # See how we were called.
 case "$1" in
