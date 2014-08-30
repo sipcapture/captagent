@@ -31,10 +31,18 @@ start() {
 stop() {
 	echo -n "Stopping $prog: "
 	#killproc $cap
-	start-stop-daemon --oknodo --stop --quiet --pidfile $pidfile --exec $cap || echo "Failed"
-	RETVAL=$?
-	echo
-	[ $RETVAL = 0 ] && rm -f $lockfile $pidfile
+	if [ -e /var/run/captagent.pid ]; then
+		start-stop-daemon --oknodo --stop --quiet --pidfile $pidfile --exec $cap || echo "Failed"
+		RETVAL=$?
+		echo
+		[ $RETVAL = 0 ] && rm -f $lockfile $pidfile
+	else
+		RETVAL=1
+		echo
+		[ $RETVAL = 1 ] && rm -f $lockfile $pidfile
+		echo "[FAILED] Captagent is not running"
+                
+	fi
 }
 
 
@@ -43,7 +51,7 @@ status() {
         if [ -e /var/run/captagent.pid ]; then
                         echo "[OK] Captagent is running with PID: `cat /var/run/captagent.pid`"
         else
-                        echo "[FAILED] /var/run/captagent.pid does not exist"
+                        echo "[FAILED] Captagent is not running"
                         RETVAL=1
         fi
         
