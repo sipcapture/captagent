@@ -33,7 +33,7 @@ OPTIONS="-f $CONFIG"
 
 start() {
   if [ -e /var/run/captagent.pid ]; then
-        echo "[OK] Captagent is already running with PID: `cat /var/run/captagent.pid`"
+        echo "[FAILED] Captagent is already running with PID: `cat /var/run/captagent.pid`"
   else  
         echo -n $"Starting $prog: "
          # there is something at end of this output which is needed to
