@@ -8,7 +8,8 @@ config = $(sysconfdir)/$(bin_PROGRAMS)/$(bin_PROGRAMS).xml
 
 install: install-am
         if test ! -f $(config); then \
-                mkdir -p $(sysconfdir)/$(bin_PROGRAMS); \
+                mkdir -p $(sysconfdir)/$(bin_PROGRAMS); \                
                 cp $(top_srcdir)/conf/$(bin_PROGRAMS).xml $(sysconfdir)/$(bin_PROGRAMS); \
         fi;
+
         
