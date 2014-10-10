@@ -103,24 +103,27 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
 		ip_dst[INET6_ADDRSTRLEN + 1];
 
         unsigned char *data, *datatcp;
+        u_char *pack = NULL;
 	    
 	uint32_t len = pkthdr->caplen;
         uint8_t  psh = 0;
 	int ret;
 
+
+	
 	if (reasm != NULL && reasm_enable) {
 		unsigned new_len;
         	u_char *new_p = malloc(len - link_offset - ((ntohs((uint16_t)*(packet + 12)) == 0x8100)? 4:0));
 		memcpy(new_p, ip4_pkt, len - link_offset - ((ntohs((uint16_t)*(packet + 12)) == 0x8100)? 4:0));
-	        packet = reasm_ip_next(reasm, new_p, len - link_offset - ((ntohs((uint16_t)*(packet + 12)) == 0x8100)? 4:0), (reasm_time_t) 1000000UL * pkthdr->ts.tv_sec + pkthdr->ts.tv_usec, &new_len);
-        	if (packet == NULL) return;
-	        len = new_len + link_offset + ((ntohs((uint16_t)*(packet + 12)) == 0x8100)? 4:0);
+	        pack = reasm_ip_next(reasm, new_p, len - link_offset - ((ntohs((uint16_t)*(packet + 12)) == 0x8100)? 4:0), (reasm_time_t) 1000000UL * pkthdr->ts.tv_sec + pkthdr->ts.tv_usec, &new_len);
+        	if (pack == NULL) return;
+	        len = new_len + link_offset + ((ntohs((uint16_t)*(pack + 12)) == 0x8100)? 4:0);
         	pkthdr->len = new_len;
 	        pkthdr->caplen = new_len;
 	
-	        ip4_pkt = (struct ip *)  packet;
+	        ip4_pkt = (struct ip *)  pack;
 #if USE_IPv6
-	        ip6_pkt = (struct ip6_hdr*)packet;
+	        ip6_pkt = (struct ip6_hdr*)pack;
 #endif
 	}
 
@@ -257,6 +260,8 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
                 default:                 
                         break;
         }
+        
+        if(pack != NULL) free(pack);
         
 }
 

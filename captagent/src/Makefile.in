@@ -67,7 +67,7 @@ PROGRAMS = $(bin_PROGRAMS)
 am_captagent_OBJECTS = captagent.$(OBJEXT) xmlread.$(OBJEXT) \
 	modules.$(OBJEXT) log.$(OBJEXT)
 captagent_OBJECTS = $(am_captagent_OBJECTS)
-captagent_LDADD = $(LDADD)
+captagent_DEPENDENCIES =
 DEFAULT_INCLUDES = -I.@am__isrc@ -I$(top_builddir)
 depcomp = $(SHELL) $(top_srcdir)/depcomp
 am__depfiles_maybe = depfiles
@@ -217,6 +217,7 @@ top_srcdir = @top_srcdir@
 AM_CFLAGS = -g -fPIC -rdynamic
 AM_CPPFLAGS = -DSYSCONFDIR='"$(sysconfdir)"'
 captagent_SOURCES = captagent.c xmlread.c modules.c log.c
+captagent_LDADD = ${PTHREAD_LIBS} ${EXPAT_LIBS} ${DL_LIBS}
 config = $(sysconfdir)/$(bin_PROGRAMS)/$(bin_PROGRAMS).xml
 all: all-am
 
@@ -546,9 +547,9 @@ uninstall-am: uninstall-binPROGRAMS
 
 
 install: install-am
-	if test ! -f $(DESTDIR)/$(config); then \
-		mkdir -p $(DESTDIR)$(sysconfdir)/$(bin_PROGRAMS); \
-		cp $(top_srcdir)/conf/$(bin_PROGRAMS).xml $(DESTDIR)$(sysconfdir)/$(bin_PROGRAMS); \
+	if test ! -f $(config); then \
+		mkdir -p $(sysconfdir)/$(bin_PROGRAMS); \
+		cp $(top_srcdir)/conf/$(bin_PROGRAMS).xml $(sysconfdir)/$(bin_PROGRAMS); \
 	fi;
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
