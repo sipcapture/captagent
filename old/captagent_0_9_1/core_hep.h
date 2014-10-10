@@ -23,8 +23,6 @@
  *
 */
 
-#define USE_IPV6
-
 #ifdef USE_IPV6
 #include <netinet/ip6.h>
 #endif /* USE_IPV6 */

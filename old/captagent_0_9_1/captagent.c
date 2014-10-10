@@ -30,6 +30,7 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <string.h>
+#include <ctype.h>
 
 #ifndef __USE_BSD
 #define __USE_BSD  
@@ -217,9 +218,9 @@ int main(int argc,char **argv)
 	char filter_string[800] = {0};      
         FILE *filter_stream;  
 	uint16_t snaplen = 65535, promisc = 1, to = 100;
-	pid_t creator_pid = (pid_t) -1;
+	//pid_t creator_pid = (pid_t) -1;
 
-	creator_pid = getpid();
+	//creator_pid = getpid();
 
 #ifdef USE_CONFFILE
 
@@ -300,7 +301,6 @@ int main(int argc,char **argv)
 
 #ifdef USE_CONFFILE
 
-        long n;
         char ini[100];
         char usedev_ini[100];
         char captport_ini[100];
@@ -310,7 +310,7 @@ int main(int argc,char **argv)
         char hep_ini[2];
 
 	if(heps == 0) {
-		n = ini_gets("main", "hep", "dummy", hep_ini, sizearray(hep_ini), conffile);
+		ini_gets("main", "hep", "dummy", hep_ini, sizearray(hep_ini), conffile);
 		if(strcmp(hep_ini, "dummy") != 0) {
 			 hepversion=atoi(hep_ini);
 		}
@@ -320,35 +320,35 @@ int main(int argc,char **argv)
 	}
 
         if(captid == 0) {
-                n = ini_gets("main", "identifier", "dummy", captid_ini, sizearray(captid_ini), conffile);
+                ini_gets("main", "identifier", "dummy", captid_ini, sizearray(captid_ini), conffile);
                 if(strcmp(captid_ini, "dummy") != 0) {
                          captid=atoi(captid_ini);
                 }
         }
 
         if(capt_host == NULL) {
-                n = ini_gets("main", "capture_server", "dummy", ini, sizearray(ini), conffile);
+                ini_gets("main", "capture_server", "dummy", ini, sizearray(ini), conffile);
                 if(strcmp(ini, "dummy") != 0) {
                          capt_host=ini;
                 }
         }
 
         if(capt_port == NULL) {
-                n = ini_gets("main", "capture_server_port", "dummy", captport_ini, sizearray(captport_ini), conffile);
+                ini_gets("main", "capture_server_port", "dummy", captport_ini, sizearray(captport_ini), conffile);
                 if(strcmp(captport_ini, "dummy") != 0) {
                          capt_port=captport_ini;
                 }
         }
 
         if(portrange == NULL) {
-                n = ini_gets("main", "capture_server_portrange", "dummy", captportr_ini, sizearray(captportr_ini), conffile);
+                ini_gets("main", "capture_server_portrange", "dummy", captportr_ini, sizearray(captportr_ini), conffile);
                 if(strcmp(captportr_ini, "dummy") != 0) {
                          portrange=captportr_ini;
                 }
         }
 
         if(filter_file == NULL) {
-                n = ini_gets("main", "filter_file", "dummy", filter_ini, sizearray(filter_ini), conffile);
+                ini_gets("main", "filter_file", "dummy", filter_ini, sizearray(filter_ini), conffile);
                 if(strcmp(filter_ini, "dummy") != 0) {
                          filter_file=filter_ini;
                 }
@@ -356,7 +356,7 @@ int main(int argc,char **argv)
 
 
         if(usedev == NULL) {
-                n = ini_gets("main", "device", "dummy", usedev_ini, sizearray(usedev_ini), conffile);
+                ini_gets("main", "device", "dummy", usedev_ini, sizearray(usedev_ini), conffile);
                 if(strcmp(usedev_ini, "dummy") != 0) {
                          usedev=usedev_ini;
                 }
@@ -443,7 +443,7 @@ int main(int argc,char **argv)
         /* create filter string */
         /* snprintf(filter_expr, 1024, "udp port%s %s and not dst host %s %s", strchr(portrange,'-') ? "range": "" , portrange, capt_host, filter_string); */        
         /* please use the capture port not from SIP range. I.e. 9060 */
-        snprintf(filter_expr, 1024, "udp port%s %s and not dst port %s %s", strchr(portrange,'-') ? "range": "" , portrange, capt_port, filter_string);
+        snprintf(filter_expr, 1024, "port%s %s and not dst port %s %s", strchr(portrange,'-') ? "range": "" , portrange, capt_port, filter_string);
 
         /* compile filter expression (global constant, see above) */
         if (pcap_compile(sniffer, &filter, filter_expr, 0, 0) == -1) {
@@ -559,7 +559,6 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
 
 	unsigned char *data;
 	uint32_t len = pkthdr->caplen;
-	int ret;
 
 	/* this packet is too small to make sense */
         if (pkthdr->len < udp_payload_offset) return;
@@ -628,7 +627,7 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
                     if ((int32_t)len < 0)
                         len = 0;
 
-                    ret = dump_proto_packet(pkthdr, packet, ip_proto, data, len, ip_src, ip_dst, 
+                    dump_proto_packet(pkthdr, packet, ip_proto, data, len, ip_src, ip_dst, 
                             ntohs(tcp_pkt->th_sport), ntohs(tcp_pkt->th_dport), tcp_pkt->th_flags,
                             tcphdr_offset, fragmented, frag_offset, frag_id, ip_ver);
                                         
@@ -649,7 +648,7 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
                     if ((int32_t)len < 0) len = 0;
 
 
-                     ret = dump_proto_packet(pkthdr, packet, ip_proto, data, len, ip_src, ip_dst,
+                     dump_proto_packet(pkthdr, packet, ip_proto, data, len, ip_src, ip_dst,
                         ntohs(udp_pkt->uh_sport), ntohs(udp_pkt->uh_dport), 0,
                         udphdr_offset, fragmented, frag_offset, frag_id, ip_ver);
                    
@@ -693,8 +692,8 @@ int dump_proto_packet(struct pcap_pkthdr *pkthdr, u_char *packet, uint8_t proto,
 
         rcinfo->src_port   = sport;
         rcinfo->dst_port   = dport;
-        rcinfo->src_ip     = ip_src;
-        rcinfo->dst_ip     = ip_dst;
+        rcinfo->src_ip     = (char *) ip_src;
+        rcinfo->dst_ip     = (char *) ip_dst;
         rcinfo->ip_family  = ip_ver = 4 ? AF_INET : AF_INET6 ;
         rcinfo->ip_proto   = proto;
         rcinfo->time_sec   = pkthdr->ts.tv_sec;
@@ -745,7 +744,7 @@ int send_hepv3 (rc_info_t *rcinfo, unsigned char *data, unsigned int len) {
 #endif            
     hep_chunk_t payload_chunk;
     hep_chunk_t authkey_chunk;
-    static int errors = 0;
+    //static int errors = 0;
 
     hg = malloc(sizeof(struct hep_generic));
     memset(hg, 0, sizeof(struct hep_generic));
@@ -928,7 +927,7 @@ int send_hepv2 (rc_info_t *rcinfo, unsigned char *data, unsigned int len) {
     struct hep_timehdr hep_time;
     struct hep_iphdr hep_ipheader;
     unsigned int totlen=0, buflen=0;
-    static int errors=0;
+    //static int errors=0;
 #ifdef USE_IPV6
     struct hep_ip6hdr hep_ip6header;
 #endif /* USE IPV6 */
