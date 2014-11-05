@@ -8,7 +8,8 @@ The Next-Generation capture agent from Sipcapture's [Homer](https://github.com/s
 
 ### Compile & Install
 
-Download the latest code from our repository and compile it on your system (requires libexpat, libpcap, libtool, automake):
+Download the latest code from our repository and compile it on your system.
+Capagent requires: *libexpat, libpcap, libtool, automake* to compile.
 ```
   cd /usr/src
   git clone https://code.google.com/p/captagent/ captagent
@@ -19,7 +20,7 @@ Download the latest code from our repository and compile it on your system (requ
 ```
   
 #### IMPORTANT: 
-If you want to enable SSL transport or Payload-Compression use the following flags *(requires: libssl-dev / openssl-devel )*:
+If you want to enable SSL transport or Payload-Compression use the following flags *(req: libssl-dev, openssl-devel )*:
 
 ```
   ./configure --enable-ssl --enable-compression
