@@ -4,11 +4,12 @@ CaptAgent Project
 =========
 
 The Next-Generation capture agent from Sipcapture's [Homer](https://github.com/sipcapture/homer) Project
-
+-------------
 
 ### Compile & Install
 
 Download the latest code from our repository and compile it on your system.
+
 Capagent requires: *libexpat, libpcap, libtool, automake* to compile.
 ```
   cd /usr/src
@@ -39,6 +40,7 @@ usage: captagent <-vh> <-f config>
    -c  is checkout
    -d  is daemon mode
 ```
+-------------
 
 ### Configuration
 Captagent4 cannot properly function without proper configuration. The following default XML example will be installed in /usr/local/etc/captagent/captagent.xml and ready for customization:  
@@ -122,6 +124,8 @@ To start the daemon using a different location use the -f switch
   captagent -d -f /path/to/captagent_custom.xml
 ```
 
+-------------
+
 ### CLI
 If you enabled CLI access in your configuration you can telnet to your captagent and obtain usage statistics as follows:
 ```
@@ -144,6 +148,8 @@ Send packets: [136]
 
 ### Modules
 By default modules will be installed in /usr/local/lib/captagent/modules
+
+-------------
 
 ### Support
 If you found a bug or issue with the code, please raise an Issue on the project tracker.
