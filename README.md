@@ -1,4 +1,6 @@
-captagent
+![](http://i.imgur.com/3kEIR.png)
+
+CaptAgent Project
 =========
 
-HEP Capture Agent for HOMER Project
+The Next-Generation capture agent from Sipcapture's [Homer](https://github.com/sipcapture/homer) Project
