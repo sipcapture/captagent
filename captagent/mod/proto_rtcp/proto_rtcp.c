@@ -57,6 +57,7 @@
 #include "src/api.h"
 #include "proto_rtcp.h"
 #include "../proto_uni/capthash.h"
+#include "rtcp.h"
 
 uint8_t link_offset = 14;
 uint8_t hdr_offset = 0;
@@ -188,6 +189,8 @@ int dump_rtp_packet(struct pcap_pkthdr *pkthdr, u_char *packet, uint8_t proto, u
 	char timebuffer[30];	
 	rc_info_t *rcinfo = NULL;
 	char callid[250];
+	int rtcp_size = 0;
+
         
         gettimeofday(&tv,NULL);
 
@@ -211,6 +214,31 @@ int dump_rtp_packet(struct pcap_pkthdr *pkthdr, u_char *packet, uint8_t proto, u
 			
 	//printf("FOUND CALLID  %s\n", callid);
 	//printf("Sending...\n");
+	
+	//while (len > sizeof(RTCP_header)) {
+	
+	RTCP_header *rtcp = (RTCP_header *)packet;
+        rtcp_size = (ntohs(rtcp->length)+1)<<2;
+
+        printf("[RTCP] %s (%d) packet found %d byte", rtcp_pt_to_string(rtcp->pt), rtcp->pt, rtcp_size);
+
+        if (rtcp_size > len) {
+            fnc_log(FNC_LOG_INFO, "[RTCP]  Malformed packet %d > %zd",
+                    rtcp_size, len);
+            return;
+        }
+
+        switch (rtcp->pt) {
+            case SR:
+            case RR:
+            case SDES:
+            default:
+                break;
+        }
+
+        //len -= rtcp_size;
+        //packet += rtcp_size;
+		
 
 	rcinfo = malloc(sizeof(rc_info_t));
 	memset(rcinfo, 0, sizeof(rc_info_t));

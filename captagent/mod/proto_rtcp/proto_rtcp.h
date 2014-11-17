@@ -36,7 +36,8 @@
 #define PROTO_XMPP   0x02
 #define PROTO_SDP    0x03
 #define PROTO_RTP    0x04
-#define PROTO_RTCP   0x05
+#define PROTO_RTCP_JSON   0x05
+#define PROTO_RTCP   0x06
 #define PROTO_MGCP   0x06
 #define PROTO_MEGACO 0x07
 #define PROTO_M2UA   0x08
