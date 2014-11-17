@@ -300,6 +300,12 @@ int dump_proto_packet(struct pcap_pkthdr *pkthdr, u_char *packet, uint8_t proto,
                 //printf("BAD SIP message: %d\n", len);
                 return -1;
         }
+        
+        if(!strncmp((char *)data, "HEP3", 4)) {
+                //printf("BAD SIP message: %d\n", len);
+                return -1;
+        }
+        
         /* gingle XMPP */
         else if(proto_type == PROTO_XMPP && memcmp("<iq", data, 3)) {
                 //printf("It's not a GINGLE call: %d\n", len);

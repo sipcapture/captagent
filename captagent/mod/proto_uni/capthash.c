@@ -68,6 +68,37 @@ struct ipport_items *find_ip_port_paar(char *ip, int port) {
         return find_ipport(name);
 }
 
+int find_and_update(char *callid, char *srcip, int srcport, char *dstip, int dstport) {
+
+        ipport_items_t *ipport;
+        int ret = 0;
+        char name[300];
+
+        snprintf(name, sizeof(name), "%s:%d",  srcip, srcport);
+
+        if (pthread_rwlock_rdlock(&ipport_lock) != 0) {
+                fprintf(stderr,"can't acquire write lock");
+                exit(-1);
+        }
+
+        HASH_FIND_STR( ipports, name, ipport);
+
+        if(!ipport) {
+             snprintf(name, sizeof(name), "%s:%d",  dstip, dstport);   
+             HASH_FIND_STR( ipports, name, ipport);                                                          
+        }
+                
+        if(ipport) {                
+                snprintf(callid,sizeof(ipport->callid), "%s", ipport->callid);
+                ipport->modify_ts = (unsigned)time(NULL);                    
+                ret = 1;    
+        }
+
+        pthread_rwlock_unlock(&ipport_lock);
+
+        return ret;        
+}
+
 struct ipport_items *find_ipport(char *name) {
 
         ipport_items_t *ipport;

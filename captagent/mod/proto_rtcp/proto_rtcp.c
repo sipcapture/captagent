@@ -56,7 +56,7 @@
 
 #include "src/api.h"
 #include "proto_rtcp.h"
-#include "capthash.h"
+#include "../proto_uni/capthash.h"
 
 uint8_t link_offset = 14;
 uint8_t hdr_offset = 0;
@@ -68,7 +68,7 @@ unsigned char* ethaddr = NULL;
 unsigned char* mplsaddr = NULL;
 
 /* Callback function that is passed to pcap_loop() */ 
-void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet) 
+void rtcpback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet) 
 {
 
 	/* Pat Callahan's patch for MPLS */
@@ -98,11 +98,9 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
 	char ip_src[INET6_ADDRSTRLEN + 1],
 		ip_dst[INET6_ADDRSTRLEN + 1];
 
-        unsigned char *data, *datatcp;
-        u_char *pack = NULL;
+        unsigned char *data;
 	    
 	uint32_t len = pkthdr->caplen;
-        uint8_t  psh = 0;
 	int ret;
 
 
@@ -168,7 +166,7 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
 
                     if ((int32_t)len < 0) len = 0;
 
-                     ret = dump_proto_packet(pkthdr, packet, ip_proto, data, len, ip_src, ip_dst,
+                     ret = dump_rtp_packet(pkthdr, packet, ip_proto, data, len, ip_src, ip_dst,
                         ntohs(udp_pkt->uh_sport), ntohs(udp_pkt->uh_dport), 0,
                         udphdr_offset, fragmented, frag_offset, frag_id, ip_ver);
                                            
@@ -177,8 +175,7 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
 
                 default:                 
                         break;
-        }
-        
+        }        
 }
 
 
@@ -190,10 +187,7 @@ int dump_rtp_packet(struct pcap_pkthdr *pkthdr, u_char *packet, uint8_t proto, u
         time_t curtime;
 	char timebuffer[30];	
 	rc_info_t *rcinfo = NULL;
-        preparsed_sip_t psip;
-        miprtcp_t *mp = NULL;                
-        int i = 0;
-        char ipptmp[256];
+	char callid[250];
         
         gettimeofday(&tv,NULL);
 
@@ -203,10 +197,20 @@ int dump_rtp_packet(struct pcap_pkthdr *pkthdr, u_char *packet, uint8_t proto, u
         strftime(timebuffer,30,"%m-%d-%Y  %T.",localtime(&curtime));
 
 
-        if(len < 100) {
-                //printf("SIP the message is too small: %d\n", len);
-                return -1;
+        if(len < 5) {
+             printf("rtcp the message is too small: %d\n", len);
+             return -1;
         }
+
+        //printf("GOT RTCP %s:%d -> %s:%d\n", ip_src, sport, ip_dst, dport);
+
+        if(find_and_update(callid, ip_src,  sport, ip_dst, dport) == 0) {
+
+            return 0;
+        }
+			
+	//printf("FOUND CALLID  %s\n", callid);
+	//printf("Sending...\n");
 
 	rcinfo = malloc(sizeof(rc_info_t));
 	memset(rcinfo, 0, sizeof(rc_info_t));
@@ -239,7 +243,7 @@ void* rtp_collect( void* device ) {
         struct bpf_program filter;
         char errbuf[PCAP_ERRBUF_SIZE];
         char *filter_expr;
-        uint16_t snaplen = 65535, timeout = 100, len = 200, ret = 0;        
+        uint16_t snaplen = 65535, timeout = 100, len = 300, ret = 0;        
 
         if(device) {
             if((sniffer_rtp = pcap_open_live((char *)device, snaplen, promisc, timeout, errbuf)) == NULL) {
@@ -258,15 +262,14 @@ void* rtp_collect( void* device ) {
         len += (userfilter != NULL) ? strlen(userfilter) : 0;        
         filter_expr = malloc(sizeof(char) * len);
         
-        ret += snprintf(filter_expr, len, RTP_FILTER);
+        ret += snprintf(filter_expr, len, RTCP_FILTER);
                         
         /* FILTER */
         if(portrange != NULL) ret += snprintf(filter_expr+ret, (len - ret), "%s portrange %s ", ret ? " and": "", portrange);
-        else if(port > 0) ret += snprintf(filter_expr+ret, (len - ret), "%s port %d ", ret ? " and": "", port);
 
         /* CUSTOM FILTER */
         if(userfilter != NULL) ret += snprintf(filter_expr+ret, (len - ret), " %s", userfilter);
-        
+
         /* compile filter expression (global constant, see above) */
         if (pcap_compile(sniffer_rtp, &filter, filter_expr, 1, 0) == -1) {
                 fprintf(stderr,"Failed to compile filter \"%s\": %s\n", filter_expr, pcap_geterr(sniffer_rtp));
@@ -327,18 +330,7 @@ void* rtp_collect( void* device ) {
                     exit(-1);
         }
 
-        /* REASM */
-        if(reasm_enable) {
-                reasm = reasm_ip_new ();
-                reasm_ip_set_timeout (reasm, 30000000);
-        }                                
-        
-        if(tcpdefrag_enable) {
-                tcpreasm = tcpreasm_ip_new ();
-                tcpreasm_ip_set_timeout (tcpreasm, 30000000);
-        }                                
-
-        while (pcap_loop(sniffer_rtp, 0, (pcap_handler)callback_proto, 0));
+        while (pcap_loop(sniffer_rtp, 0, (pcap_handler)rtcpback_proto, 0));
 
 
         /* terminate from here */
@@ -354,10 +346,6 @@ int unload_module(void)
 {
         printf("unloaded module proto_rtcp\n");
 
-        if (reasm != NULL) reasm_ip_free(reasm);
-        if (tcpreasm != NULL) tcpreasm_ip_free(tcpreasm);
-        loop_stop = 0;
-                    
 	 /* Close socket */
         pcap_close(sniffer_rtp);        
 
@@ -369,7 +357,7 @@ int load_module(xml_node *config)
         char *dev = NULL, *usedev = NULL;
         char errbuf[PCAP_ERRBUF_SIZE];                                
         xml_node *modules;
-        char *key, *value = NULL, *local_pt = NULL;
+        char *key, *value = NULL;
         
         printf("Loaded proto_rtcp\n");
                                            
@@ -397,12 +385,9 @@ int load_module(xml_node *config)
                         }
 
                         if(!strncmp(key, "dev", 3)) usedev = value;                        
-                        else if(!strncmp(key, "ip-proto", 8)) ip_proto = value;
-                        else if(!strncmp(key, "proto-type", 10)) local_pt = value;
                         else if(!strncmp(key, "portrange", 9)) portrange = value;
                         else if(!strncmp(key, "promisc", 7) && !strncmp(value, "false", 5)) promisc = 0;
                         else if(!strncmp(key, "filter", 6)) userfilter = value;
-                        else if(!strncmp(key, "port", 4)) port = atoi(value);
                         else if(!strncmp(key, "vlan", 4) && !strncmp(value, "true", 4)) vlan = 1;
                         else if(!strncmp(key, "debug", 5) && !strncmp(value, "true", 4)) debug_proto_rtcp_enable = 1;
                 }

@@ -49,12 +49,12 @@ int port = 0;
 char *portrange = NULL;
 char *userfilter=NULL;
 char *ip_proto = NULL;
-int proto_type = PROTO_RTCP; /* DEFAULT SIP */
+int proto_type = PROTO_RTCP; /* DEFAULT RTCP */
 int promisc = 1;
 int vlan = 0; /*vlan filter*/
 
 /* ip reasm */
-int debug_proto_uni_enable = 0;
+int debug_proto_rtcp_enable = 0;
 
 static int sendPacketsCount=0;
 
@@ -72,7 +72,11 @@ extern int handler(int value);
 #define ISDNHDR_SIZE 16
 #define IEEE80211HDR_SIZE 32
 
-#define RTP_FILTER "(udp[1] & 1 != 1 && udp[3] & 1 != 1 && udp[8] & 0x80 == 0x80 && length < 250)"
+/* our payload range between 0 - 191 */
+#define RTP_FILTER "(ip and ip[6] & 0x2 = 0 and ip[6:2] & 0x1fff = 0 and udp and udp[8] & 0xc0 = 0x80 )"
+//#define RTP_FILTER "(udp)"
+/* our payload range between 200 and 204 */
+#define RTCP_FILTER "(ip and ip[6] & 0x2 = 0 and ip[6:2] & 0x1fff = 0 and udp and udp[8] & 0xc0 = 0x80 and udp[9] >= 0xc8 && udp[9] <= 0xcc)"
 
          
 int load_module(xml_node *config);

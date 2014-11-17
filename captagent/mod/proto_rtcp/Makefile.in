@@ -55,7 +55,7 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
-subdir = mod/proto_uni
+subdir = mod/proto_rtcp
 DIST_COMMON = $(include_HEADERS) $(srcdir)/Makefile.am \
 	$(srcdir)/Makefile.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
@@ -95,15 +95,12 @@ am__uninstall_files_from_dir = { \
   }
 am__installdirs = "$(DESTDIR)$(moddir)" "$(DESTDIR)$(includedir)"
 LTLIBRARIES = $(mod_LTLIBRARIES)
-proto_uni_la_LIBADD =
-am_proto_uni_la_OBJECTS = proto_uni_la-proto_uni.lo \
-	proto_uni_la-sipparse.lo proto_uni_la-ipreasm.lo \
-	proto_uni_la-tcpreasm.lo proto_uni_la-capthash.lo \
-	proto_uni_la-captarray.lo
-proto_uni_la_OBJECTS = $(am_proto_uni_la_OBJECTS)
-proto_uni_la_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
-	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(proto_uni_la_CFLAGS) \
-	$(CFLAGS) $(proto_uni_la_LDFLAGS) $(LDFLAGS) -o $@
+proto_rtcp_la_LIBADD =
+am_proto_rtcp_la_OBJECTS = proto_rtcp_la-proto_rtcp.lo
+proto_rtcp_la_OBJECTS = $(am_proto_rtcp_la_OBJECTS)
+proto_rtcp_la_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
+	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(proto_rtcp_la_CFLAGS) \
+	$(CFLAGS) $(proto_rtcp_la_LDFLAGS) $(LDFLAGS) -o $@
 DEFAULT_INCLUDES = -I.@am__isrc@ -I$(top_builddir)
 depcomp = $(SHELL) $(top_srcdir)/depcomp
 am__depfiles_maybe = depfiles
@@ -117,8 +114,8 @@ CCLD = $(CC)
 LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) \
 	--mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) \
 	$(LDFLAGS) -o $@
-SOURCES = $(proto_uni_la_SOURCES)
-DIST_SOURCES = $(proto_uni_la_SOURCES)
+SOURCES = $(proto_rtcp_la_SOURCES)
+DIST_SOURCES = $(proto_rtcp_la_SOURCES)
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
@@ -249,11 +246,11 @@ target_alias = @target_alias@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
-proto_uni_la_SOURCES = proto_uni.c proto_uni.h sipparse.c sipparse.h ipreasm.c ipreasm.h tcpreasm.c tcpreasm.h capthash.c captarray.c
-proto_uni_la_CFLAGS = -Wall ${MODULE_CFLAGS} ${AM_CFLAGS}
-proto_uni_la_LDFLAGS = -module -avoid-version 
-include_HEADERS = proto_uni.h sip.h ipreasm.h
-mod_LTLIBRARIES = proto_uni.la
+proto_rtcp_la_SOURCES = proto_rtcp.c proto_rtcp.h 
+proto_rtcp_la_CFLAGS = -Wall ${MODULE_CFLAGS} ${AM_CFLAGS}
+proto_rtcp_la_LDFLAGS = -module -avoid-version 
+include_HEADERS = proto_rtcp.h
+mod_LTLIBRARIES = proto_rtcp.la
 moddir = $(libdir)/captagent/modules
 INCLUDES = ${AP_INCLUDES}
 CLEANFILES = *.la *.lo *.o *.so *.slo .libs/*
@@ -270,9 +267,9 @@ $(srcdir)/Makefile.in:  $(srcdir)/Makefile.am  $(am__configure_deps)
 	      exit 1;; \
 	  esac; \
 	done; \
-	echo ' cd $(top_srcdir) && $(AUTOMAKE) --gnu mod/proto_uni/Makefile'; \
+	echo ' cd $(top_srcdir) && $(AUTOMAKE) --gnu mod/proto_rtcp/Makefile'; \
 	$(am__cd) $(top_srcdir) && \
-	  $(AUTOMAKE) --gnu mod/proto_uni/Makefile
+	  $(AUTOMAKE) --gnu mod/proto_rtcp/Makefile
 .PRECIOUS: Makefile
 Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
 	@case '$?' in \
@@ -323,8 +320,8 @@ clean-modLTLIBRARIES:
 	  echo "rm -f \"$${dir}/so_locations\""; \
 	  rm -f "$${dir}/so_locations"; \
 	done
-proto_uni.la: $(proto_uni_la_OBJECTS) $(proto_uni_la_DEPENDENCIES) $(EXTRA_proto_uni_la_DEPENDENCIES) 
-	$(proto_uni_la_LINK) -rpath $(moddir) $(proto_uni_la_OBJECTS) $(proto_uni_la_LIBADD) $(LIBS)
+proto_rtcp.la: $(proto_rtcp_la_OBJECTS) $(proto_rtcp_la_DEPENDENCIES) $(EXTRA_proto_rtcp_la_DEPENDENCIES) 
+	$(proto_rtcp_la_LINK) -rpath $(moddir) $(proto_rtcp_la_OBJECTS) $(proto_rtcp_la_LIBADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
@@ -332,12 +329,7 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/proto_uni_la-captarray.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/proto_uni_la-capthash.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/proto_uni_la-ipreasm.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/proto_uni_la-proto_uni.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/proto_uni_la-sipparse.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/proto_uni_la-tcpreasm.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/proto_rtcp_la-proto_rtcp.Plo@am__quote@
 
 .c.o:
 @am__fastdepCC_TRUE@	$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
@@ -360,47 +352,12 @@ distclean-compile:
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(LTCOMPILE) -c -o $@ $<
 
-proto_uni_la-proto_uni.lo: proto_uni.c
-@am__fastdepCC_TRUE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(proto_uni_la_CFLAGS) $(CFLAGS) -MT proto_uni_la-proto_uni.lo -MD -MP -MF $(DEPDIR)/proto_uni_la-proto_uni.Tpo -c -o proto_uni_la-proto_uni.lo `test -f 'proto_uni.c' || echo '$(srcdir)/'`proto_uni.c
-@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/proto_uni_la-proto_uni.Tpo $(DEPDIR)/proto_uni_la-proto_uni.Plo
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='proto_uni.c' object='proto_uni_la-proto_uni.lo' libtool=yes @AMDEPBACKSLASH@
+proto_rtcp_la-proto_rtcp.lo: proto_rtcp.c
+@am__fastdepCC_TRUE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(proto_rtcp_la_CFLAGS) $(CFLAGS) -MT proto_rtcp_la-proto_rtcp.lo -MD -MP -MF $(DEPDIR)/proto_rtcp_la-proto_rtcp.Tpo -c -o proto_rtcp_la-proto_rtcp.lo `test -f 'proto_rtcp.c' || echo '$(srcdir)/'`proto_rtcp.c
+@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/proto_rtcp_la-proto_rtcp.Tpo $(DEPDIR)/proto_rtcp_la-proto_rtcp.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='proto_rtcp.c' object='proto_rtcp_la-proto_rtcp.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(proto_uni_la_CFLAGS) $(CFLAGS) -c -o proto_uni_la-proto_uni.lo `test -f 'proto_uni.c' || echo '$(srcdir)/'`proto_uni.c
-
-proto_uni_la-sipparse.lo: sipparse.c
-@am__fastdepCC_TRUE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(proto_uni_la_CFLAGS) $(CFLAGS) -MT proto_uni_la-sipparse.lo -MD -MP -MF $(DEPDIR)/proto_uni_la-sipparse.Tpo -c -o proto_uni_la-sipparse.lo `test -f 'sipparse.c' || echo '$(srcdir)/'`sipparse.c
-@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/proto_uni_la-sipparse.Tpo $(DEPDIR)/proto_uni_la-sipparse.Plo
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='sipparse.c' object='proto_uni_la-sipparse.lo' libtool=yes @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(proto_uni_la_CFLAGS) $(CFLAGS) -c -o proto_uni_la-sipparse.lo `test -f 'sipparse.c' || echo '$(srcdir)/'`sipparse.c
-
-proto_uni_la-ipreasm.lo: ipreasm.c
-@am__fastdepCC_TRUE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(proto_uni_la_CFLAGS) $(CFLAGS) -MT proto_uni_la-ipreasm.lo -MD -MP -MF $(DEPDIR)/proto_uni_la-ipreasm.Tpo -c -o proto_uni_la-ipreasm.lo `test -f 'ipreasm.c' || echo '$(srcdir)/'`ipreasm.c
-@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/proto_uni_la-ipreasm.Tpo $(DEPDIR)/proto_uni_la-ipreasm.Plo
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='ipreasm.c' object='proto_uni_la-ipreasm.lo' libtool=yes @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(proto_uni_la_CFLAGS) $(CFLAGS) -c -o proto_uni_la-ipreasm.lo `test -f 'ipreasm.c' || echo '$(srcdir)/'`ipreasm.c
-
-proto_uni_la-tcpreasm.lo: tcpreasm.c
-@am__fastdepCC_TRUE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(proto_uni_la_CFLAGS) $(CFLAGS) -MT proto_uni_la-tcpreasm.lo -MD -MP -MF $(DEPDIR)/proto_uni_la-tcpreasm.Tpo -c -o proto_uni_la-tcpreasm.lo `test -f 'tcpreasm.c' || echo '$(srcdir)/'`tcpreasm.c
-@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/proto_uni_la-tcpreasm.Tpo $(DEPDIR)/proto_uni_la-tcpreasm.Plo
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='tcpreasm.c' object='proto_uni_la-tcpreasm.lo' libtool=yes @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(proto_uni_la_CFLAGS) $(CFLAGS) -c -o proto_uni_la-tcpreasm.lo `test -f 'tcpreasm.c' || echo '$(srcdir)/'`tcpreasm.c
-
-proto_uni_la-capthash.lo: capthash.c
-@am__fastdepCC_TRUE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(proto_uni_la_CFLAGS) $(CFLAGS) -MT proto_uni_la-capthash.lo -MD -MP -MF $(DEPDIR)/proto_uni_la-capthash.Tpo -c -o proto_uni_la-capthash.lo `test -f 'capthash.c' || echo '$(srcdir)/'`capthash.c
-@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/proto_uni_la-capthash.Tpo $(DEPDIR)/proto_uni_la-capthash.Plo
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='capthash.c' object='proto_uni_la-capthash.lo' libtool=yes @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(proto_uni_la_CFLAGS) $(CFLAGS) -c -o proto_uni_la-capthash.lo `test -f 'capthash.c' || echo '$(srcdir)/'`capthash.c
-
-proto_uni_la-captarray.lo: captarray.c
-@am__fastdepCC_TRUE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(proto_uni_la_CFLAGS) $(CFLAGS) -MT proto_uni_la-captarray.lo -MD -MP -MF $(DEPDIR)/proto_uni_la-captarray.Tpo -c -o proto_uni_la-captarray.lo `test -f 'captarray.c' || echo '$(srcdir)/'`captarray.c
-@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/proto_uni_la-captarray.Tpo $(DEPDIR)/proto_uni_la-captarray.Plo
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='captarray.c' object='proto_uni_la-captarray.lo' libtool=yes @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(proto_uni_la_CFLAGS) $(CFLAGS) -c -o proto_uni_la-captarray.lo `test -f 'captarray.c' || echo '$(srcdir)/'`captarray.c
+@am__fastdepCC_FALSE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(proto_rtcp_la_CFLAGS) $(CFLAGS) -c -o proto_rtcp_la-proto_rtcp.lo `test -f 'proto_rtcp.c' || echo '$(srcdir)/'`proto_rtcp.c
 
 mostlyclean-libtool:
 	-rm -f *.lo
@@ -638,8 +595,8 @@ uninstall-am: uninstall-includeHEADERS uninstall-modLTLIBRARIES
 
 
 install: install-am
-	rm -f $(libdir)/captagent/modules/proto_uni.a
-	rm -f $(libdir)/captagent/modules/proto_uni.la
+	rm -f $(libdir)/captagent/modules/proto_rtcp.a
+	rm -f $(libdir)/captagent/modules/proto_rtcp.la
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.

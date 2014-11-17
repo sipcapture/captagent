@@ -5,7 +5,7 @@ proto_uni_la_SOURCES = proto_uni.c proto_uni.h sipparse.c sipparse.h ipreasm.c i
 proto_uni_la_CFLAGS = -Wall ${MODULE_CFLAGS} ${AM_CFLAGS}
 proto_uni_la_LDFLAGS = -module -avoid-version 
 
-include_HEADERS = proto_uni.h sip.h ipreasm.h
+include_HEADERS = proto_uni.h ipreasm.h
 mod_LTLIBRARIES = proto_uni.la
 
 moddir = $(libdir)/captagent/modules
