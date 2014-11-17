@@ -1,5 +1,8 @@
 /* API params */
 
+#ifndef _APIHEADER
+#define _APIHEADER
+
 #include <stdio.h>
 #include <string.h>
 #include <errno.h>
@@ -57,3 +60,4 @@ extern int send_message (rc_info_t *rcinfo, unsigned char *data, unsigned int le
 int get_basestat(char *module, char *buf);
 struct module *module_list;
 
+#endif

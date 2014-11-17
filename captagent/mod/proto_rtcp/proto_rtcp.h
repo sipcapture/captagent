@@ -23,8 +23,8 @@
  *
 */
 
-#ifndef _PROTO_UNI_H
-#define _PROTO_UNI_H
+#ifndef _PROTO_RTCP_H
+#define _PROTO_RTCP_H
 
 #include "../../src/xmlread.h"
   
@@ -49,26 +49,17 @@ int port = 0;
 char *portrange = NULL;
 char *userfilter=NULL;
 char *ip_proto = NULL;
-int proto_type = PROTO_SIP; /* DEFAULT SIP */
+int proto_type = PROTO_RTCP; /* DEFAULT SIP */
 int promisc = 1;
 int vlan = 0; /*vlan filter*/
-char * sip_method = NULL;
-int sip_method_not = 0;
 
 /* ip reasm */
-int reasm_enable = 0;
-int tcpdefrag_enable = 0;
-int buildin_reasm_filter = 0;
 int debug_proto_uni_enable = 0;
-struct reasm_ip *reasm = NULL;
-struct tcpreasm_ip *tcpreasm = NULL;
 
 static int sendPacketsCount=0;
 
 extern char* usefile;
 extern int handler(int value);
-
-#define BPF_DEFRAGMENTION_FILTER "(ip[6:2] & 0x3fff != 0)"
 
 /* header offsets */
 #define ETHHDR_SIZE 14
@@ -80,10 +71,13 @@ extern int handler(int value);
 #define FDDIHDR_SIZE 21
 #define ISDNHDR_SIZE 16
 #define IEEE80211HDR_SIZE 32
+
+#define RTP_FILTER "(udp[1] & 1 != 1 && udp[3] & 1 != 1 && udp[8] & 0x80 == 0x80 && length < 250)"
+
          
 int load_module(xml_node *config);
 
-int dump_proto_packet(struct pcap_pkthdr *, u_char *, uint8_t, unsigned char *, uint32_t,const char *,
+int dump_rtp_packet(struct pcap_pkthdr *, u_char *, uint8_t, unsigned char *, uint32_t,const char *,
             const char *, uint16_t, uint16_t, uint8_t,uint16_t, uint8_t, uint16_t, uint32_t, uint32_t);
 
 

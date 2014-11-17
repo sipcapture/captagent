@@ -5,7 +5,7 @@
  *  Duplicate SIP messages in Homer Encapulate Protocol [HEP] [ipv6 version]
  *
  *  Author: Alexandr Dubovikov <alexandr.dubovikov@gmail.com>
- *  (C) Homer Project 2012 (http://www.sipcapture.org)
+ *  (C) Homer Project 2012-2014 (http://www.sipcapture.org)
  *
  * Homer capture agent is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -54,22 +54,15 @@
 
 #include <pcap.h>
 
-/* reasambling */
-#include "ipreasm.h"
-#include "tcpreasm.h"
-
 #include "src/api.h"
-#include "proto_uni.h"
-#include "sipparse.h"
-#include "captarray.h"
+#include "proto_rtcp.h"
 #include "capthash.h"
-
 
 uint8_t link_offset = 14;
 uint8_t hdr_offset = 0;
 
-pcap_t *sniffer_proto;
-pthread_t call_thread;   
+pcap_t *sniffer_rtp;
+pthread_t rtp_thread;   
 
 unsigned char* ethaddr = NULL;
 unsigned char* mplsaddr = NULL;
@@ -112,23 +105,6 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
         uint8_t  psh = 0;
 	int ret;
 
-
-	
-	if (reasm != NULL && reasm_enable) {
-		unsigned new_len;
-        	u_char *new_p = malloc(len - link_offset - ((ntohs((uint16_t)*(packet + 12)) == 0x8100)? 4:0));
-		memcpy(new_p, ip4_pkt, len - link_offset - ((ntohs((uint16_t)*(packet + 12)) == 0x8100)? 4:0));
-	        pack = reasm_ip_next(reasm, new_p, len - link_offset - ((ntohs((uint16_t)*(packet + 12)) == 0x8100)? 4:0), (reasm_time_t) 1000000UL * pkthdr->ts.tv_sec + pkthdr->ts.tv_usec, &new_len);
-        	if (pack == NULL) return;
-	        len = new_len + link_offset + ((ntohs((uint16_t)*(pack + 12)) == 0x8100)? 4:0);
-        	pkthdr->len = new_len;
-	        pkthdr->caplen = new_len;
-	
-	        ip4_pkt = (struct ip *)  pack;
-#if USE_IPv6
-	        ip6_pkt = (struct ip6_hdr*)pack;
-#endif
-	}
 
 	ip_ver = ip4_pkt->ip_v;
 
@@ -176,66 +152,6 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
 	}       
 
 	switch (ip_proto) {
-                case IPPROTO_TCP: {
-                    struct tcphdr *tcp_pkt = (struct tcphdr *)((unsigned char *)(ip4_pkt) + ip_hl);
-
-                    //uint16_t tcphdr_offset = (frag_offset) ? 0 : (tcp_pkt->th_off * 4);
-                    uint16_t tcphdr_offset = frag_offset ? 0 : (uint16_t) (tcp_pkt->th_off * 4);
-
-                    data = (unsigned char *)(tcp_pkt) + tcphdr_offset;
-                    
-                    len -= link_offset + ip_hl + tcphdr_offset + hdr_offset;
-
-#if USE_IPv6
-                    if (ip_ver == 6)
-                        len -= ntohs(ip6_pkt->ip6_plen);
-#endif
-
-                    if ((int32_t)len < 0)
-                        len = 0;
-
-                    if(debug_proto_uni_enable) printf("TCP Message: LEN:[%d], [%.*s]\n", len, len, data);
-
-                    if(tcpreasm != NULL && tcpdefrag_enable && (len > 0) && (tcp_pkt->th_flags & TH_ACK)) {
-
-			unsigned new_len;
-			u_char *new_p_2 = malloc(len+10);
-			memcpy(new_p_2, data, len);
-	
-			if((tcp_pkt->th_flags & TH_PUSH)) psh = 1;
-
-					
-			if(debug_proto_uni_enable)
-			        printf("DEFRAG TCP process: EN:[%d], LEN:[%d], ACK:[%d], PSH[%d]\n", 
-			                        tcpdefrag_enable, len, (tcp_pkt->th_flags & TH_ACK), psh);
-			
-	                datatcp = tcpreasm_ip_next_tcp(tcpreasm, new_p_2, len , (tcpreasm_time_t) 1000000UL * pkthdr->ts.tv_sec + pkthdr->ts.tv_usec, &new_len, &ip4_pkt->ip_src, &ip4_pkt->ip_dst, ntohs(tcp_pkt->th_sport), ntohs(tcp_pkt->th_dport), psh);
-
-        	        if (datatcp == NULL) return;
-        	                	        
-	                len = new_len;
-	                
-	                if(debug_proto_uni_enable)
-	                        printf("COMPLETE TCP DEFRAG: LEN[%d], PACKET:[%s]\n", len, datatcp);
-	                
-	                dump_proto_packet(pkthdr, packet, ip_proto, datatcp, len,
-        	                ip_src, ip_dst, ntohs(tcp_pkt->th_sport), ntohs(tcp_pkt->th_dport), tcp_pkt->th_flags,
-                	        tcphdr_offset, fragmented, frag_offset, frag_id, ip_ver);
-
-	                /* clear datatcp */
-        	        free(datatcp);
-                    
-                    }
-                    else {
-                    
-                            if(debug_proto_uni_enable)
-	                        printf("NORMAL TCP PACKET: LEN[%d], ACK: [%d], PACKET: [%s]\n", len, (tcp_pkt->th_flags & TH_ACK), data);
-                            ret = dump_proto_packet(pkthdr, packet, ip_proto, data, len, ip_src, ip_dst, 
-                                    ntohs(tcp_pkt->th_sport), ntohs(tcp_pkt->th_dport), tcp_pkt->th_flags,
-                                    tcphdr_offset, fragmented, frag_offset, frag_id, ip_ver);
-                    }
-                                        
-                } break;
 
                 case IPPROTO_UDP: {
                     struct udphdr *udp_pkt = (struct udphdr *)((unsigned char *)(ip4_pkt) + ip_hl);
@@ -255,21 +171,18 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
                      ret = dump_proto_packet(pkthdr, packet, ip_proto, data, len, ip_src, ip_dst,
                         ntohs(udp_pkt->uh_sport), ntohs(udp_pkt->uh_dport), 0,
                         udphdr_offset, fragmented, frag_offset, frag_id, ip_ver);
-                   
-                        
+                                           
                                                 
-        } break;
+                } break;
 
                 default:                 
                         break;
         }
         
-        if(pack != NULL) free(pack);
-        
 }
 
 
-int dump_proto_packet(struct pcap_pkthdr *pkthdr, u_char *packet, uint8_t proto, unsigned char *data, uint32_t len,
+int dump_rtp_packet(struct pcap_pkthdr *pkthdr, u_char *packet, uint8_t proto, unsigned char *data, uint32_t len,
                  const char *ip_src, const char *ip_dst, uint16_t sport, uint16_t dport, uint8_t flags,
                                   uint16_t hdr_offset, uint8_t frag, uint16_t frag_offset, uint32_t frag_id, uint32_t ip_ver) {
 
@@ -295,68 +208,6 @@ int dump_proto_packet(struct pcap_pkthdr *pkthdr, u_char *packet, uint8_t proto,
                 return -1;
         }
 
-        /* SIP must have alpha */
-        if(proto_type == PROTO_SIP && !isalpha(data[0])) {
-                //printf("BAD SIP message: %d\n", len);
-                return -1;
-        }
-        /* gingle XMPP */
-        else if(proto_type == PROTO_XMPP && memcmp("<iq", data, 3)) {
-                //printf("It's not a GINGLE call: %d\n", len);
-                return -1;
-        }
-
-        //if (proto_type == PROTO_SIP && sip_method){
-        if (proto_type == PROTO_SIP){
-
-        	//if ((sip_method_not == 1) ? (!sip_is_method((const char*)data, len,sip_method+1)): (sip_is_method ((const char*) data, len,sip_method))){
-            	//printf("method not matched\n");
-            	//return -1;
-        	//}
-        	psip.mrp_size = 0;
-        	memset(&psip, 0, sizeof(struct preparsed_sip));
-        	uint32_t bytes_parsed = 0;
-        	//printf("MESSAGE: [%s]\n", data);
-        	if(parse_message((char*) data, len, &bytes_parsed, &psip) == 1) {
-        	                
-                        //add_timer("testest1212");        	
-
-        	        for(i=0; i < psip.mrp_size; i++) {
-        	                
-        	                //printf("CALIID: %.*s\n",psip.callid.len, psip.callid.s);
-        	                //printf("MEDIA STR: %d\n", i);        	                
-        	                mp = &psip.mrp[i];
-        	                        	                        	                
-        	                if(mp->media_ip.len > 0) {
-        	                        //printf("MEDIAIP: %.*s\n",mp->media_ip.len, mp->media_ip.s);        	        
-                	                //printf("MEDIAPORT: %d\n", mp->media_port);        	                	                
-                	                if(mp->rtcp_port == 0 ) mp->rtcp_port = mp->media_port+1;        	                
-                	                if(mp->rtcp_ip.len ==  0) {
-                	                        mp->rtcp_ip.len = mp->media_ip.len;
-        	                                mp->rtcp_ip.s = mp->media_ip.s;
-        	                        }        	                
-        	                
-        	                        /* our correlation index */
-                	                snprintf(ipptmp,sizeof(ipptmp), "%.*s:%d",  mp->rtcp_ip.len, mp->rtcp_ip.s, mp->rtcp_port);
-                	                        
-        	                        //printf("RTCPIP: %.*s\n", mp->rtcp_ip.len, mp->rtcp_ip.s);        	        
-        	                        //printf("RTCPPORT: %d\n",mp->rtcp_port);        	        
-        	                
-                	                /* put data to hash */
-                                        add_ipport(ipptmp, &psip.callid);
-                                        add_timer(ipptmp);        	                
-                                }
-        	        }
-        	        
-                }
-                else {
-                        printf("Not Parsed\n");
-                }
-        	
-        }
-
-        //printf("SIP: [%.*s]\n", len, data);
-
 	rcinfo = malloc(sizeof(rc_info_t));
 	memset(rcinfo, 0, sizeof(rc_info_t));
 
@@ -370,7 +221,7 @@ int dump_proto_packet(struct pcap_pkthdr *pkthdr, u_char *packet, uint8_t proto,
         rcinfo->time_usec  = pkthdr->ts.tv_usec;
         rcinfo->proto_type = proto_type;
         
-        if(debug_proto_uni_enable)
+        if(debug_proto_rtcp_enable)
                 printf("SENDING PACKET: Len: [%d]\n", len);
 
 	/* Duplcate */
@@ -383,7 +234,7 @@ int dump_proto_packet(struct pcap_pkthdr *pkthdr, u_char *packet, uint8_t proto,
 	return 1;
 }
 
-void* proto_collect( void* device ) {
+void* rtp_collect( void* device ) {
 
         struct bpf_program filter;
         char errbuf[PCAP_ERRBUF_SIZE];
@@ -391,56 +242,41 @@ void* proto_collect( void* device ) {
         uint16_t snaplen = 65535, timeout = 100, len = 200, ret = 0;        
 
         if(device) {
-            if((sniffer_proto = pcap_open_live((char *)device, snaplen, promisc, timeout, errbuf)) == NULL) {
+            if((sniffer_rtp = pcap_open_live((char *)device, snaplen, promisc, timeout, errbuf)) == NULL) {
                 fprintf(stderr,"Failed to open packet sniffer on %s: pcap_open_live(): %s\n", (char *)device, errbuf);
                 return NULL;
             }
         } else  {
-            if((sniffer_proto = pcap_open_offline(usefile, errbuf)) == NULL) {
-                fprintf(stderr,"Failed to open packet sniffer on %s: pcap_open_offline(): %s\n", usefile, errbuf);
+            if((sniffer_rtp = pcap_open_offline(usefile, errbuf)) == NULL) {
+                fprintf(stderr,"Failed to open packet sniffer rtp on %s: pcap_open_offline(): %s\n", usefile, errbuf);
                 return NULL;
             }
         }
 
         len += (portrange != NULL) ? strlen(portrange) : 10;        
         len += (ip_proto != NULL) ? strlen(ip_proto) : 0;
-        len += (userfilter != NULL) ? strlen(userfilter) : 0;
-        len += (reasm_enable && buildin_reasm_filter) ? strlen(BPF_DEFRAGMENTION_FILTER) : 0;
-        
+        len += (userfilter != NULL) ? strlen(userfilter) : 0;        
         filter_expr = malloc(sizeof(char) * len);
         
-        /* REASM */
-        if(reasm_enable && buildin_reasm_filter) ret += snprintf(filter_expr, len, BPF_DEFRAGMENTION_FILTER);
-        
-        /* FILTER VLAN */        
-        if(vlan) ret += snprintf(filter_expr+ret, (len - ret), ret ? " or  vlan " : "vlan ");
-                
+        ret += snprintf(filter_expr, len, RTP_FILTER);
+                        
         /* FILTER */
         if(portrange != NULL) ret += snprintf(filter_expr+ret, (len - ret), "%s portrange %s ", ret ? " and": "", portrange);
         else if(port > 0) ret += snprintf(filter_expr+ret, (len - ret), "%s port %d ", ret ? " and": "", port);
 
-        /* PROTO */
-        if(ip_proto != NULL) ret += snprintf(filter_expr+ret, (len - ret), "%s %s ", ret ? " and": "", ip_proto);
-        
         /* CUSTOM FILTER */
         if(userfilter != NULL) ret += snprintf(filter_expr+ret, (len - ret), " %s", userfilter);
         
-        /* create filter string */
-
-        //((ip[6:2] & 0x3fff != 0))
-        
-        //fprintf(stdout, "expr:%s\n", filter_expr);
-
         /* compile filter expression (global constant, see above) */
-        if (pcap_compile(sniffer_proto, &filter, filter_expr, 1, 0) == -1) {
-                fprintf(stderr,"Failed to compile filter \"%s\": %s\n", filter_expr, pcap_geterr(sniffer_proto));
+        if (pcap_compile(sniffer_rtp, &filter, filter_expr, 1, 0) == -1) {
+                fprintf(stderr,"Failed to compile filter \"%s\": %s\n", filter_expr, pcap_geterr(sniffer_rtp));
                 if(filter_expr) free(filter_expr);
                 return NULL;
         }
 
         /* install filter on sniffer session */
-        if (pcap_setfilter(sniffer_proto, &filter)) {
-                fprintf(stderr,"Failed to install filter: %s\n", pcap_geterr(sniffer_proto));
+        if (pcap_setfilter(sniffer_rtp, &filter)) {
+                fprintf(stderr,"Failed to install filter: %s\n", pcap_geterr(sniffer_rtp));
                 if(filter_expr) free(filter_expr);
                 return NULL;
         }
@@ -448,7 +284,7 @@ void* proto_collect( void* device ) {
         if(filter_expr) free(filter_expr);
         
         /* detect link_offset. Thanks ngrep for this. */
-        switch(pcap_datalink(sniffer_proto)) {
+        switch(pcap_datalink(sniffer_rtp)) {
                 case DLT_EN10MB:
                     link_offset = ETHHDR_SIZE;
                     break;
@@ -487,7 +323,7 @@ void* proto_collect( void* device ) {
                     break;
 
                 default:
-                    fprintf(stderr, "fatal: unsupported interface type %u\n", pcap_datalink(sniffer_proto));
+                    fprintf(stderr, "fatal: unsupported interface type %u\n", pcap_datalink(sniffer_rtp));
                     exit(-1);
         }
 
@@ -502,7 +338,7 @@ void* proto_collect( void* device ) {
                 tcpreasm_ip_set_timeout (tcpreasm, 30000000);
         }                                
 
-        while (pcap_loop(sniffer_proto, 0, (pcap_handler)callback_proto, 0));
+        while (pcap_loop(sniffer_rtp, 0, (pcap_handler)callback_proto, 0));
 
 
         /* terminate from here */
@@ -516,14 +352,14 @@ void* proto_collect( void* device ) {
 
 int unload_module(void)
 {
-        printf("unloaded module proto_uni\n");
+        printf("unloaded module proto_rtcp\n");
 
         if (reasm != NULL) reasm_ip_free(reasm);
         if (tcpreasm != NULL) tcpreasm_ip_free(tcpreasm);
         loop_stop = 0;
                     
 	 /* Close socket */
-        pcap_close(sniffer_proto);        
+        pcap_close(sniffer_rtp);        
 
         return 0;
 }
@@ -535,7 +371,7 @@ int load_module(xml_node *config)
         xml_node *modules;
         char *key, *value = NULL, *local_pt = NULL;
         
-        printf("Loaded proto_uni\n");
+        printf("Loaded proto_rtcp\n");
                                            
         /* READ CONFIG */
         modules = config;
@@ -568,11 +404,7 @@ int load_module(xml_node *config)
                         else if(!strncmp(key, "filter", 6)) userfilter = value;
                         else if(!strncmp(key, "port", 4)) port = atoi(value);
                         else if(!strncmp(key, "vlan", 4) && !strncmp(value, "true", 4)) vlan = 1;
-                        else if(!strncmp(key, "reasm", 5) && !strncmp(value, "true", 4)) reasm_enable = 1;
-                        else if(!strncmp(key, "debug", 5) && !strncmp(value, "true", 4)) debug_proto_uni_enable = 1;
-                        else if(!strncmp(key, "buildin-reasm-filter", 20) && !strncmp(value, "true", 4)) buildin_reasm_filter = 1;
-                        else if(!strncmp(key, "tcpdefrag", 9) && !strncmp(value, "true", 4)) tcpdefrag_enable = 1;
-                        else if (!strncmp(key, "sip_method", 10)) sip_method = value;
+                        else if(!strncmp(key, "debug", 5) && !strncmp(value, "true", 4)) debug_proto_rtcp_enable = 1;
                 }
 next:
 
@@ -587,36 +419,9 @@ next:
               exit(-1);
           }
         }
-       
-        /*
-        if(port == 0 && portrange == NULL) {        
-                fprintf(stderr, "bad port or portranges in the config\n");
-                return -1;
-        }
-        */
-
-        /* CHECK PROTO */
-        if(!strncmp(local_pt, "sip", 3)) proto_type = PROTO_SIP;
-        else if(!strncmp(local_pt, "xmpp", 4)) proto_type = PROTO_XMPP;                        
-        else {
-                fprintf(stderr, "Unsupported protocol. Switched to SIP\n");
-                proto_type = PROTO_SIP;
-        }                                        
-
-        /* check sip method */
-        if (proto_type == PROTO_SIP && sip_method )
-        {
-        	if (sip_method[0] == '!'){
-        		sip_method_not = 1;
-        	}
-        }
-
-
-        /* start timer */
-        ippexpire_init();
 
         // start thread
-        pthread_create(&call_thread, NULL, proto_collect, (void *)dev);
+        pthread_create(&rtp_thread, NULL, rtp_collect, (void *)dev);
         
                                          
         return 0;
@@ -634,7 +439,7 @@ char *description(void)
 
 int statistic(char *buf)
 {
-        snprintf(buf, 1024, "Statistic of PROTO_UNI module:\r\nSend packets: [%i]\r\n", sendPacketsCount);
+        snprintf(buf, 1024, "Statistic of PROTO_RTCP module:\r\nSend packets: [%i]\r\n", sendPacketsCount);
         return 1;
 }
                         
