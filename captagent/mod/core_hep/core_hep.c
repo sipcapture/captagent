@@ -467,13 +467,14 @@ int send_data (void *buf, unsigned int len) {
 	int sentbytes = 0;
 
 	if(!usessl) {
+	        /*
                 size_t sendlen = send(sock, p, len, 0);
                 if(sendlen == -1) {
 	    	        	printf("send error\n");
             			return -1;
 	        	}
           	sendPacketsCount++;
-          	
+          	*/
           	/*
                 size_t sendlen = len < 1024 ? len : 1024;
                 size_t remlen  = len;
@@ -490,8 +491,7 @@ int send_data (void *buf, unsigned int len) {
                 }
                 */
           	
-        /*  	
-	 while (sentbytes < len){
+                while (sentbytes < len){
 	        	if( (r = send(sock, p, len - sentbytes, MSG_NOSIGNAL )) == -1) {
 	    	        	printf("send error\n");
         			return -1;
@@ -503,7 +503,6 @@ int send_data (void *buf, unsigned int len) {
 	        	p += r;
         	}
         	sendPacketsCount++;
-        */        
 	  
         }
 #ifdef USE_SSL
