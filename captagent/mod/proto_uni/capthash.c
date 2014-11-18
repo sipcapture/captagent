@@ -68,7 +68,7 @@ struct ipport_items *find_ip_port_paar(char *ip, int port) {
         return find_ipport(name);
 }
 
-int find_and_update(char *callid, char *srcip, int srcport, char *dstip, int dstport) {
+int find_and_update(char *callid, const char *srcip, int srcport, const char *dstip, int dstport) {
 
         ipport_items_t *ipport;
         int ret = 0;

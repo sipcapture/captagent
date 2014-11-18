@@ -345,6 +345,8 @@ int core_config (xml_node *config)
         char *dev, *usedev = NULL;
         xml_node *modules;
         char *key, *value;
+        int _use_syslog = 0;
+                
 
         init_log("captagent", 1);
 
@@ -376,6 +378,7 @@ int core_config (xml_node *config)
 
                         if(!strncmp(key, "debug", 5)) debug_level = atoi(value);
                         else if(!strncmp(key, "daemon", 6) && !strncmp(value, "true", 5) && nofork == 1) nofork = 0;
+                        else if (!strncmp(key, "syslog", 6) && !strncmp(value, "true", 5)) _use_syslog = 1;
                         else if(!strncmp(key, "path", 4)) module_path = value;
                         else if(!strncmp(key, "pid_file", 8)) pid_file = value;
                 }
@@ -383,6 +386,15 @@ next:
 
                 modules = modules->next;
         }
+        
+        
+        set_log_level(debug_level);
+
+	if (_use_syslog == 0) {
+
+		destroy_log();
+		init_log("captagent", 0);
+	}
 
 	return 1;
 }

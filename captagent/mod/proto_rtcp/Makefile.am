@@ -1,7 +1,7 @@
 #
 #
  
-proto_rtcp_la_SOURCES = proto_rtcp.c proto_rtcp.h 
+proto_rtcp_la_SOURCES = proto_rtcp.c proto_rtcp.h rtcp_parser.c rtcp_parser.h
 proto_rtcp_la_CFLAGS = -Wall ${MODULE_CFLAGS} ${AM_CFLAGS}
 proto_rtcp_la_LDFLAGS = -module -avoid-version 
 

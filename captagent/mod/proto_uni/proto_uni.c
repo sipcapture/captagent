@@ -375,6 +375,8 @@ int dump_proto_packet(struct pcap_pkthdr *pkthdr, u_char *packet, uint8_t proto,
         rcinfo->time_sec   = pkthdr->ts.tv_sec;
         rcinfo->time_usec  = pkthdr->ts.tv_usec;
         rcinfo->proto_type = proto_type;
+        rcinfo->correlation_id.len = 0;
+        rcinfo->correlation_id.s = NULL;
         
         if(debug_proto_uni_enable)
                 printf("SENDING PACKET: Len: [%d]\n", len);

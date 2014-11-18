@@ -20,7 +20,7 @@ int clear_ipport(struct ipport_items *ipport );
 int check_ipport(char *name);
 int delete_ipport(char *ip, int port);
 void clear_ipports();
-int find_and_update(char *callid, char *srcip, int srcport, char *dstip, int dstport);
+int find_and_update(char *callid, const char *srcip, int srcport, const char *dstip, int dstport);
 
 
 #endif

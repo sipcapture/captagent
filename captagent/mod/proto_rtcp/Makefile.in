@@ -96,7 +96,8 @@ am__uninstall_files_from_dir = { \
 am__installdirs = "$(DESTDIR)$(moddir)" "$(DESTDIR)$(includedir)"
 LTLIBRARIES = $(mod_LTLIBRARIES)
 proto_rtcp_la_LIBADD =
-am_proto_rtcp_la_OBJECTS = proto_rtcp_la-proto_rtcp.lo
+am_proto_rtcp_la_OBJECTS = proto_rtcp_la-proto_rtcp.lo \
+	proto_rtcp_la-rtcp_parser.lo
 proto_rtcp_la_OBJECTS = $(am_proto_rtcp_la_OBJECTS)
 proto_rtcp_la_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(proto_rtcp_la_CFLAGS) \
@@ -246,7 +247,7 @@ target_alias = @target_alias@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
-proto_rtcp_la_SOURCES = proto_rtcp.c proto_rtcp.h 
+proto_rtcp_la_SOURCES = proto_rtcp.c proto_rtcp.h rtcp_parser.c rtcp_parser.h
 proto_rtcp_la_CFLAGS = -Wall ${MODULE_CFLAGS} ${AM_CFLAGS}
 proto_rtcp_la_LDFLAGS = -module -avoid-version 
 include_HEADERS = proto_rtcp.h
@@ -330,6 +331,7 @@ distclean-compile:
 	-rm -f *.tab.c
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/proto_rtcp_la-proto_rtcp.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/proto_rtcp_la-rtcp_parser.Plo@am__quote@
 
 .c.o:
 @am__fastdepCC_TRUE@	$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
@@ -358,6 +360,13 @@ proto_rtcp_la-proto_rtcp.lo: proto_rtcp.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='proto_rtcp.c' object='proto_rtcp_la-proto_rtcp.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(proto_rtcp_la_CFLAGS) $(CFLAGS) -c -o proto_rtcp_la-proto_rtcp.lo `test -f 'proto_rtcp.c' || echo '$(srcdir)/'`proto_rtcp.c
+
+proto_rtcp_la-rtcp_parser.lo: rtcp_parser.c
+@am__fastdepCC_TRUE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(proto_rtcp_la_CFLAGS) $(CFLAGS) -MT proto_rtcp_la-rtcp_parser.lo -MD -MP -MF $(DEPDIR)/proto_rtcp_la-rtcp_parser.Tpo -c -o proto_rtcp_la-rtcp_parser.lo `test -f 'rtcp_parser.c' || echo '$(srcdir)/'`rtcp_parser.c
+@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/proto_rtcp_la-rtcp_parser.Tpo $(DEPDIR)/proto_rtcp_la-rtcp_parser.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='rtcp_parser.c' object='proto_rtcp_la-rtcp_parser.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(proto_rtcp_la_CFLAGS) $(CFLAGS) -c -o proto_rtcp_la-rtcp_parser.lo `test -f 'rtcp_parser.c' || echo '$(srcdir)/'`rtcp_parser.c
 
 mostlyclean-libtool:
 	-rm -f *.lo

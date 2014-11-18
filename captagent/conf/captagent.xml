@@ -15,6 +15,7 @@
 	  <modules>	  
   	  	<load module="core_hep"/>
   	  	<load module="proto_uni"/>
+  	  	<load module="proto_rtcp"/>
   	  	<load module="capt_cli"/>
 	  </modules>
 	</configuration>
@@ -64,6 +65,18 @@
 		-->
 	  </settings>
 	</configuration>
+
+	<configuration name="proto_rtcp.conf" description="RTCP capture">
+	  <settings>
+	    <!-- <param name="portrange" value="5060-5090"/> -->
+	    <param name="dev"  value="eth0"/>	    
+	    <param name="promisc" value="true"/>
+	    <param name="debug" value ="false"/>	                
+	    <!-- <param name="filter" value="not src port 5099"/> -->
+	    <!-- <param name="vlan" value="false"/> -->
+	  </settings>
+	</configuration>
+
 	
 	<!-- CLI  -->
 	

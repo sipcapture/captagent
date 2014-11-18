@@ -46,13 +46,16 @@
 #define PROTO_H322   0x0b
 #define PROTO_H321   0x0c
 
-int port = 0; 
-char *portrange = NULL;
-char *userfilter=NULL;
-char *ip_proto = NULL;
-int proto_type = PROTO_RTCP; /* DEFAULT RTCP */
-int promisc = 1;
-int vlan = 0; /*vlan filter*/
+char json_rtcp_buffer[5000];                        
+char sip_callid[250];
+int rtcp_port = 0; 
+char *rtcp_portrange = NULL;
+char *rtcp_userfilter=NULL;
+int rtcp_proto_type = PROTO_RTCP; /* DEFAULT RTCP */
+int rtcp_promisc = 1;
+int rtcp_vlan = 0; /*vlan filter*/
+int rtcp_as_json = 1;
+int send_sdes = 1;
 
 /* ip reasm */
 int debug_proto_rtcp_enable = 0;

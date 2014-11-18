@@ -127,6 +127,7 @@ int send_hepv3 (rc_info_t *rcinfo, unsigned char *data, unsigned int len, unsign
 #endif            
     hep_chunk_t payload_chunk;
     hep_chunk_t authkey_chunk;
+    hep_chunk_t correlation_chunk;
     static int errors = 0;
 
     hg = malloc(sizeof(struct hep_generic));
@@ -240,6 +241,17 @@ int send_hepv3 (rc_info_t *rcinfo, unsigned char *data, unsigned int len, unsign
           tlen += strlen(capt_password);
     }
 
+    /* correlation key */
+    if(rcinfo->correlation_id.s && rcinfo->correlation_id.len > 0) {
+
+             tlen += sizeof(hep_chunk_t);
+             /* Correlation key */
+             correlation_chunk.vendor_id = htons(0x0000);
+             correlation_chunk.type_id   = htons(0x0011);
+             correlation_chunk.length    = htons(sizeof(correlation_chunk) + rcinfo->correlation_id.len);
+             tlen += rcinfo->correlation_id.len;
+    }
+
     /* total */
     hg->header.length = htons(tlen);
 
@@ -285,6 +297,17 @@ int send_hepv3 (rc_info_t *rcinfo, unsigned char *data, unsigned int len, unsign
         /* Now copying payload self */
         memcpy((void*) buffer+buflen, capt_password, strlen(capt_password));
         buflen+=strlen(capt_password);
+    }
+
+    /* Correlation KEY CHUNK */
+    if(rcinfo->correlation_id.s && rcinfo->correlation_id.len > 0) {
+
+           memcpy((void*) buffer+buflen, &correlation_chunk,  sizeof(struct hep_chunk));
+           buflen += sizeof(struct hep_chunk);
+
+           /* Now copying payload self */
+           memcpy((void*) buffer+buflen, rcinfo->correlation_id.s, rcinfo->correlation_id.len);
+           buflen+= rcinfo->correlation_id.len;
     }
 
     /* PAYLOAD CHUNK */

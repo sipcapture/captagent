@@ -54,10 +54,11 @@
 
 #include <pcap.h>
 
-#include "src/api.h"
+#include "../../src/api.h"
+#include "../../src/log.h"
 #include "proto_rtcp.h"
 #include "../proto_uni/capthash.h"
-#include "rtcp.h"
+#include "rtcp_parser.h"
 
 uint8_t link_offset = 14;
 uint8_t hdr_offset = 0;
@@ -102,8 +103,6 @@ void rtcpback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
         unsigned char *data;
 	    
 	uint32_t len = pkthdr->caplen;
-	int ret;
-
 
 	ip_ver = ip4_pkt->ip_v;
 
@@ -167,7 +166,7 @@ void rtcpback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
 
                     if ((int32_t)len < 0) len = 0;
 
-                     ret = dump_rtp_packet(pkthdr, packet, ip_proto, data, len, ip_src, ip_dst,
+                      dump_rtp_packet(pkthdr, packet, ip_proto, data, len, ip_src, ip_dst,
                         ntohs(udp_pkt->uh_sport), ntohs(udp_pkt->uh_dport), 0,
                         udphdr_offset, fragmented, frag_offset, frag_id, ip_ver);
                                            
@@ -188,9 +187,8 @@ int dump_rtp_packet(struct pcap_pkthdr *pkthdr, u_char *packet, uint8_t proto, u
         time_t curtime;
 	char timebuffer[30];	
 	rc_info_t *rcinfo = NULL;
-	char callid[250];
-	int rtcp_size = 0;
-
+        unsigned char *senddata;	        
+        int json_len;
         
         gettimeofday(&tv,NULL);
 
@@ -199,49 +197,33 @@ int dump_rtp_packet(struct pcap_pkthdr *pkthdr, u_char *packet, uint8_t proto, u
         curtime = tv.tv_sec;
         strftime(timebuffer,30,"%m-%d-%Y  %T.",localtime(&curtime));
 
-
         if(len < 5) {
-             printf("rtcp the message is too small: %d\n", len);
+             LERR("rtcp the message is too small: %d\n", len);
              return -1;
         }
 
-        //printf("GOT RTCP %s:%d -> %s:%d\n", ip_src, sport, ip_dst, dport);
+        LDEBUG("GOT RTCP %s:%d -> %s:%d. LEN: %d\n", ip_src, sport, ip_dst, dport, len);
 
-        if(find_and_update(callid, ip_src,  sport, ip_dst, dport) == 0) {
+        if(find_and_update(sip_callid, ip_src, sport, ip_dst, dport) == 0) {
 
             return 0;
         }
-			
-	//printf("FOUND CALLID  %s\n", callid);
-	//printf("Sending...\n");
 	
-	//while (len > sizeof(RTCP_header)) {
-	
-	RTCP_header *rtcp = (RTCP_header *)packet;
-        rtcp_size = (ntohs(rtcp->length)+1)<<2;
-
-        printf("[RTCP] %s (%d) packet found %d byte", rtcp_pt_to_string(rtcp->pt), rtcp->pt, rtcp_size);
-
-        if (rtcp_size > len) {
-            fnc_log(FNC_LOG_INFO, "[RTCP]  Malformed packet %d > %zd",
-                    rtcp_size, len);
-            return;
+	if(rtcp_as_json) {		
+            json_rtcp_buffer[0] = '\0';	
+      	    if((json_len = capt_parse_rtcp((char *)data, len, json_rtcp_buffer, sizeof(json_rtcp_buffer))) > 0) {
+      	          senddata = json_rtcp_buffer;
+      	          len = json_len;
+      	    }
+      	    
+      	    LDEBUG("JSON RTCP %s\n", json_rtcp_buffer);
         }
-
-        switch (rtcp->pt) {
-            case SR:
-            case RR:
-            case SDES:
-            default:
-                break;
-        }
-
-        //len -= rtcp_size;
-        //packet += rtcp_size;
-		
+        else senddata = data;
 
 	rcinfo = malloc(sizeof(rc_info_t));
 	memset(rcinfo, 0, sizeof(rc_info_t));
+	
+	LDEBUG("CALLID RTCP %s\n", sip_callid);
 
         rcinfo->src_port   = sport;
         rcinfo->dst_port   = dport;
@@ -251,14 +233,17 @@ int dump_rtp_packet(struct pcap_pkthdr *pkthdr, u_char *packet, uint8_t proto, u
         rcinfo->ip_proto   = proto;
         rcinfo->time_sec   = pkthdr->ts.tv_sec;
         rcinfo->time_usec  = pkthdr->ts.tv_usec;
-        rcinfo->proto_type = proto_type;
-        
+        rcinfo->proto_type = rtcp_proto_type;
+        /* correlation stuff */
+        rcinfo->correlation_id.len = strlen(sip_callid);
+        rcinfo->correlation_id.s = &sip_callid;
+                        
         if(debug_proto_rtcp_enable)
-                printf("SENDING PACKET: Len: [%d]\n", len);
+            LDEBUG("SENDING PACKET: Len: [%d]\n", len);
 
 	/* Duplcate */
-	if(!send_message(rcinfo, data, (unsigned int) len)) {
-	         printf("Not duplicated\n");
+	if(!send_message(rcinfo, senddata, (unsigned int) len)) {
+	         LERR("Not duplicated\n");
         }        
         
         if(rcinfo) free(rcinfo);
@@ -274,7 +259,7 @@ void* rtp_collect( void* device ) {
         uint16_t snaplen = 65535, timeout = 100, len = 300, ret = 0;        
 
         if(device) {
-            if((sniffer_rtp = pcap_open_live((char *)device, snaplen, promisc, timeout, errbuf)) == NULL) {
+            if((sniffer_rtp = pcap_open_live((char *)device, snaplen, rtcp_promisc, timeout, errbuf)) == NULL) {
                 fprintf(stderr,"Failed to open packet sniffer on %s: pcap_open_live(): %s\n", (char *)device, errbuf);
                 return NULL;
             }
@@ -285,18 +270,17 @@ void* rtp_collect( void* device ) {
             }
         }
 
-        len += (portrange != NULL) ? strlen(portrange) : 10;        
-        len += (ip_proto != NULL) ? strlen(ip_proto) : 0;
-        len += (userfilter != NULL) ? strlen(userfilter) : 0;        
+        len += (rtcp_portrange != NULL) ? strlen(rtcp_portrange) : 10;        
+        len += (rtcp_userfilter != NULL) ? strlen(rtcp_userfilter) : 0;        
         filter_expr = malloc(sizeof(char) * len);
         
         ret += snprintf(filter_expr, len, RTCP_FILTER);
                         
         /* FILTER */
-        if(portrange != NULL) ret += snprintf(filter_expr+ret, (len - ret), "%s portrange %s ", ret ? " and": "", portrange);
+        if(rtcp_portrange != NULL) ret += snprintf(filter_expr+ret, (len - ret), "%s portrange %s ", ret ? " and": "", rtcp_portrange);
 
         /* CUSTOM FILTER */
-        if(userfilter != NULL) ret += snprintf(filter_expr+ret, (len - ret), " %s", userfilter);
+        if(rtcp_userfilter != NULL) ret += snprintf(filter_expr+ret, (len - ret), " %s", rtcp_userfilter);
 
         /* compile filter expression (global constant, see above) */
         if (pcap_compile(sniffer_rtp, &filter, filter_expr, 1, 0) == -1) {
@@ -413,10 +397,12 @@ int load_module(xml_node *config)
                         }
 
                         if(!strncmp(key, "dev", 3)) usedev = value;                        
-                        else if(!strncmp(key, "portrange", 9)) portrange = value;
-                        else if(!strncmp(key, "promisc", 7) && !strncmp(value, "false", 5)) promisc = 0;
-                        else if(!strncmp(key, "filter", 6)) userfilter = value;
-                        else if(!strncmp(key, "vlan", 4) && !strncmp(value, "true", 4)) vlan = 1;
+                        else if(!strncmp(key, "portrange", 9)) rtcp_portrange = value;
+                        else if(!strncmp(key, "promisc", 7) && !strncmp(value, "false", 5)) rtcp_promisc = 0;
+                        else if(!strncmp(key, "filter", 6)) rtcp_userfilter = value;
+                        else if(!strncmp(key, "rtcp-json", 9) && !strncmp(value, "false", 5) ) rtcp_as_json = 0;
+                        else if(!strncmp(key, "send-sdes", 9) && !strncmp(value, "false", 5) ) send_sdes = 0;
+                        else if(!strncmp(key, "vlan", 4) && !strncmp(value, "true", 4)) rtcp_vlan = 1;
                         else if(!strncmp(key, "debug", 5) && !strncmp(value, "true", 4)) debug_proto_rtcp_enable = 1;
                 }
 next:

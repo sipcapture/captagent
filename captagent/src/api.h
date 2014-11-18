@@ -28,6 +28,11 @@ typedef struct xml_node {
         struct xml_node *next;
 } xml_node;
 
+typedef struct _str {
+        char* s; /**< Pointer to the first character of the string */
+        int len; /**< Length of the string */
+} str;
+
 
 struct rc_info {
     uint8_t     ip_family; /* IP family IPv6 IPv4 */
@@ -39,14 +44,12 @@ struct rc_info {
     uint16_t    dst_port;
     uint32_t    time_sec;
     uint32_t    time_usec;
+    char        *uuid;
+    str         correlation_id;
 } ;
 
 typedef struct rc_info rc_info_t;
 
-typedef struct _str {
-        char* s; /**< Pointer to the first character of the string */
-        int len; /**< Length of the string */
-} str;
                 
 
 typedef enum msg_body_type {
