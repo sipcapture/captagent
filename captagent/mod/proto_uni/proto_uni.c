@@ -59,6 +59,7 @@
 #include "tcpreasm.h"
 
 #include "src/api.h"
+#include "src/log.h"
 #include "proto_uni.h"
 #include "sipparse.h"
 #include "captarray.h"
@@ -194,7 +195,7 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
                     if ((int32_t)len < 0)
                         len = 0;
 
-                    if(debug_proto_uni_enable) printf("TCP Message: LEN:[%d], [%.*s]\n", len, len, data);
+                    if(debug_proto_uni_enable) LDEBUG("TCP Message: LEN:[%d], [%.*s]\n", len, len, data);
 
                     if(tcpreasm != NULL && tcpdefrag_enable && (len > 0) && (tcp_pkt->th_flags & TH_ACK)) {
 
@@ -206,7 +207,7 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
 
 					
 			if(debug_proto_uni_enable)
-			        printf("DEFRAG TCP process: EN:[%d], LEN:[%d], ACK:[%d], PSH[%d]\n", 
+			        LDEBUG("DEFRAG TCP process: EN:[%d], LEN:[%d], ACK:[%d], PSH[%d]\n", 
 			                        tcpdefrag_enable, len, (tcp_pkt->th_flags & TH_ACK), psh);
 			
 	                datatcp = tcpreasm_ip_next_tcp(tcpreasm, new_p_2, len , (tcpreasm_time_t) 1000000UL * pkthdr->ts.tv_sec + pkthdr->ts.tv_usec, &new_len, &ip4_pkt->ip_src, &ip4_pkt->ip_dst, ntohs(tcp_pkt->th_sport), ntohs(tcp_pkt->th_dport), psh);
@@ -216,7 +217,7 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
 	                len = new_len;
 	                
 	                if(debug_proto_uni_enable)
-	                        printf("COMPLETE TCP DEFRAG: LEN[%d], PACKET:[%s]\n", len, datatcp);
+	                        LDEBUG("COMPLETE TCP DEFRAG: LEN[%d], PACKET:[%s]\n", len, datatcp);
 	                
 	                dump_proto_packet(pkthdr, packet, ip_proto, datatcp, len,
         	                ip_src, ip_dst, ntohs(tcp_pkt->th_sport), ntohs(tcp_pkt->th_dport), tcp_pkt->th_flags,
@@ -229,7 +230,7 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
                     else {
                     
                             if(debug_proto_uni_enable)
-	                        printf("NORMAL TCP PACKET: LEN[%d], ACK: [%d], PACKET: [%s]\n", len, (tcp_pkt->th_flags & TH_ACK), data);
+	                        LDEBUG("NORMAL TCP PACKET: LEN[%d], ACK: [%d], PACKET: [%s]\n", len, (tcp_pkt->th_flags & TH_ACK), data);
                             ret = dump_proto_packet(pkthdr, packet, ip_proto, data, len, ip_src, ip_dst, 
                                     ntohs(tcp_pkt->th_sport), ntohs(tcp_pkt->th_dport), tcp_pkt->th_flags,
                                     tcphdr_offset, fragmented, frag_offset, frag_id, ip_ver);
@@ -291,24 +292,18 @@ int dump_proto_packet(struct pcap_pkthdr *pkthdr, u_char *packet, uint8_t proto,
 
 
         if(len < 100) {
-                //printf("SIP the message is too small: %d\n", len);
+                LDEBUG("SIP the message is too small: %d\n", len);
                 return -1;
         }
 
         /* SIP must have alpha */
-        if(proto_type == PROTO_SIP && !isalpha(data[0])) {
-                //printf("BAD SIP message: %d\n", len);
-                return -1;
-        }
-        
-        if(!strncmp((char *)data, "HEP3", 4)) {
-                //printf("BAD SIP message: %d\n", len);
+        if(proto_type == PROTO_SIP && !isalpha(data[0]) || !strncmp((char *)data, "HEP3", 4)) {
+                LDEBUG("BAD SIP message: %d\n", len);
                 return -1;
         }
         
         /* gingle XMPP */
         else if(proto_type == PROTO_XMPP && memcmp("<iq", data, 3)) {
-                //printf("It's not a GINGLE call: %d\n", len);
                 return -1;
         }
 
@@ -316,26 +311,21 @@ int dump_proto_packet(struct pcap_pkthdr *pkthdr, u_char *packet, uint8_t proto,
         if (proto_type == PROTO_SIP){
 
         	//if ((sip_method_not == 1) ? (!sip_is_method((const char*)data, len,sip_method+1)): (sip_is_method ((const char*) data, len,sip_method))){
-            	//printf("method not matched\n");
+            	//LDEBUG("method not matched\n");
             	//return -1;
         	//}
         	psip.mrp_size = 0;
         	memset(&psip, 0, sizeof(struct preparsed_sip));
         	uint32_t bytes_parsed = 0;
-        	//printf("MESSAGE: [%s]\n", data);
+        	//LDEBUG("MESSAGE: [%s]\n", data);
         	if(parse_message((char*) data, len, &bytes_parsed, &psip) == 1) {
         	                
-                        //add_timer("testest1212");        	
-
         	        for(i=0; i < psip.mrp_size; i++) {
-        	                
-        	                //printf("CALIID: %.*s\n",psip.callid.len, psip.callid.s);
-        	                //printf("MEDIA STR: %d\n", i);        	                
+
         	                mp = &psip.mrp[i];
         	                        	                        	                
         	                if(mp->media_ip.len > 0) {
-        	                        //printf("MEDIAIP: %.*s\n",mp->media_ip.len, mp->media_ip.s);        	        
-                	                //printf("MEDIAPORT: %d\n", mp->media_port);        	                	                
+
                 	                if(mp->rtcp_port == 0 ) mp->rtcp_port = mp->media_port+1;        	                
                 	                if(mp->rtcp_ip.len ==  0) {
                 	                        mp->rtcp_ip.len = mp->media_ip.len;
@@ -345,9 +335,6 @@ int dump_proto_packet(struct pcap_pkthdr *pkthdr, u_char *packet, uint8_t proto,
         	                        /* our correlation index */
                 	                snprintf(ipptmp,sizeof(ipptmp), "%.*s:%d",  mp->rtcp_ip.len, mp->rtcp_ip.s, mp->rtcp_port);
                 	                        
-        	                        //printf("RTCPIP: %.*s\n", mp->rtcp_ip.len, mp->rtcp_ip.s);        	        
-        	                        //printf("RTCPPORT: %d\n",mp->rtcp_port);        	        
-        	                
                 	                /* put data to hash */
                                         add_ipport(ipptmp, &psip.callid);
                                         add_timer(ipptmp);        	                
@@ -356,12 +343,12 @@ int dump_proto_packet(struct pcap_pkthdr *pkthdr, u_char *packet, uint8_t proto,
         	        
                 }
                 else {
-                        printf("Not Parsed\n");
+                        LDEBUG("Not Parsed\n");
                 }
         	
         }
 
-        //printf("SIP: [%.*s]\n", len, data);
+        //LDEBUG("SIP: [%.*s]\n", len, data);
 
 	rcinfo = malloc(sizeof(rc_info_t));
 	memset(rcinfo, 0, sizeof(rc_info_t));
@@ -379,11 +366,11 @@ int dump_proto_packet(struct pcap_pkthdr *pkthdr, u_char *packet, uint8_t proto,
         rcinfo->correlation_id.s = NULL;
         
         if(debug_proto_uni_enable)
-                printf("SENDING PACKET: Len: [%d]\n", len);
+                LDEBUG("SENDING PACKET: Len: [%d]\n", len);
 
 	/* Duplcate */
 	if(!send_message(rcinfo, data, (unsigned int) len)) {
-	         printf("Not duplicated\n");
+	         LDEBUG("Not duplicated\n");
         }        
         
         if(rcinfo) free(rcinfo);
@@ -400,12 +387,12 @@ void* proto_collect( void* device ) {
 
         if(device) {
             if((sniffer_proto = pcap_open_live((char *)device, snaplen, promisc, timeout, errbuf)) == NULL) {
-                fprintf(stderr,"Failed to open packet sniffer on %s: pcap_open_live(): %s\n", (char *)device, errbuf);
+                LERR("Failed to open packet sniffer on %s: pcap_open_live(): %s\n", (char *)device, errbuf);
                 return NULL;
             }
         } else  {
             if((sniffer_proto = pcap_open_offline(usefile, errbuf)) == NULL) {
-                fprintf(stderr,"Failed to open packet sniffer on %s: pcap_open_offline(): %s\n", usefile, errbuf);
+                LERR("Failed to open packet sniffer on %s: pcap_open_offline(): %s\n", usefile, errbuf);
                 return NULL;
             }
         }
@@ -437,18 +424,16 @@ void* proto_collect( void* device ) {
 
         //((ip[6:2] & 0x3fff != 0))
         
-        //fprintf(stdout, "expr:%s\n", filter_expr);
-
         /* compile filter expression (global constant, see above) */
         if (pcap_compile(sniffer_proto, &filter, filter_expr, 1, 0) == -1) {
-                fprintf(stderr,"Failed to compile filter \"%s\": %s\n", filter_expr, pcap_geterr(sniffer_proto));
+                LERR("Failed to compile filter \"%s\": %s\n", filter_expr, pcap_geterr(sniffer_proto));
                 if(filter_expr) free(filter_expr);
                 return NULL;
         }
 
         /* install filter on sniffer session */
         if (pcap_setfilter(sniffer_proto, &filter)) {
-                fprintf(stderr,"Failed to install filter: %s\n", pcap_geterr(sniffer_proto));
+                LERR("Failed to install filter: %s\n", pcap_geterr(sniffer_proto));
                 if(filter_expr) free(filter_expr);
                 return NULL;
         }
@@ -495,7 +480,7 @@ void* proto_collect( void* device ) {
                     break;
 
                 default:
-                    fprintf(stderr, "fatal: unsupported interface type %u\n", pcap_datalink(sniffer_proto));
+                    LERR( "fatal: unsupported interface type %u\n", pcap_datalink(sniffer_proto));
                     exit(-1);
         }
 
@@ -524,7 +509,7 @@ void* proto_collect( void* device ) {
 
 int unload_module(void)
 {
-        printf("unloaded module proto_uni\n");
+        LNOTICE("unloaded module proto_uni\n");
 
         if (reasm != NULL) reasm_ip_free(reasm);
         if (tcpreasm != NULL) tcpreasm_ip_free(tcpreasm);
@@ -543,7 +528,7 @@ int load_module(xml_node *config)
         xml_node *modules;
         char *key, *value = NULL, *local_pt = NULL;
         
-        printf("Loaded proto_uni\n");
+        LNOTICE("Loaded proto_uni\n");
                                            
         /* READ CONFIG */
         modules = config;
@@ -555,7 +540,7 @@ int load_module(xml_node *config)
 
                         /* bad parser */
                         if(strncmp(modules->attr[2], "value", 5) || strncmp(modules->attr[0], "name", 4)) {
-                            fprintf(stderr, "bad keys in the config\n");
+                            LERR( "bad keys in the config\n");
                             goto next;
                         }
 
@@ -563,7 +548,7 @@ int load_module(xml_node *config)
                         value = modules->attr[3];
 
                         if(key == NULL || value == NULL) {
-                            fprintf(stderr, "bad values in the config\n");
+                            LERR( "bad values in the config\n");
                             goto next;
 
                         }
@@ -598,7 +583,7 @@ next:
        
         /*
         if(port == 0 && portrange == NULL) {        
-                fprintf(stderr, "bad port or portranges in the config\n");
+                LERR( "bad port or portranges in the config\n");
                 return -1;
         }
         */
@@ -607,7 +592,7 @@ next:
         if(!strncmp(local_pt, "sip", 3)) proto_type = PROTO_SIP;
         else if(!strncmp(local_pt, "xmpp", 4)) proto_type = PROTO_XMPP;                        
         else {
-                fprintf(stderr, "Unsupported protocol. Switched to SIP\n");
+                LERR( "Unsupported protocol. Switched to SIP\n");
                 proto_type = PROTO_SIP;
         }                                        
 
@@ -633,7 +618,7 @@ next:
 
 char *description(void)
 {
-        printf("Loaded description\n");
+        LNOTICE("Loaded description\n");
         char *description = "test description";
         
         return description;

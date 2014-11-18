@@ -544,9 +544,9 @@ int send_data (void *buf, unsigned int len) {
 
 int unload_module(void)
 {
-        LDEBUG("unloaded module core_hep\n");
+        LNOTICE("unloaded module core_hep\n");
 
-        LDEBUG("count sends:%d\n", sendPacketsCount);
+        LNOTICE("count sends:[%d]\n", sendPacketsCount);
 	 /* Close socket */
 	if(sock) close(sock);
 

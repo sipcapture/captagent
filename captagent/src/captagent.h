@@ -1,4 +1,4 @@
-#define VERSION "4.1.3"
+#define VERSION "4.2.0"
 #define DEFAULT_CONFIG SYSCONFDIR"/captagent/captagent.xml"
 #define DEFAULT_PIDFILE  "/var/run/captagent.pid"
 #define MAX_STATS 3000

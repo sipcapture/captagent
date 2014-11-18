@@ -260,12 +260,12 @@ void* rtp_collect( void* device ) {
 
         if(device) {
             if((sniffer_rtp = pcap_open_live((char *)device, snaplen, rtcp_promisc, timeout, errbuf)) == NULL) {
-                fprintf(stderr,"Failed to open packet sniffer on %s: pcap_open_live(): %s\n", (char *)device, errbuf);
+                LERR("Failed to open packet sniffer on %s: pcap_open_live(): %s\n", (char *)device, errbuf);
                 return NULL;
             }
         } else  {
             if((sniffer_rtp = pcap_open_offline(usefile, errbuf)) == NULL) {
-                fprintf(stderr,"Failed to open packet sniffer rtp on %s: pcap_open_offline(): %s\n", usefile, errbuf);
+                LERR("Failed to open packet sniffer rtp on %s: pcap_open_offline(): %s\n", usefile, errbuf);
                 return NULL;
             }
         }
@@ -284,14 +284,14 @@ void* rtp_collect( void* device ) {
 
         /* compile filter expression (global constant, see above) */
         if (pcap_compile(sniffer_rtp, &filter, filter_expr, 1, 0) == -1) {
-                fprintf(stderr,"Failed to compile filter \"%s\": %s\n", filter_expr, pcap_geterr(sniffer_rtp));
+                LERR("Failed to compile filter \"%s\": %s\n", filter_expr, pcap_geterr(sniffer_rtp));
                 if(filter_expr) free(filter_expr);
                 return NULL;
         }
 
         /* install filter on sniffer session */
         if (pcap_setfilter(sniffer_rtp, &filter)) {
-                fprintf(stderr,"Failed to install filter: %s\n", pcap_geterr(sniffer_rtp));
+                LERR("Failed to install filter: %s\n", pcap_geterr(sniffer_rtp));
                 if(filter_expr) free(filter_expr);
                 return NULL;
         }
@@ -338,7 +338,7 @@ void* rtp_collect( void* device ) {
                     break;
 
                 default:
-                    fprintf(stderr, "fatal: unsupported interface type %u\n", pcap_datalink(sniffer_rtp));
+                    LERR( "fatal: unsupported interface type %u\n", pcap_datalink(sniffer_rtp));
                     exit(-1);
         }
 
@@ -356,7 +356,7 @@ void* rtp_collect( void* device ) {
 
 int unload_module(void)
 {
-        printf("unloaded module proto_rtcp\n");
+        LNOTICE("unloaded module proto_rtcp\n");
 
 	 /* Close socket */
         pcap_close(sniffer_rtp);        
@@ -371,7 +371,7 @@ int load_module(xml_node *config)
         xml_node *modules;
         char *key, *value = NULL;
         
-        printf("Loaded proto_rtcp\n");
+        LNOTICE("Loaded proto_rtcp\n");
                                            
         /* READ CONFIG */
         modules = config;
@@ -383,7 +383,7 @@ int load_module(xml_node *config)
 
                         /* bad parser */
                         if(strncmp(modules->attr[2], "value", 5) || strncmp(modules->attr[0], "name", 4)) {
-                            fprintf(stderr, "bad keys in the config\n");
+                            LERR( "bad keys in the config\n");
                             goto next;
                         }
 
@@ -391,7 +391,7 @@ int load_module(xml_node *config)
                         value = modules->attr[3];
 
                         if(key == NULL || value == NULL) {
-                            fprintf(stderr, "bad values in the config\n");
+                            LERR( "bad values in the config\n");
                             goto next;
 
                         }
@@ -429,7 +429,7 @@ next:
 
 char *description(void)
 {
-        printf("Loaded description\n");
+        LNOTICE("Loaded description\n");
         char *description = "test description";
         
         return description;

@@ -53,6 +53,7 @@
 #endif /* USE_IPV6 */
 
 #include "src/api.h"
+#include "src/log.h"
 #include "capt_cli.h"
 
 pthread_t thread;
@@ -60,7 +61,7 @@ pthread_t thread;
 
 int unload_module(void)
 {
-        printf("unloaded module capt_cli\n");
+        LNOTICE("unloaded module capt_cli\n");
         
 	/* Close socket */
 	if(server_sock) close(server_sock);
@@ -74,7 +75,7 @@ void *wait_connect (void) {
 
 	while( (client_sock = accept(server_sock, NULL, NULL)) ) {
 	        if( pthread_create( &thread , NULL ,  read_clisocket , (void *) client_sock) < 0) {
-			perror("could not create thread");
+			LERR("could not create thread");
 		        return 1;
 	        }         
 	}
@@ -145,7 +146,7 @@ int load_module(xml_node *config)
         char *key, *value;
         int s;
 
-   printf("Loaded capt_cli\n");
+   LNOTICE("Loaded capt_cli\n");
 	 /* READ CONFIG */
 	 modules = config;
 
@@ -156,7 +157,7 @@ int load_module(xml_node *config)
                         
                         /* bad parser */
                         if(strncmp(modules->attr[2], "value", 5) || strncmp(modules->attr[0], "name", 4)) {                        
-                            fprintf(stderr, "bad keys in the config\n");
+                            LERR( "bad keys in the config\n");
                             goto next;
                         
                         }
@@ -165,7 +166,7 @@ int load_module(xml_node *config)
                         value = modules->attr[3];
                         
                         if(key == NULL || value == NULL) {
-                            fprintf(stderr, "bad values in the config\n");
+                            LERR( "bad values in the config\n");
                             goto next;                        
                         
                         }                        
@@ -186,12 +187,12 @@ next:
         hints->ai_protocol = IPPROTO_TCP;
 
         if ((s = getaddrinfo(cli_host, cli_port, hints, &ai)) != 0) {            
-            fprintf(stderr, "capture: getaddrinfo: %s\n", gai_strerror(s));
+            LERR( "capture: getaddrinfo: %s\n", gai_strerror(s));
             return 2;
         }
 
         if(init_clisocket()) {
-              fprintf(stderr,"capture: couldn't init socket\r\n");              
+              LERR("capture: couldn't init socket\r\n");              
               return 2;            
       	}        
          
@@ -211,25 +212,25 @@ int init_clisocket (void) {
 
     server_sock = socket(ai->ai_family, ai->ai_socktype, ai->ai_protocol);
     if (server_sock < 0) {
-             fprintf(stderr,"Sender socket creation failed: %s\n", strerror(errno));
+             LERR("Sender socket creation failed: %s\n", strerror(errno));
              return 1;
     }    
 
     if (setsockopt(server_sock, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on)) < 0)
     {
-        fprintf(stderr, "setsockopt(SO_REUSEADDR) failed");
+        LERR( "setsockopt(SO_REUSEADDR) failed");
     }
 
     if (bind(server_sock, ai->ai_addr, (socklen_t)(ai->ai_addrlen)) < 0) {
             if (errno != EINPROGRESS) {
-                    fprintf(stderr,"BIND socket creation failed: %s\n", strerror(errno));
+                    LERR("BIND socket creation failed: %s\n", strerror(errno));
                     return 1;
             }
     }
     
     
     if (listen(server_sock, 5) < 0) {
-            fprintf(stderr,"Listener socket creation failed: %s\n", strerror(errno));
+            LERR("Listener socket creation failed: %s\n", strerror(errno));
             return 1;            
     }
     
@@ -240,7 +241,7 @@ int init_clisocket (void) {
 
 char *description(void)
 {
-        printf("Loaded description\n");
+        LNOTICE("Loaded description\n");
         char *description = "cli for captagent";
         
         return description;

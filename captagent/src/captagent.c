@@ -34,6 +34,7 @@
 #include <ctype.h>
 
 #include "api.h"
+#include "log.h"
 #include "xmlread.h"
 #include "modules.h"
 
@@ -51,7 +52,7 @@ void handler(int value)
 
 	int terminating = 1;
 
-        fprintf(stderr, "The agent has been terminated\n");
+        LNOTICE( "The agent has been terminated\n");
 
         if (pid_file) unlink(pid_file);        
 
@@ -65,7 +66,7 @@ void handler(int value)
         destroy_log();
 
         if(!unregister_modules()) {
-        	printf("DONE unload\n");
+        	LNOTICE("DONE unload\n");
         }
 
         exit(0);
@@ -77,7 +78,7 @@ int send_message (rc_info_t *rcinfo, unsigned char *data, unsigned int len) {
         int res;        
 	if(hepmod->send_hep_basic) {		    
             if (!(res = hepmod->send_hep_basic(rcinfo, data, len))) {
-                    fprintf(stderr, "not send, returning %d\n", res);
+                    LERR( "not send, returning %d\n", res);
                     return -1;
             }        		
         }
@@ -128,7 +129,7 @@ int daemonize(int nofork)
          if (!nofork) {
 
                 if ((pid=fork())<0){
-                        fprintf(stderr,"Cannot fork:%s\n", strerror(errno));
+                        LERR("Cannot fork:%s\n", strerror(errno));
                         goto error;
                 }else if (pid!=0){
                         exit(0);
@@ -138,26 +139,25 @@ int daemonize(int nofork)
         if (pid_file!=0){
                 if ((pid_stream=fopen(pid_file, "r"))!=NULL){
                         if (fscanf(pid_stream, "%d", &p) < 0) {
-                                fprintf(stderr,"could not parse pid file %s\n", pid_file);
+                                LERR("could not parse pid file %s\n", pid_file);
                         }
                         fclose(pid_stream);
                         if (p==-1){
-                                fprintf(stderr,"pid file %s exists, but doesn't contain a valid"
+                                LERR("pid file %s exists, but doesn't contain a valid"
                                         " pid number\n", pid_file);
                                 goto error;
                         }
                         if (kill((pid_t)p, 0)==0 || errno==EPERM){
-                                fprintf(stderr,"running process found in the pid file %s\n",
+                                LERR("running process found in the pid file %s\n",
                                         pid_file);
                                 goto error;
                         }else{
-                               fprintf(stderr,"pid file contains old pid, replacing pid\n");
+                               LERR("pid file contains old pid, replacing pid\n");
                         }
                 }
                 pid=getpid();
                 if ((pid_stream=fopen(pid_file, "w"))==NULL){
-                        printf("unable to create pid file %s: %s\n",
-                                pid_file, strerror(errno));
+                        LERR("unable to create pid file %s: %s\n", pid_file, strerror(errno));
                         goto error;
                 }else{
                         fprintf(pid_stream, "%i\n", (int)pid);
@@ -267,7 +267,7 @@ int main( int argc, char *argv[] ) {
     hepmod = malloc(sizeof(hep_module_t));
 
     if( (tree = xml_parse( file )) == NULL ) {
-          fprintf( stderr, "Unable to open configuration file: %s\n", file );
+          LERR( "Unable to open configuration file: %s\n", file );
           exit( 1 );
     }
 
@@ -278,18 +278,18 @@ int main( int argc, char *argv[] ) {
     /*CORE CONFIG */    
 
     if(!(config = get_module_config("core", tree))) {
-        fprintf(stderr, "Config for core has been not found\n");
+        LERR( "Config for core has been not found\n");
     }           
     else {
             if(!core_config(tree)) {
-                    fprintf(stderr, "Config for core found\n");
+                    LERR( "Config for core found\n");
             }    
     }
     
     if(foreground) nofork = 1;
     
     if(daemonize(nofork) != 0){
-                fprintf(stderr,"Daemoniize failed: %s\n", strerror(errno));
+                LERR("Daemoniize failed: %s\n", strerror(errno));
                 exit(-1);
     }
         
@@ -305,7 +305,6 @@ int main( int argc, char *argv[] ) {
             if(!strncmp(next->attr[i], "name", 4)) {
                         
                 if(!strncmp(next->attr[i+1], "modules.conf", 13)) {
-                        //printf("MODULES\n");   
                         modules =  next;                                                                
                         while(1) {      
                             if(modules ==  NULL) break;
@@ -313,10 +312,10 @@ int main( int argc, char *argv[] ) {
                             if(modules->attr[0] != NULL && modules->attr[1] != NULL ) {
                                     /* get config */
                                     if(!(config = get_module_config(modules->attr[1], tree))) {
-                                            fprintf(stderr, "Config for [%s] has been not found\n", modules->attr[1]);
+                                            LERR( "Config for [%s] has been not found\n", modules->attr[1]);
                                     }                                                                                                            
                                     if(!register_module(modules->attr[1], config)) {
-                                            fprintf(stderr, "Module [%s] couldnot be registered\n", modules->attr[1]);
+                                            LERR( "Module [%s] couldnot be registered\n", modules->attr[1]);
                                     }
                             }                                                        
                             
@@ -332,7 +331,7 @@ int main( int argc, char *argv[] ) {
         
     
 
-    printf("The Captagent is ready\n");
+    LNOTICE("The Captagent is ready\n");
     select(0,NULL,NULL,NULL,NULL);
     
     return 0;
@@ -350,7 +349,7 @@ int core_config (xml_node *config)
 
         init_log("captagent", 1);
 
-        printf("Loaded core config\n");
+        LNOTICE("Loaded core config\n");
 
         /* READ CONFIG */
         modules = config;
@@ -362,7 +361,7 @@ int core_config (xml_node *config)
 
                         /* bad parser */
                         if(strncmp(modules->attr[2], "value", 5) || strncmp(modules->attr[0], "name", 4)) {
-                            fprintf(stderr, "bad keys in the config\n");
+                            LERR( "bad keys in the config\n");
                             goto next;
 
                         }
@@ -371,7 +370,7 @@ int core_config (xml_node *config)
                         value = modules->attr[3];
 
                         if(key == NULL || value == NULL) {
-                            fprintf(stderr, "bad values in the config\n");
+                            LERR( "bad values in the config\n");
                             goto next;
 
                         }
