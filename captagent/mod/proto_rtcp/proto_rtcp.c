@@ -213,7 +213,7 @@ int dump_rtp_packet(struct pcap_pkthdr *pkthdr, u_char *packet, uint8_t proto, u
             json_rtcp_buffer[0] = '\0';	
       	    if((json_len = capt_parse_rtcp((char *)data, len, json_rtcp_buffer, sizeof(json_rtcp_buffer))) > 0) {
       	          senddata = json_rtcp_buffer;
-      	          len = json_len;
+      	          len = strlen(json_rtcp_buffer);
       	    }
       	    
       	    LDEBUG("JSON RTCP %s\n", json_rtcp_buffer);
