@@ -51,7 +51,7 @@ char sip_callid[250];
 int rtcp_port = 0; 
 char *rtcp_portrange = NULL;
 char *rtcp_userfilter=NULL;
-int rtcp_proto_type = PROTO_RTCP; /* DEFAULT RTCP */
+int rtcp_proto_type = PROTO_RTCP_JSON; /* DEFAULT RTCP */
 int rtcp_promisc = 1;
 int rtcp_vlan = 0; /*vlan filter*/
 int rtcp_as_json = 1;
