@@ -37,7 +37,7 @@
 
 #define SDES_REPORT_BEGIN_JSON "\"sdes_ssrc\":%u,\"sdes_chunk_ssrc\":%u,\"sdes_information\": [ "
 #define SDES_REPORT_INFO_JSON "{\"type\":%u,\"text\":\"%.*s\"},"
-#define SDES_REPORT_END_JSON "\"],sdes_report_count\":%u,"
+#define SDES_REPORT_END_JSON "],\"sdes_report_count\":%u,"
 
 
 extern int send_sdes;
