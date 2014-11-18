@@ -55,6 +55,7 @@
 #include <pcap.h>
 
 #include "src/api.h"
+#include "src/log.h"
 #include "core_hep.h"
 
 pthread_t call_thread;   
@@ -83,7 +84,7 @@ int send_hep_basic (rc_info_t *rcinfo, unsigned char *data, unsigned int len) {
                 /* do compress */
                 status = compress( zipData, &dlen, data, len );
                 if( status != Z_OK ){
-                      fprintf(stderr, "data couldn't be compressed\n");
+                      LERR( "data couldn't be compressed\n");
                       sendzip = 0;
                       if(zipData) free(zipData); /* release */
                 }                   
@@ -107,7 +108,7 @@ int send_hep_basic (rc_info_t *rcinfo, unsigned char *data, unsigned int len) {
                 break;
                 
             default:
-                fprintf(stderr, "Unsupported HEP version [%d]\n", hep_version);                
+                LERR( "Unsupported HEP version [%d]\n", hep_version);                
                 break;
         }
 
@@ -255,11 +256,11 @@ int send_hepv3 (rc_info_t *rcinfo, unsigned char *data, unsigned int len, unsign
     /* total */
     hg->header.length = htons(tlen);
 
-    //fprintf(stderr, "LEN: [%d] vs [%d] = IPLEN:[%d] LEN:[%d] CH:[%d]\n", hg->header.length, ntohs(hg->header.length), iplen, len, sizeof(struct hep_chunk));
+    //LERR( "LEN: [%d] vs [%d] = IPLEN:[%d] LEN:[%d] CH:[%d]\n", hg->header.length, ntohs(hg->header.length), iplen, len, sizeof(struct hep_chunk));
 
     buffer = (void*)malloc(tlen);
     if (buffer==0){
-        fprintf(stderr,"ERROR: out of memory\n");
+        LERR("ERROR: out of memory\n");
         free(hg);
         return 1;
     }
@@ -320,7 +321,7 @@ int send_hepv3 (rc_info_t *rcinfo, unsigned char *data, unsigned int len, unsign
 
     /* make sleep after 100 errors */
      if(errors > 50) {
-        fprintf(stderr, "HEP server is down... retrying after sleep...\n");
+        LERR( "HEP server is down... retrying after sleep...\n");
 	if(!usessl) {
 	     sleep(2);
              if(init_hepsocket_blocking()) { 
@@ -401,7 +402,7 @@ int send_hepv2 (rc_info_t *rcinfo, unsigned char *data, unsigned int len) {
     /*buffer for ethernet frame*/
     buffer = (void*)malloc(totlen);
     if (buffer==0){
-    	fprintf(stderr,"ERROR: out of memory\n");
+    	LERR("ERROR: out of memory\n");
         goto error;
     }
 
@@ -446,7 +447,7 @@ int send_hepv2 (rc_info_t *rcinfo, unsigned char *data, unsigned int len) {
 
      /* make sleep after 100 errors*/
      if(errors > 50) {
-        fprintf(stderr, "HEP server is down... retrying after sleep...\n");
+        LERR( "HEP server is down... retrying after sleep...\n");
 	if(!usessl) {
 	     sleep(2);
              if(init_hepsocket_blocking()) { 
@@ -493,7 +494,7 @@ int send_data (void *buf, unsigned int len) {
 	        /*
                 size_t sendlen = send(sock, p, len, 0);
                 if(sendlen == -1) {
-	    	        	printf("send error\n");
+	    	        	LDEBUG("send error\n");
             			return -1;
 	        	}
           	sendPacketsCount++;
@@ -503,7 +504,7 @@ int send_data (void *buf, unsigned int len) {
                 size_t remlen  = len;
                 const void *curpos = buf;
                 
-                printf("SENDING!!!!!!!!!!!\n");
+                LDEBUG("SENDING!!!!!!!!!!!\n");
                 while (remlen > 0)
                 {
                         ssize_t len = send(sock, curpos, sendlen, MSG_NOSIGNAL);
@@ -516,11 +517,11 @@ int send_data (void *buf, unsigned int len) {
           	
                 while (sentbytes < len){
 	        	if( (r = send(sock, p, len - sentbytes, MSG_NOSIGNAL )) == -1) {
-	    	        	printf("send error\n");
+	    	        	LERR("send error\n");
         			return -1;
 	        	}
 	        	if (r != len - sentbytes)
-			    printf("send:multiple calls: %d\n", r);
+			    LDEBUG("send:multiple calls: %d\n", r);
 
         		sentbytes += r;
 	        	p += r;
@@ -531,7 +532,7 @@ int send_data (void *buf, unsigned int len) {
 #ifdef USE_SSL
         else {
             if(SSL_write(ssl, buf, len) < 0) {            
-		fprintf(stderr,"capture: couldn't re-init ssl socket\r\n");
+		LERR("capture: couldn't re-init ssl socket\r\n");
                 return -1;                
             }
 	    sendPacketsCount++;
@@ -543,9 +544,9 @@ int send_data (void *buf, unsigned int len) {
 
 int unload_module(void)
 {
-        printf("unloaded module core_hep\n");
+        LDEBUG("unloaded module core_hep\n");
 
-        printf("count sends:%d\n", sendPacketsCount);
+        LDEBUG("count sends:%d\n", sendPacketsCount);
 	 /* Close socket */
 	if(sock) close(sock);
 
@@ -573,7 +574,7 @@ void  select_loop (void)
 	FD_SET(sock, &readfd);
 	while (1){
 		if (select(sock+1, &readfd, 0, 0, NULL) < 0){
-			perror("select failed\n");
+			LERR("select failed\n");
 			handler(1);
 		}
 		if (FD_ISSET(sock, &readfd)){
@@ -594,7 +595,7 @@ void  select_loop (void)
 		        	time_t curtime = time (NULL);
 		        	if (curtime - prevtime < 2){
 		        		pthread_mutex_lock(&lock);
-		        		fprintf(stderr, "HEP server is down... retrying after sleep...\n");
+		        		LERR( "HEP server is down... retrying after sleep...\n");
 		        		sleep(2);
 		        		pthread_mutex_unlock(&lock);
 		        	}
@@ -622,7 +623,7 @@ int load_module(xml_node *config)
                         
                         /* bad parser */
                         if(strncmp(modules->attr[2], "value", 5) || strncmp(modules->attr[0], "name", 4)) {                        
-                            fprintf(stderr, "bad keys in the config\n");
+                            LERR( "bad keys in the config\n");
                             goto next;
                         
                         }
@@ -631,7 +632,7 @@ int load_module(xml_node *config)
                         value = modules->attr[3];
                         
                         if(key == NULL || value == NULL) {
-                            fprintf(stderr, "bad values in the config\n");
+                            LERR( "bad values in the config\n");
                             goto next;                        
                         
                         }                        
@@ -651,10 +652,10 @@ next:
 	}
 
 #ifndef USE_ZLIB   
-    if(pl_compress) printf("The captagent has not compiled with zlib. Please reconfigure with --enable-compression\n");    
+    if(pl_compress) LDEBUG("The captagent has not compiled with zlib. Please reconfigure with --enable-compression\n");    
 #endif /* USE_ZLIB */
 
-        printf("Loaded core_hep\n");
+        LNOTICE("Loaded core_hep\n");
                                            
         hints->ai_flags = AI_NUMERICSERV;
         hints->ai_family = AF_UNSPEC;
@@ -675,7 +676,7 @@ next:
                  /* init SSL library */
                 SSL_library_init();
 #else
-		printf("The captagent has not compiled with ssl support. Please reconfigure with --enable-ssl\n");    
+		LERR("The captagent has not compiled with ssl support. Please reconfigure with --enable-ssl\n");    
 
 #endif /* end USE_SSL */
 
@@ -683,12 +684,12 @@ next:
         }
 
         else {        
-            printf("Unsupported protocol\n");
+            LERR("Unsupported protocol\n");
             return -1;
         }
 
       /*  if ((s = getaddrinfo(capt_host, capt_port, hints, &ai)) != 0) {            
-            fprintf(stderr, "capture: getaddrinfo: %s\n", gai_strerror(s));
+            LERR( "capture: getaddrinfo: %s\n", gai_strerror(s));
             return 2;
         }
       */
@@ -696,14 +697,14 @@ next:
 	if(!usessl) {
 
 	        if(init_hepsocket_blocking()) {
-        	    fprintf(stderr,"capture: couldn't init socket\r\n");              
+        	    LERR("capture: couldn't init socket\r\n");              
 	            return 2;            
         	}        
 	}
 #ifdef USE_SSL       
    	     else {
                 if(initSSL()) {
-                    fprintf(stderr,"capture: couldn't init SSL socket\r\n");
+                    LERR("capture: couldn't init SSL socket\r\n");
                     handler(1);
                     return 2;
                 }
@@ -713,7 +714,7 @@ next:
 
                 if (pthread_mutex_init(&lock, NULL) != 0)
                 {
-                    fprintf(stderr,"mutex init failed\n");
+                    LERR("mutex init failed\n");
                     return 3;
                 }
                 */
@@ -736,24 +737,24 @@ int init_hepsocket (void) {
     if(sock) close(sock);
 
     if ((s = getaddrinfo(capt_host, capt_port, hints, &ai)) != 0) {            
-            fprintf(stderr, "capture: getaddrinfo: %s\n", gai_strerror(s));
+            LERR( "capture: getaddrinfo: %s\n", gai_strerror(s));
             return 2;
     }
 
     if((sock = socket(ai->ai_family, ai->ai_socktype, ai->ai_protocol)) < 0) {
-             fprintf(stderr,"Sender socket creation failed: %s\n", strerror(errno));
+             LERR("Sender socket creation failed: %s\n", strerror(errno));
              return 1;
     }
 
     // Set non-blocking 
     if((arg = fcntl(sock, F_GETFL, NULL)) < 0) { 
-        fprintf(stderr, "Error fcntl(..., F_GETFL) (%s)\n", strerror(errno)); 
+        LERR( "Error fcntl(..., F_GETFL) (%s)\n", strerror(errno)); 
         close(sock);        
         return 1;
     } 
     arg |= O_NONBLOCK; 
     if( fcntl(sock, F_SETFL, arg) < 0) { 
-        fprintf(stderr, "Error fcntl(..., F_SETFL) (%s)\n", strerror(errno)); 
+        LERR( "Error fcntl(..., F_SETFL) (%s)\n", strerror(errno)); 
         close(sock);        
         return 1; 
     }        
@@ -769,7 +770,7 @@ int init_hepsocket (void) {
         	   res = select(sock + 1 , NULL, &myset, NULL, &tv); 
            
 	           if (res < 0 && errno != EINTR) { 
-        	      fprintf(stderr, "Error connecting %d - %s\n", errno, strerror(errno)); 
+        	      LERR( "Error connecting %d - %s\n", errno, strerror(errno)); 
 		      close(sock); 
 		      ret = 1;
 		      break;
@@ -780,20 +781,20 @@ int init_hepsocket (void) {
 	              lon = sizeof(int); 
         	      if (getsockopt(sock, SOL_SOCKET, SO_ERROR, (void*)(&valopt), &lon) < 0) { 
 			 close(sock); 
-        	         fprintf(stderr, "Error in getsockopt() %d - %s\n", errno, strerror(errno)); 
+        	         LERR( "Error in getsockopt() %d - %s\n", errno, strerror(errno)); 
         	         ret = 2;
 	              } 	
         	      // Check the value returned... 
 	              if (valopt) { 
 			 close(sock); 
-	                 fprintf(stderr, "Error in delayed connection() %d - %s\n", valopt, strerror(valopt)); 
+	                 LERR( "Error in delayed connection() %d - %s\n", valopt, strerror(valopt)); 
 	                 ret = 3;
         	      } 
 	              break; 
 	           } 
         	   else { 
 		      close(sock); 
-	              fprintf(stderr, "Timeout in select() - Cancelling!\n"); 
+	              LERR( "Timeout in select() - Cancelling!\n"); 
 	              ret = 4; 
 	              break;
 	           } 
@@ -813,19 +814,19 @@ int init_hepsocket_blocking (void) {
     if(sock) close(sock);
 
     if ((s = getaddrinfo(capt_host, capt_port, hints, &ai)) != 0) {            
-            fprintf(stderr, "capture: getaddrinfo: %s\n", gai_strerror(s));
+            LERR( "capture: getaddrinfo: %s\n", gai_strerror(s));
             return 2;
     }
 
     if((sock = socket(ai->ai_family, ai->ai_socktype, ai->ai_protocol)) < 0) {
-             fprintf(stderr,"Sender socket creation failed: %s\n", strerror(errno));
+             LERR("Sender socket creation failed: %s\n", strerror(errno));
              return 1;
     }
 
      if (connect(sock, ai->ai_addr, (socklen_t)(ai->ai_addrlen)) == -1) {
          select(sock + 1 , NULL, &myset, NULL, &tv);
          if (errno != EINPROGRESS) {
-             fprintf(stderr,"Sender socket creation failed: %s\n", strerror(errno));
+             LERR("Sender socket creation failed: %s\n", strerror(errno));
              return 1;    
           }
     }
@@ -833,7 +834,6 @@ int init_hepsocket_blocking (void) {
 
     return 0;
 }
-
 
 
 #ifdef USE_SSL
@@ -863,17 +863,17 @@ void showCerts(SSL* ssl) {
 
         cert = SSL_get_peer_certificate(ssl); /* get the server's certificate */
         if ( cert != NULL ) {
-                fprintf(stderr,"Server certificates:\n");
+                LERR("Server certificates:\n");
                 line = X509_NAME_oneline(X509_get_subject_name(cert), 0, 0);
-                fprintf(stderr,"Subject: %s\n", line);
+                LERR("Subject: %s\n", line);
                 free(line);       /* free the malloc'ed string */
                 line = X509_NAME_oneline(X509_get_issuer_name(cert), 0, 0);
-                fprintf(stderr,"Issuer: %s\n", line);
+                LERR("Issuer: %s\n", line);
                 free(line);       /* free the malloc'ed string */
                 X509_free(cert);     /* free the malloc'ed certificate copy */
         }
         else
-                fprintf(stderr,"No certificates.\n");
+                LERR("No certificates.\n");
 }
 
 int initSSL(void) {
@@ -885,10 +885,9 @@ int initSSL(void) {
         */
 
         if(init_hepsocket_blocking()) {
-                fprintf(stderr,"capture: couldn't init hep socket\r\n");
+                LERR("capture: couldn't init hep socket\r\n");
                 return 1;
         }
-
 
         ctx = initCTX();
 
@@ -924,7 +923,7 @@ int initSSL(void) {
 
 char *description(void)
 {
-        printf("Loaded description\n");
+        LNOTICE("Loaded description\n");
         char *description = "test description";
         
         return description;
@@ -938,7 +937,7 @@ int statistic(char *buf)
 
 int handlerPipe(void) {
 
-        printf("SIGPIPE... trying to reconnect...\n");
+        LERR("SIGPIPE... trying to reconnect...\n");
         return 1;
 }
 
