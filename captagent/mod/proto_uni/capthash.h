@@ -4,7 +4,7 @@
 #include "uthash.h"
 #include "src/api.h"
 
-#define EXPIRE_HASH 60
+extern int expire_hash_value;
 
 typedef struct ipport_items {
   char name[300]; 

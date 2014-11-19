@@ -56,7 +56,12 @@ char * sip_method = NULL;
 int sip_method_not = 0;
 int sip_parse = 0;
 int rtcp_tracking = 0;
-                                
+
+#define EXPIRE_RTCP_HASH 80
+#define EXPIRE_TIMER_ARRAY 80
+
+int expire_timer_array = EXPIRE_TIMER_ARRAY;
+int expire_hash_value = EXPIRE_RTCP_HASH;
 
 /* ip reasm */
 int reasm_enable = 0;

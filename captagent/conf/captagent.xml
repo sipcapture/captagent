@@ -58,6 +58,10 @@
 	    <param name="tcpdefrag"  value="false"/>
 	    <param name="debug" value ="false"/>	                
 	    <param name="buildin-reasm-filter" value="false"/>	                
+	    <!-- 
+		<param name="expire-timer" value ="60"/>                       
+		<param name="expire-rtcp" value ="120"/>                       
+	    -->
 	    <!-- <param name="filter" value="not src port 5099"/> -->
 		<!-- <param name="vlan" value="false"/> -->
 		<!--

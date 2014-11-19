@@ -572,6 +572,14 @@ int load_module(xml_node *config)
                         else if(!strncmp(key, "proto-type", 10)) local_pt = value;
                         else if(!strncmp(key, "portrange", 9)) portrange = value;
                         else if(!strncmp(key, "promisc", 7) && !strncmp(value, "false", 5)) promisc = 0;
+                        else if(!strncmp(key, "expire-timer", 12)) {
+                                expire_timer_array = atoi(value);
+                                if(expire_timer_array <= 30) expire_timer_array = EXPIRE_TIMER_ARRAY;
+                        }
+                        else if(!strncmp(key, "expire-rtcp", 11)) {
+                                expire_hash_value = atoi(value);
+                                if(expire_hash_value <= 10) expire_hash_value = EXPIRE_RTCP_HASH;
+                        }
                         else if(!strncmp(key, "filter", 6)) userfilter = value;
                         else if(!strncmp(key, "port", 4)) port = atoi(value);
                         else if(!strncmp(key, "sip-parse", 9) && !strncmp(value, "true", 4)) sip_parse = 1;
@@ -624,7 +632,7 @@ next:
 
 
         /* start timer */
-        ippexpire_init();
+        if(sip_parse && rtcp_tracking) ippexpire_init();
 
         // start thread
         pthread_create(&call_thread, NULL, proto_collect, (void *)dev);

@@ -144,11 +144,13 @@ int capt_parse_rtcp(char *packet, int len, char *json_buffer, int buffer_len) {
 			}
 			case RTCP_BYE: {
 				LDEBUG("#%d BYE (203)\n", pno);
+				ret = 0;
 				//rtcp_bye_t *bye = (rtcp_bye_t*)rtcp;
 				break;
 			}
-			case RTCP_APP: {
+			case RTCP_APP: {			
 				LDEBUG("#%d APP (204)\n", pno);
+				ret = 0;
 				//rtcp_app_t *app = (rtcp_app_t*)rtcp;
 				break;
 			}
@@ -168,6 +170,9 @@ int capt_parse_rtcp(char *packet, int len, char *json_buffer, int buffer_len) {
 		}
 		rtcp = (rtcp_header_t *)((uint32_t*)rtcp + length + 1);
 	}
+	
+	/* bad parsed message */
+	if(ret  < 10) return 0;
 	
 	ret+=snprintf(json_buffer+ret-1, buffer_len-ret+1, "}");
 			

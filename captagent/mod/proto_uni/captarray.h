@@ -5,8 +5,6 @@
 #include <stdlib.h>
 #include "utarray.h"
 
-#define EXPIRE_ARRAY 10
-
 typedef struct _ipp_expire {
   char *id;
   u_int32_t expire;
@@ -16,6 +14,7 @@ void ippexpire_copy(void *_dst, const void *_src);
 void ippexpire_dtor(void *_elt);
 
 extern int loop_stop;
+extern int expire_timer_array;
 
 void ippexpire_init(); 
 void add_timer(char *pid);

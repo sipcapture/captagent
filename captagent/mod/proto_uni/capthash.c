@@ -149,7 +149,7 @@ int check_ipport(char *name)  {
         HASH_FIND_STR( ipports, name, ipport);
         
         if(ipport) {
-        	if(((unsigned) time(NULL) - ipport->modify_ts) >  EXPIRE_HASH) {
+        	if(((unsigned) time(NULL) - ipport->modify_ts) >=  expire_hash_value) {
 
                         HASH_DEL( ipports, ipport);
                         free(ipport);

@@ -31,6 +31,7 @@
 #include "capthash.h"
 #include "captarray.h"
 #include "src/api.h"
+#include "src/log.h"
        
 
 pthread_t thread_timer;
@@ -67,8 +68,9 @@ void add_timer(char *pid) {
 
         ipp_expire_t ce;
 
-        ce.expire = (unsigned)time(NULL) + EXPIRE_ARRAY;  
+        ce.expire = (unsigned)time(NULL) + expire_timer_array;  
         ce.id = pid;  
+    
         utarray_push_back(ipps_expire,&ce);                
 }     
 
@@ -89,21 +91,23 @@ void clear_ippexpires() {
 void* timer_loop() {
 
         ipp_expire_t *p = NULL;
+        int diff = 0;
                 
         while(loop_stop) {
-                
+                                
                 while( (p=(ipp_expire_t*)utarray_next(ipps_expire,p))) {
-                
-                    while(p->expire > (unsigned)time(NULL))
+
+                    /* sleep */                    
+                    if((diff = p->expire - (unsigned)time(NULL)) > 0)
                     {
-                          if(!loop_stop) break;
-                          sleep(2);                          
+                        if(!loop_stop) break;
+                        sleep(diff);                   
                     }
 			
 		    if(check_ipport(p->id) == 0) {
 			add_timer(p->id);
 		    }
-                    
+                                        
 		    utarray_erase(ipps_expire, 0, 1);                                         
                     
                     if(!loop_stop) break;
