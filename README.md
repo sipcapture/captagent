@@ -97,6 +97,9 @@ Captagent4 cannot properly function without proper configuration. The following 
             <!--
                 comment it if you want to see all IPProto (tcp/udp)
             -->
+            <!-- enable this if you want to get RTCP stats -->
+            <param name="sip-parse"  value="true"/>
+            <param name="rtcp-tracking"  value="true"/>
             <param name="ip-proto" value="udp"/>
             <param name="proto-type"  value="sip"/>
             <!-- <param name="filter" value="not src port 5099"/> -->
