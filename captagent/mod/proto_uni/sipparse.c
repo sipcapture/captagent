@@ -217,7 +217,6 @@ int parseSdp(char *body, struct preparsed_sip *psip) {
         c = (char *) body;
 	last_offset = 0;
 	offset = 0;
-	psip->mrp_size = 0;
 	miprtcp_t *mp = NULL;
 
 	//m=audio 3000 RTP/AVP 8 0 18 101
@@ -312,7 +311,7 @@ int parse_message(char *message, unsigned int blen, unsigned int* bytes_parsed, 
 	
 	if (blen <= 2) return 0;
 
-        int offset = 0, last_offset = 0, hasSdp = 0;
+        int offset = 0, last_offset = 0;
         char *c, *tmp;
 
         c = message;
@@ -400,7 +399,7 @@ int parse_message(char *message, unsigned int blen, unsigned int* bytes_parsed, 
 				/* BODY */
 	        	        if(contentLength > 0 && (offset - last_offset) == 2) {
         		        		        
-                            	   	if( hasSdp) {
+                            	   	if(psip->has_sdp) {
 						parseSdp(c, psip);
                             	   	}
 					
@@ -432,7 +431,9 @@ int parse_message(char *message, unsigned int blen, unsigned int* bytes_parsed, 
                             	   	if(*(tmp+CONTENTTYPE_LEN+1) == ' ') header_offset = 14;
                             	   	else header_offset = 13;
 
-                            	   	if(!memcmp((tmp+CONTENTTYPE_LEN+header_offset), "sdp", 3)) hasSdp = 1;
+                            	   	if(!memcmp((tmp+CONTENTTYPE_LEN+header_offset), "sdp", 3)) {
+                            	   	       psip->has_sdp = 1;
+                                        }
 
                                    	continue;
                                }

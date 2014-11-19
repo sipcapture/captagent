@@ -297,7 +297,7 @@ int dump_proto_packet(struct pcap_pkthdr *pkthdr, u_char *packet, uint8_t proto,
         }
 
         /* SIP must have alpha */
-        if(proto_type == PROTO_SIP && !isalpha(data[0]) || !strncmp((char *)data, "HEP3", 4)) {
+        if((proto_type == PROTO_SIP && !isalpha(data[0])) || !strncmp((char *)data, "HEP3", 4)) {
                 LDEBUG("BAD SIP message: %d\n", len);
                 return -1;
         }
@@ -314,30 +314,43 @@ int dump_proto_packet(struct pcap_pkthdr *pkthdr, u_char *packet, uint8_t proto,
             	//LDEBUG("method not matched\n");
             	//return -1;
         	//}
-        	psip.mrp_size = 0;
+
         	memset(&psip, 0, sizeof(struct preparsed_sip));
+        	
+        	psip.mrp_size = 0;
+        	psip.has_sdp = 0;
+        	
         	uint32_t bytes_parsed = 0;
         	//LDEBUG("MESSAGE: [%s]\n", data);
         	if(parse_message((char*) data, len, &bytes_parsed, &psip) == 1) {
         	                       	               
-                        if(rtcp_tracking == 1) {        	        
+                        if(rtcp_tracking == 1 && psip.has_sdp == 1) {        	        
                         
+                                if(psip.mrp_size > 10) {
+                                        LERR("Bad MRP size [%d]\n", psip.mrp_size);
+                                        psip.mrp_size = 0;
+                                }
+                                                        
                 	        for(i=0; i < psip.mrp_size; i++) {
+                	        
                 	                mp = &psip.mrp[i];        	                        	                        	                
-                	                if(mp->media_ip.len > 0) {
+                	                if(mp->media_ip.len > 0 && mp->media_ip.s) {
 
                         	                if(mp->rtcp_port == 0 ) mp->rtcp_port = mp->media_port+1;        	                
+                        	                
                         	                if(mp->rtcp_ip.len ==  0) {
                 	                                mp->rtcp_ip.len = mp->media_ip.len;
         	                                        mp->rtcp_ip.s = mp->media_ip.s;
                                                 }        	                
         	                
-                	                        /* our correlation index */
-                        	                snprintf(ipptmp,sizeof(ipptmp), "%.*s:%d",  mp->rtcp_ip.len, mp->rtcp_ip.s, mp->rtcp_port);
-                	                        
-                        	                /* put data to hash */
-                                                add_ipport(ipptmp, &psip.callid);
-                                                add_timer(ipptmp);        	                
+                                                if(mp->rtcp_ip.len > 0 && mp->rtcp_ip.s) {
+                                                
+                	                                /* our correlation index */
+                                	                snprintf(ipptmp,sizeof(ipptmp), "%.*s:%d",  mp->rtcp_ip.len, mp->rtcp_ip.s, mp->rtcp_port);        	                        
+                                	                /* put data to hash */
+                                                        add_ipport(ipptmp, &psip.callid);
+                                                        add_timer(ipptmp);        	                
+                                                }
                                         }
                                 }
         	        }
