@@ -59,7 +59,6 @@ void ippexpire_init () {
           /* start waiting thread */
         if( pthread_create(&thread_timer , NULL , timer_loop, NULL) < 0) {
             fprintf(stderr, "could not create timer thread");
-            return 3;
         }        
 }
 
@@ -92,29 +91,33 @@ void* timer_loop() {
 
         ipp_expire_t *p = NULL;
         int diff = 0;
-                
+
         while(loop_stop) {
                                 
                 while( (p=(ipp_expire_t*)utarray_next(ipps_expire,p))) {
-
+                
                     /* sleep */                    
                     if((diff = p->expire - (unsigned)time(NULL)) > 0)
                     {
                         if(!loop_stop) break;
                         sleep(diff);                   
                     }
-			
-		    if(check_ipport(p->id) == 0) {
-			add_timer(p->id);
-		    }
+			                    
+		    if(p && p->id) {    			
+
+        		    if(check_ipport(p->id) == 0) add_timer(p->id);
+                    }
+                    else {
+                        LERR("in timer loop, bad pointer to ipp_expire [%d]\n", p ? "1" : 0);
+                    }
                                         
-		    utarray_erase(ipps_expire, 0, 1);                                         
-                    
+                    utarray_erase(ipps_expire, 0, 1);                                         
+
                     if(!loop_stop) break;
                                         
                     //printf("%d %s\n", p->a, (p->s ? p->s : "null"));
                 }
-                                
+
                 sleep(1);                
         }
         

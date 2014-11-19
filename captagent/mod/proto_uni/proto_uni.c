@@ -574,7 +574,7 @@ int load_module(xml_node *config)
                         else if(!strncmp(key, "promisc", 7) && !strncmp(value, "false", 5)) promisc = 0;
                         else if(!strncmp(key, "expire-timer", 12)) {
                                 expire_timer_array = atoi(value);
-                                if(expire_timer_array <= 30) expire_timer_array = EXPIRE_TIMER_ARRAY;
+                                if(expire_timer_array <= 10) expire_timer_array = EXPIRE_TIMER_ARRAY;
                         }
                         else if(!strncmp(key, "expire-rtcp", 11)) {
                                 expire_hash_value = atoi(value);

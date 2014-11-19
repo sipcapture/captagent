@@ -28,6 +28,7 @@
 #include <time.h>
 #include <pthread.h>
 #include "capthash.h"
+#include "src/log.h"
 
 struct ipport_items *ipports = NULL;
 pthread_t thread_timer;
@@ -39,7 +40,6 @@ pthread_rwlock_t io_lock;
 void add_ipport(char *key, str *callid) {
 
         struct ipport_items *ipport;
-        int index = 0;
 
         ipport = (struct ipport_items*)malloc(sizeof(struct ipport_items));
 
@@ -101,7 +101,12 @@ int find_and_update(char *callid, const char *srcip, int srcport, const char *ds
 
 struct ipport_items *find_ipport(char *name) {
 
-        ipport_items_t *ipport;
+        ipport_items_t *ipport = NULL;
+
+        if(!name) {
+                LERR("bad name pointer in find_ipport!\n");
+                return ipport;
+        }
 
         if (pthread_rwlock_rdlock(&ipport_lock) != 0) {
                 fprintf(stderr,"can't acquire write lock");
@@ -138,8 +143,14 @@ int clear_ipport(struct ipport_items *ipport ) {
 
 int check_ipport(char *name)  {
 
-	struct ipport_items *ipport;
 	int ret = 1;
+        ipport_items_t *ipport = NULL;
+        
+        
+        if(!name) {
+                LERR("bad name pointer in check_ipports!\n");
+                return 3;
+        }
 
         if (pthread_rwlock_rdlock(&ipport_lock) != 0) {
                 fprintf(stderr, "can't acquire write lock");
