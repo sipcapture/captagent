@@ -33,7 +33,7 @@
 
 #define SENDER_REPORT_JSON "\"sender_information\":{\"ntp_timestamp_sec\":%u,\"ntp_timestamp_usec\":%u,\"octets\":%u,\"rtp_timestamp\":%u, \"packets\":%u},"
 #define REPORT_BLOCK_JSON "\"ssrc\":%u,\"type\":%u, \"report_blocks\":[{\"source_ssrc\":%u,\"highest_seq_no\":%u,\"fraction_lost\":%u,\"ia_jitter\":%u,\
-\"packet_lost\":%u,\"lsr\":%u,\"dlsr\":%u}],\"report_count\":1,"
+\"packets_lost\":%u,\"lsr\":%u,\"dlsr\":%u}],\"report_count\":1,"
 
 #define SDES_REPORT_BEGIN_JSON "\"sdes_ssrc\":%u,\"sdes_chunk_ssrc\":%u,\"sdes_information\": [ "
 #define SDES_REPORT_INFO_JSON "{\"type\":%u,\"text\":\"%.*s\"},"
