@@ -103,6 +103,10 @@ Captagent4 cannot properly function without proper configuration. The following 
             <param name="ip-proto" value="udp"/>
             <param name="proto-type"  value="sip"/>
             <!-- <param name="filter" value="not src port 5099"/> -->
+            <!-- 
+                <param name="expire-timer" value ="120"/>                       
+                <param name="expire-rtcp" value ="120"/>                       
+            -->
           </settings>
         </configuration>
 
