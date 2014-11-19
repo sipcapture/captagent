@@ -52,6 +52,8 @@
 	    -->
 	    <param name="ip-proto" value="udp"/>	    
 	    <param name="proto-type"  value="sip"/>
+	    <param name="sip-parse"  value="true"/>
+	    <param name="rtcp-tracking"  value="true"/>
 	    <param name="reasm"  value="false"/>
 	    <param name="tcpdefrag"  value="false"/>
 	    <param name="debug" value ="false"/>	                

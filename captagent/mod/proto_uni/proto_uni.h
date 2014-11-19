@@ -54,6 +54,9 @@ int promisc = 1;
 int vlan = 0; /*vlan filter*/
 char * sip_method = NULL;
 int sip_method_not = 0;
+int sip_parse = 0;
+int rtcp_tracking = 0;
+                                
 
 /* ip reasm */
 int reasm_enable = 0;

@@ -308,7 +308,7 @@ int dump_proto_packet(struct pcap_pkthdr *pkthdr, u_char *packet, uint8_t proto,
         }
 
         //if (proto_type == PROTO_SIP && sip_method){
-        if (proto_type == PROTO_SIP){
+        if (proto_type == PROTO_SIP && sip_parse == 1){
 
         	//if ((sip_method_not == 1) ? (!sip_is_method((const char*)data, len,sip_method+1)): (sip_is_method ((const char*) data, len,sip_method))){
             	//LDEBUG("method not matched\n");
@@ -319,25 +319,26 @@ int dump_proto_packet(struct pcap_pkthdr *pkthdr, u_char *packet, uint8_t proto,
         	uint32_t bytes_parsed = 0;
         	//LDEBUG("MESSAGE: [%s]\n", data);
         	if(parse_message((char*) data, len, &bytes_parsed, &psip) == 1) {
-        	                
-        	        for(i=0; i < psip.mrp_size; i++) {
+        	                       	               
+                        if(rtcp_tracking == 1) {        	        
+                        
+                	        for(i=0; i < psip.mrp_size; i++) {
+                	                mp = &psip.mrp[i];        	                        	                        	                
+                	                if(mp->media_ip.len > 0) {
 
-        	                mp = &psip.mrp[i];
-        	                        	                        	                
-        	                if(mp->media_ip.len > 0) {
-
-                	                if(mp->rtcp_port == 0 ) mp->rtcp_port = mp->media_port+1;        	                
-                	                if(mp->rtcp_ip.len ==  0) {
-                	                        mp->rtcp_ip.len = mp->media_ip.len;
-        	                                mp->rtcp_ip.s = mp->media_ip.s;
-        	                        }        	                
+                        	                if(mp->rtcp_port == 0 ) mp->rtcp_port = mp->media_port+1;        	                
+                        	                if(mp->rtcp_ip.len ==  0) {
+                	                                mp->rtcp_ip.len = mp->media_ip.len;
+        	                                        mp->rtcp_ip.s = mp->media_ip.s;
+                                                }        	                
         	                
-        	                        /* our correlation index */
-                	                snprintf(ipptmp,sizeof(ipptmp), "%.*s:%d",  mp->rtcp_ip.len, mp->rtcp_ip.s, mp->rtcp_port);
+                	                        /* our correlation index */
+                        	                snprintf(ipptmp,sizeof(ipptmp), "%.*s:%d",  mp->rtcp_ip.len, mp->rtcp_ip.s, mp->rtcp_port);
                 	                        
-                	                /* put data to hash */
-                                        add_ipport(ipptmp, &psip.callid);
-                                        add_timer(ipptmp);        	                
+                        	                /* put data to hash */
+                                                add_ipport(ipptmp, &psip.callid);
+                                                add_timer(ipptmp);        	                
+                                        }
                                 }
         	        }
         	        
@@ -560,12 +561,16 @@ int load_module(xml_node *config)
                         else if(!strncmp(key, "promisc", 7) && !strncmp(value, "false", 5)) promisc = 0;
                         else if(!strncmp(key, "filter", 6)) userfilter = value;
                         else if(!strncmp(key, "port", 4)) port = atoi(value);
+                        else if(!strncmp(key, "sip-parse", 9) && !strncmp(value, "true", 4)) sip_parse = 1;
+                        else if(!strncmp(key, "rtcp-tracking", 13) && !strncmp(value, "true", 4)) rtcp_tracking = 1;
                         else if(!strncmp(key, "vlan", 4) && !strncmp(value, "true", 4)) vlan = 1;
                         else if(!strncmp(key, "reasm", 5) && !strncmp(value, "true", 4)) reasm_enable = 1;
                         else if(!strncmp(key, "debug", 5) && !strncmp(value, "true", 4)) debug_proto_uni_enable = 1;
                         else if(!strncmp(key, "buildin-reasm-filter", 20) && !strncmp(value, "true", 4)) buildin_reasm_filter = 1;
                         else if(!strncmp(key, "tcpdefrag", 9) && !strncmp(value, "true", 4)) tcpdefrag_enable = 1;
                         else if (!strncmp(key, "sip_method", 10)) sip_method = value;
+                        
+                                      
                 }
 next:
 
