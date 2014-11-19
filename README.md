@@ -53,6 +53,7 @@ Captagent4 cannot properly function without proper configuration. The following 
           <settings>
             <param name="debug" value="3"/>
             <param name="daemon" value="false"/>
+            <param name="syslog" value="false"/>
             <param name="pid_file" value="/var/run/captagent.pid"/>
             <param name="path" value="/usr/local/lib/captagent/modules"/>
           </settings>
@@ -62,6 +63,7 @@ Captagent4 cannot properly function without proper configuration. The following 
           <modules>
                 <load module="core_hep"/>
                 <load module="proto_uni"/>
+                <load module="proto_rtcp"/>
                 <load module="capt_cli"/>
           </modules>
         </configuration>
@@ -100,6 +102,19 @@ Captagent4 cannot properly function without proper configuration. The following 
             <!-- <param name="filter" value="not src port 5099"/> -->
           </settings>
         </configuration>
+
+        <configuration name="proto_rtcp.conf" description="RTCP capture">
+	        <settings>
+	            <!-- <param name="portrange" value="5060-5090"/> -->
+	            <param name="dev"  value="eth0"/>	    
+	            <param name="promisc" value="true"/>
+	            <param name="debug" value ="false"/>	                
+	            <!-- <param name="rtcp-json" value="false"/> -->
+	            <!-- <param name="send-sdes" value="false"/> -->
+	            <!-- <param name="filter" value="not src port 5099"/> -->
+	            <!-- <param name="vlan" value="false"/> -->
+	        </settings>
+	      </configuration>
 
         <!-- CLI  -->
 
