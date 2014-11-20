@@ -342,9 +342,9 @@ int send_hepv3 (rc_info_t *rcinfo, unsigned char *data, unsigned int len, unsign
      }
 
     /* send this packet out of our socket */
-    //if(send_data(buffer, buflen)) {
-    //    errors++;    
-    //}
+    if(send_data(buffer, buflen)) {
+        errors++;    
+    }
 
     /* FREE */        
     if(buffer) free(buffer);
