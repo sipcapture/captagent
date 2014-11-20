@@ -62,6 +62,7 @@ int rtcp_tracking = 0;
 
 int expire_timer_array = EXPIRE_TIMER_ARRAY;
 int expire_hash_value = EXPIRE_RTCP_HASH;
+int timer_loop_stop = 1;
 
 /* ip reasm */
 int reasm_enable = 0;

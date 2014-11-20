@@ -28,33 +28,23 @@
 #include <signal.h>
 #include <time.h>
 #include <pthread.h>
-#include "capthash.h"
+#include <stdio.h>
+#include <sys/time.h>
+#include <stdlib.h>
+#include <string.h>
+#include <errno.h>
+
 #include "captarray.h"
+#include "capthash.h"
 #include "src/api.h"
 #include "src/log.h"
-       
 
+      
 pthread_t thread_timer;
-int loop_stop = 1;
 
-void ippexpire_copy(void *_dst, const void *_src) {
-  ipp_expire_t *dst = (ipp_expire_t*)_dst, *src = (ipp_expire_t*)_src;
-  dst->expire = src->expire;
-  dst->id = src->id ? strdup(src->id) : NULL;
-}
+struct list_head g_queue_head;
 
-void ippexpire_dtor(void *_elt) {
-  ipp_expire_t *elt = (ipp_expire_t*)_elt;
-  if (elt->id) free(elt->id);
-}
-
-UT_array *ipps_expire;
-UT_icd ipps_icd = {sizeof(ipp_expire_t), NULL, ippexpire_copy, ippexpire_dtor};
-
-
-void ippexpire_init () {
-
-        utarray_new(ipps_expire, &ipps_icd);
+void timer_init () {
 
           /* start waiting thread */
         if( pthread_create(&thread_timer , NULL , timer_loop, NULL) < 0) {
@@ -62,66 +52,69 @@ void ippexpire_init () {
         }        
 }
 
-/* ADD IPPPORT  */
-void add_timer(char *pid) {
+int add_timer(char *pid)
+{
+	timer_queue_t *timer_node = (timer_queue_t *)malloc(sizeof(timer_queue_t));
 
-        ipp_expire_t ce;
+	if (IS_EQUAL(timer_node, NULL)) {
+		perror("add cus-group:");
+		return -1;
+	}
 
-        ce.expire = (unsigned)time(NULL) + expire_timer_array;  
-        ce.id = pid;  
-    
-        utarray_push_back(ipps_expire,&ce);                
-}     
+	memset(timer_node, 0, sizeof(timer_queue_t));
+	timer_node->expire = (unsigned)time(NULL) + expire_timer_array;  
+	snprintf(timer_node->id, sizeof(timer_node->id), "%s", pid);
+	list_add_tail(&timer_node->node, &g_queue_head);
 
-void clear_ippexpires() {
+	return 0;
+}
 
-        ipp_expire_t *p = NULL;
-          
-        for(p=(ipp_expire_t*)utarray_front(ipps_expire);
-            p!=NULL;
-            p=(ipp_expire_t*)utarray_next(ipps_expire,p)) 
-        {
-                printf("%s %d\n", p->id, p->expire);
-        }
-                          
-        utarray_free(ipps_expire);          
+int delete_timer(timer_queue_t *timer)
+{
+	list_del(&timer->node);
+	free(timer);
+}
+
+int gather_data_run()
+{
+	timer_queue_t *pos, *lpos;
+
+	while(timer_loop_stop) {
+
+        	list_for_each_entry_safe(pos, lpos, &g_queue_head, node) {
+        	
+        		while (pos->expire > time(NULL)) {
+        		        sleep(1);
+        		}
+		
+        		if(check_ipport(pos->id) == 0) {
+	        	        add_timer(pos->id);
+                        }
+
+        		delete_timer(pos);
+
+        		list_size();
+						
+                }
+        }        
+}
+
+int list_size() {
+
+        unsigned int count = 0;
+        
+        timer_queue_t *pos, *lpos;
+                
+        list_for_each_entry_safe(pos, lpos, &g_queue_head, node) count++;
+
+        return count;
 }
 
 void* timer_loop() {
 
-        ipp_expire_t *p = NULL;
-        int diff = 0;
+	INIT_LIST_HEAD(&g_queue_head);
 
-        while(loop_stop) {
-                                
-                while( (p=(ipp_expire_t*)utarray_next(ipps_expire,p))) {
-                
-                    /* sleep */                    
-                    if((diff = p->expire - (unsigned)time(NULL)) > 0)
-                    {
-                        if(!loop_stop) break;
-                        sleep(diff);                   
-                    }
-			                    
-		    if(p && p->id) {    			
-
-        		    if(check_ipport(p->id) == 0) add_timer(p->id);
-                    }
-                    else {
-                        LERR("in timer loop, bad pointer to ipp_expire [%d]\n", p ? "1" : 0);
-                    }
-                                        
-                    utarray_erase(ipps_expire, 0, 1);                                         
-
-                    if(!loop_stop) break;
-                                        
-                    //printf("%d %s\n", p->a, (p->s ? p->s : "null"));
-                }
-
-                sleep(1);                
-        }
-        
-        utarray_free(ipps_expire);
+        gather_data_run();
 
         return (void*) 1;  
 }

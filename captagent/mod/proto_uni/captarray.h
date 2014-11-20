@@ -3,23 +3,28 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include "utarray.h"
+#include <unistd.h>
+#include <stdint.h>
+#include "list.h"
 
-typedef struct _ipp_expire {
-  char *id;
-  u_int32_t expire;
-} ipp_expire_t;
+#define IS_EQUAL(x, y) ((x) == (y))
+#define IS_BIGGER (x, y) ((x) > (y))
 
-void ippexpire_copy(void *_dst, const void *_src);
-void ippexpire_dtor(void *_elt);
-
-extern int loop_stop;
 extern int expire_timer_array;
+extern int timer_loop_stop;
 
-void ippexpire_init(); 
-void add_timer(char *pid);
-void clear_ippexpires();
+typedef struct timer_queue {
+        struct list_head node;
+        char id[256];
+        uint32_t expire;
+}timer_queue_t;
+
+void timer_init();
+int add_timer(char *pid);
+int delete_timer(timer_queue_t *timer);
+int process_alarm_sig(int sig);
+int gather_data_run();
 void* timer_loop();
-
+int list_size();
 
 #endif
