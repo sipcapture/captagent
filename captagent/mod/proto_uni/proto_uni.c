@@ -291,14 +291,13 @@ int dump_proto_packet(struct pcap_pkthdr *pkthdr, u_char *packet, uint8_t proto,
         strftime(timebuffer,30,"%m-%d-%Y  %T.",localtime(&curtime));
 
 
-        if(len < 100) {
-                LDEBUG("SIP the message is too small: %d\n", len);
+        if(len <= 172) {
+                //LDEBUG("SIP the message is too small: %d\n", len);
                 return -1;
         }
 
         /* SIP must have alpha */
-        if((proto_type == PROTO_SIP && !isalpha(data[0])) || !strncmp((char *)data, "HEP3", 4)) {
-                LDEBUG("BAD SIP message: %d\n", len);
+        if((proto_type == PROTO_SIP && !isalpha(data[0])) || !strncmp((char *)data, "HEP3", 4)) {                
                 return -1;
         }
         
@@ -321,7 +320,7 @@ int dump_proto_packet(struct pcap_pkthdr *pkthdr, u_char *packet, uint8_t proto,
         	psip.has_sdp = 0;
         	
         	uint32_t bytes_parsed = 0;
-        	//LDEBUG("MESSAGE: [%s]\n", data);
+        	//LDEBUG("MESSAGE: [%.*s]\n", len, data);
         	if(parse_message((char*) data, len, &bytes_parsed, &psip) == 1) {
         	                       	               
                         if(rtcp_tracking == 1 && psip.has_sdp == 1) {        	        
@@ -348,8 +347,10 @@ int dump_proto_packet(struct pcap_pkthdr *pkthdr, u_char *packet, uint8_t proto,
                 	                                /* our correlation index */
                                 	                snprintf(ipptmp,sizeof(ipptmp), "%.*s:%d",  mp->rtcp_ip.len, mp->rtcp_ip.s, mp->rtcp_port);        	                        
                                 	                /* put data to hash */
-                                                        add_ipport(ipptmp, &psip.callid);
-                                                        add_timer(ipptmp);        	                
+                                	                if(!find_ipport(ipptmp)) {
+                                                                add_ipport(ipptmp, &psip.callid);
+                                                                add_timer(ipptmp);        	                
+                                                        }
                                                 }
                                         }
                                 }
@@ -527,7 +528,7 @@ int unload_module(void)
 
         if (reasm != NULL) reasm_ip_free(reasm);
         if (tcpreasm != NULL) tcpreasm_ip_free(tcpreasm);
-        loop_stop = 0;
+        timer_loop_stop = 0;
                     
 	 /* Close socket */
         pcap_close(sniffer_proto);        
@@ -632,7 +633,7 @@ next:
 
 
         /* start timer */
-        if(sip_parse && rtcp_tracking) ippexpire_init();
+        if(sip_parse && rtcp_tracking) timer_init ();
 
         // start thread
         pthread_create(&call_thread, NULL, proto_collect, (void *)dev);
