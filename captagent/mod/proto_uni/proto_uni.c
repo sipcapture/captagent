@@ -269,7 +269,6 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
         
 }
 
-
 int dump_proto_packet(struct pcap_pkthdr *pkthdr, u_char *packet, uint8_t proto, unsigned char *data, uint32_t len,
                  const char *ip_src, const char *ip_dst, uint16_t sport, uint16_t dport, uint8_t flags,
                                   uint16_t hdr_offset, uint8_t frag, uint16_t frag_offset, uint32_t frag_id, uint32_t ip_ver) {
@@ -277,11 +276,17 @@ int dump_proto_packet(struct pcap_pkthdr *pkthdr, u_char *packet, uint8_t proto,
         struct timeval tv;
         time_t curtime;
 	char timebuffer[30];	
-	rc_info_t *rcinfo = NULL;
+	//rc_info_t *rcinfo = NULL;
+	rc_info_t rcinfo;
         preparsed_sip_t psip;
         miprtcp_t *mp = NULL;                
         int i = 0;
         char ipptmp[256];
+        uint32_t bytes_parsed = 0;
+        uint32_t newlen;
+        int skip_len = 0;
+        int loop = 1;
+                        
         
         gettimeofday(&tv,NULL);
 
@@ -305,93 +310,109 @@ int dump_proto_packet(struct pcap_pkthdr *pkthdr, u_char *packet, uint8_t proto,
         else if(proto_type == PROTO_XMPP && memcmp("<iq", data, 3)) {
                 return -1;
         }
+                
+        newlen =  len;
+        
+        while(loop) {
+                
+                /* we can have more SIP message in one buffer */
+                if(proto == IPPROTO_TCP && len > 1300) 
+                {
+                        if(light_parse_message((char*) data+skip_len, (len-skip_len), &bytes_parsed, &psip) == 1) {
+                                newlen = psip.len;
+                        }
+                        else newlen = len-skip_len;
+                }
+                                
+                //if (proto_type == PROTO_SIP && sip_method){
+                if (proto_type == PROTO_SIP && sip_parse == 1){
 
-        //if (proto_type == PROTO_SIP && sip_method){
-        if (proto_type == PROTO_SIP && sip_parse == 1){
-
-        	//if ((sip_method_not == 1) ? (!sip_is_method((const char*)data, len,sip_method+1)): (sip_is_method ((const char*) data, len,sip_method))){
-            	//LDEBUG("method not matched\n");
-            	//return -1;
-        	//}
-
-        	memset(&psip, 0, sizeof(struct preparsed_sip));
+                	//if ((sip_method_not == 1) ? (!sip_is_method((const char*)data, len,sip_method+1)): (sip_is_method ((const char*) data, len,sip_method))){
+                    	//LDEBUG("method not matched\n");
+                    	//return -1;
+                	//}
+                	memset(&psip, 0, sizeof(struct preparsed_sip));
         	
-        	psip.mrp_size = 0;
-        	psip.has_sdp = 0;
+                	psip.mrp_size = 0;
+                	psip.has_sdp = 0;        	
+                	bytes_parsed = 0;
         	
-        	uint32_t bytes_parsed = 0;
-        	//LDEBUG("MESSAGE: [%.*s]\n", len, data);
-        	if(parse_message((char*) data, len, &bytes_parsed, &psip) == 1) {
+                	//LDEBUG("MESSAGE: [%.*s]\n", len, data);
+                	if(parse_message((char*) data+skip_len, newlen, &bytes_parsed, &psip) == 1) {
         	                       	               
-                        if(rtcp_tracking == 1 && psip.has_sdp == 1) {        	        
-                        
-                                if(psip.mrp_size > 10) {
-                                        LERR("Bad MRP size [%d]\n", psip.mrp_size);
-                                        psip.mrp_size = 0;
-                                }
+                                if(rtcp_tracking == 1 && psip.has_sdp == 1) {        	        
+                                
+                                        if(psip.mrp_size > 10) {
+                                                LERR("Bad MRP size [%d]\n", psip.mrp_size);
+                                                psip.mrp_size = 0;
+                                        }
                                                         
-                	        for(i=0; i < psip.mrp_size; i++) {
-                	        
-                	                mp = &psip.mrp[i];        	                        	                        	                
-                	                if(mp->media_ip.len > 0 && mp->media_ip.s) {
-
-                        	                if(mp->rtcp_port == 0 ) mp->rtcp_port = mp->media_port+1;        	                
-                        	                
-                        	                if(mp->rtcp_ip.len ==  0) {
-                	                                mp->rtcp_ip.len = mp->media_ip.len;
-        	                                        mp->rtcp_ip.s = mp->media_ip.s;
-                                                }        	                
+                        	        for(i=0; i < psip.mrp_size; i++) {                	        
+                        	                mp = &psip.mrp[i];        	                        	                        	                
+                        	                if(mp->media_ip.len > 0 && mp->media_ip.s) {
+                                	                if(mp->rtcp_port == 0 ) mp->rtcp_port = mp->media_port+1;        	                                        	                
+                                	                if(mp->rtcp_ip.len ==  0) {
+                        	                                mp->rtcp_ip.len = mp->media_ip.len;
+        	                                                mp->rtcp_ip.s = mp->media_ip.s;
+                                                        }        	                
         	                
-                                                if(mp->rtcp_ip.len > 0 && mp->rtcp_ip.s) {
+                                                        if(mp->rtcp_ip.len > 0 && mp->rtcp_ip.s) {
                                                 
-                	                                /* our correlation index */
-                                	                snprintf(ipptmp,sizeof(ipptmp), "%.*s:%d",  mp->rtcp_ip.len, mp->rtcp_ip.s, mp->rtcp_port);        	                        
-                                	                /* put data to hash */
-                                	                if(!find_ipport(ipptmp)) {
-                                                                add_ipport(ipptmp, &psip.callid);
-                                                                add_timer(ipptmp);        	                
+                	                                        /* our correlation index */
+                                        	                snprintf(ipptmp,sizeof(ipptmp), "%.*s:%d",  mp->rtcp_ip.len, mp->rtcp_ip.s, mp->rtcp_port);        	                        
+                                        	                /* put data to hash */
+                                        	                if(!find_ipport(ipptmp)) {
+                                                                        add_ipport(ipptmp, &psip.callid);
+                                                                        add_timer(ipptmp);        	                
+                                                                }
                                                         }
                                                 }
                                         }
-                                }
-        	        }
+        	                }
         	        
-                }
-                else {
-                        LDEBUG("Not Parsed\n");
-                }
+                        }
+                        else {
+                                LDEBUG("Not Parsed\n");
+                        }
         	
+                 }
+                 //LDEBUG("SIP: [%.*s]\n", len, data);
+
+                rcinfo.src_port   = sport;
+                rcinfo.dst_port   = dport;
+                rcinfo.src_ip     = ip_src;
+                rcinfo.dst_ip     = ip_dst;
+                rcinfo.ip_family  = ip_ver = 4 ? AF_INET : AF_INET6 ;
+                rcinfo.ip_proto   = proto;
+                rcinfo.time_sec   = pkthdr->ts.tv_sec;
+                rcinfo.time_usec  = pkthdr->ts.tv_usec;
+                rcinfo.proto_type = proto_type;
+                rcinfo.correlation_id.len = 0;
+                rcinfo.correlation_id.s = NULL;
+                
+                if(debug_proto_uni_enable)
+                        LDEBUG("SENDING PACKET: Len: [%d]\n", newlen);                        
+        
+        	/* Duplcate */
+        	if(send_enable) {
+        	        if(!send_message(&rcinfo, data+skip_len, (unsigned int) newlen)) {
+        	                 LDEBUG("Not duplicated\n");
+                        }        
+                }
+
+                //if(rcinfo) free(rcinfo);
+                
+                skip_len += newlen;
+                
+                if(skip_len >= len || newlen >= len) {
+                        loop = 0;
+                        break;
+                }                
         }
 
-        //LDEBUG("SIP: [%.*s]\n", len, data);
-
-	rcinfo = malloc(sizeof(rc_info_t));
-	memset(rcinfo, 0, sizeof(rc_info_t));
-
-        rcinfo->src_port   = sport;
-        rcinfo->dst_port   = dport;
-        rcinfo->src_ip     = ip_src;
-        rcinfo->dst_ip     = ip_dst;
-        rcinfo->ip_family  = ip_ver = 4 ? AF_INET : AF_INET6 ;
-        rcinfo->ip_proto   = proto;
-        rcinfo->time_sec   = pkthdr->ts.tv_sec;
-        rcinfo->time_usec  = pkthdr->ts.tv_usec;
-        rcinfo->proto_type = proto_type;
-        rcinfo->correlation_id.len = 0;
-        rcinfo->correlation_id.s = NULL;
-        
-        if(debug_proto_uni_enable)
-                LDEBUG("SENDING PACKET: Len: [%d]\n", len);
-
-	/* Duplcate */
-	if(!send_message(rcinfo, data, (unsigned int) len)) {
-	         LDEBUG("Not duplicated\n");
-        }        
-        
-        if(rcinfo) free(rcinfo);
-
-	return 1;
+        return 1;        
 }
+
 
 void* proto_collect( void* device ) {
 
@@ -595,6 +616,7 @@ int load_module(xml_node *config)
                         else if(!strncmp(key, "debug", 5) && !strncmp(value, "true", 4)) debug_proto_uni_enable = 1;
                         else if(!strncmp(key, "buildin-reasm-filter", 20) && !strncmp(value, "true", 4)) buildin_reasm_filter = 1;
                         else if(!strncmp(key, "tcpdefrag", 9) && !strncmp(value, "true", 4)) tcpdefrag_enable = 1;
+                        else if(!strncmp(key, "send-message", 9) && !strncmp(value, "false", 5)) send_enable = 0;                                                
                         else if (!strncmp(key, "sip_method", 10)) sip_method = value;
                         
                                       

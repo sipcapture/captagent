@@ -146,6 +146,8 @@ static unsigned char *assemble (struct reasm_ip_entry *entry, unsigned *output_l
  */
 static void drop_entry (struct reasm_ip *reasm, struct reasm_ip_entry *entry);
 static void free_entry (struct reasm_ip_entry *entry);
+static void print_entry (struct reasm_ip_entry *entry);
+
 
 /*
  * Dispose of any entries which have expired before "now".
@@ -271,14 +273,15 @@ reasm_ip_next (struct reasm_ip *reasm, unsigned char *packet, unsigned len, reas
 			.data = NULL,
 		};
 
-		if (entry->next != NULL)
-			entry->next->prev = entry;
+		if (entry->next != NULL) entry->next->prev = entry;
+		
 		reasm->table[hash] = entry;
 
 		if (reasm->time_last != NULL)
 			reasm->time_last->time_next = entry;
 		else
 			reasm->time_first = entry;
+
 		reasm->time_last = entry;
 
 		reasm->waiting++;
@@ -301,6 +304,7 @@ reasm_ip_next (struct reasm_ip *reasm, unsigned char *packet, unsigned len, reas
 		return NULL;
 
 	unsigned char *r = assemble (entry, output_len);
+	//printf("COMPL: %s\n", r+12);
 	drop_entry (reasm, entry);
 	return r;
 }
@@ -564,6 +568,17 @@ free_entry (struct reasm_ip_entry *entry)
 }
 
 
+static void print_entry (struct reasm_ip_entry *entry)
+{
+	struct reasm_frag_entry *frag = entry->frags, *next;
+	while (frag != NULL) {
+		next = frag->next;
+		if (frag->data != NULL)	printf("FRAG: %.*s\n", frag->len, frag->data);
+		frag = next;
+	}
+}
+
+
 unsigned
 reasm_ip_waiting (const struct reasm_ip *reasm)
 {
@@ -608,6 +623,7 @@ process_timeouts (struct reasm_ip *reasm, reasm_time_t now)
 {
 	while (reasm->time_first != NULL && reasm->time_first->timeout < now) {
 		reasm->timed_out++;
+		printf("TIMEOUT!\n");
 		drop_entry (reasm, reasm->time_first);
 	}
 }

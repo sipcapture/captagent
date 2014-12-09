@@ -444,3 +444,53 @@ int parse_message(char *message, unsigned int blen, unsigned int* bytes_parsed, 
         return 1;
 }
 
+int light_parse_message(char *message, unsigned int blen, unsigned int* bytes_parsed, struct preparsed_sip *psip)
+{
+	unsigned int new_len = blen;
+	int header_offset = 0;
+
+        psip->content_length = 0;
+        	
+	if (blen <= 2) return 0;
+
+        int offset = 0, last_offset = 0;
+        char *c, *tmp;
+
+        c = message;
+
+        for (; *c && c-message < new_len; c++) {
+
+                        /* END of Request line and START of all other headers */
+                        if (*c == '\r' && *(c+1) == '\n') {        /* end of this line */
+
+				last_offset = offset;
+				offset = (c+2) - message;
+
+				tmp = (message + last_offset);
+		
+				/* BODY */
+				if((offset - last_offset) == 2) {
+				        psip->len = offset;
+				        
+        	        	        if(psip->content_length > 0) {        		        		        
+	                	                psip->len +=psip->content_length;
+                                        }
+                                        
+					break;
+		                }
+
+                                if((*tmp == 'l' && *(tmp+1) == ':') || ((*tmp == 'C' || *tmp == 'c') && ( *(tmp+8) == 'L' || *(tmp+8) == 'l') && *(tmp+CONTENTLENGTH_LEN) == ':'))
+                                {
+
+					if(*(tmp+1) == ':') header_offset = 1;
+                            	   	else header_offset = CONTENTLENGTH_LEN;
+					
+  					psip->content_length = atoi(tmp+header_offset+1);
+					continue;
+                               }
+                       }
+        }
+
+        return 1;
+}
+
