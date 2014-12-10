@@ -237,6 +237,7 @@ int main( int argc, char *argv[] ) {
                 switch(c) {
                         case 'v':
 				printf("version: %s\n", VERSION);
+				exit(0);
 				break;
 			case 'f':
 				file = optarg;
