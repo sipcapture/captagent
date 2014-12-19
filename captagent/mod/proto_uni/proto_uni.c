@@ -445,7 +445,7 @@ void* proto_collect( void* device ) {
         
         /* FILTER VLAN */        
         if(vlan) { 
-        	ret += snprintf(filter_expr+ret, (len - ret), ret ? " or  (vlan " : "vlan ");
+        	ret += snprintf(filter_expr+ret, (len - ret), ret ? " or  (vlan " : "(vlan ");
         	if(portrange != NULL) ret += snprintf(filter_expr+ret, (len - ret), "and portrange %s ) ", portrange);
         	else if(port > 0) ret += snprintf(filter_expr+ret, (len - ret), "and port %d ) ", port);
         }
