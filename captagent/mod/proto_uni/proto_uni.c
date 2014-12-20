@@ -65,9 +65,7 @@
 #include "captarray.h"
 #include "capthash.h"
 
-
 uint8_t link_offset = 14;
-uint8_t hdr_offset = 0;
 
 pcap_t *sniffer_proto;
 pthread_t call_thread;   
@@ -78,6 +76,7 @@ unsigned char* mplsaddr = NULL;
 /* Callback function that is passed to pcap_loop() */ 
 void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet) 
 {
+	uint8_t hdr_offset = 0;
 
 	/* Pat Callahan's patch for MPLS */
 	memcpy(&ethaddr, (packet + 12), 2);
