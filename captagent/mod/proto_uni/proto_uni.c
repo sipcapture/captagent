@@ -464,7 +464,8 @@ void* proto_collect( void* device ) {
         /* create filter string */
 
         //((ip[6:2] & 0x3fff != 0))
-        
+        LDEBUG("FILTER: [%s]\n", filter_expr);
+
         /* compile filter expression (global constant, see above) */
         if (pcap_compile(sniffer_proto, &filter, filter_expr, 1, 0) == -1) {
                 LERR("Failed to compile filter \"%s\": %s\n", filter_expr, pcap_geterr(sniffer_proto));
