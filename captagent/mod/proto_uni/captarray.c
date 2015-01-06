@@ -78,6 +78,7 @@ int delete_timer(timer_queue_t *timer)
 int gather_data_run()
 {
 	timer_queue_t *pos, *lpos;
+        unsigned int mycount = 0;
 
 	while(timer_loop_stop) {
 
@@ -93,9 +94,11 @@ int gather_data_run()
 
         		delete_timer(pos);
 
-        		list_size();
+        		 mycount = list_size();
 						
                 }
+                
+                if(mycount == 0) sleep(1);
         }        
 }
 
