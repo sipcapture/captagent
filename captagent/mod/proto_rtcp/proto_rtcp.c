@@ -215,6 +215,10 @@ int dump_rtp_packet(struct pcap_pkthdr *pkthdr, u_char *packet, uint8_t proto, u
       	          senddata = json_rtcp_buffer;
       	          len = strlen(json_rtcp_buffer);
       	    }
+      	    else {
+      	    	LDEBUG("GOODBYE or APP MESSAGE. Ignore!\n");
+      	    	return 0;
+      	    }
       	    
       	    LDEBUG("JSON RTCP %s\n", json_rtcp_buffer);
         }
