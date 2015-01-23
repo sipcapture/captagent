@@ -218,6 +218,20 @@ int parseSdp(char *body, struct preparsed_sip *psip) {
 	last_offset = 0;
 	offset = 0;
 	miprtcp_t *mp = NULL;
+	int i = 0, make_index = 0;
+	
+        /* memset */	
+	for(i = 0; i < 10; i++) {
+                memset(&psip->mrp[i], 0, sizeof(miprtcp_t *));                                                     
+                mp = &psip->mrp[i];                
+                mp->media_ip.len = 0;
+                mp->media_ip.s = NULL;
+                mp->rtcp_ip.len = 0;
+                mp->rtcp_ip.s = NULL;
+                mp->media_port = 0;
+                mp->rtcp_port = 0;                
+        }
+	
 
 	//m=audio 3000 RTP/AVP 8 0 18 101
 	//m=image 49170 udptl t38
@@ -235,54 +249,34 @@ int parseSdp(char *body, struct preparsed_sip *psip) {
                      /* c=IN IP4 10.0.0.1 */
                      if((*tmp == 'c' && *(tmp+1) == '='))
                      {
-                         memset(&psip->mrp[psip->mrp_size], 0, sizeof(miprtcp_t *));                                                     
-
                          mp = &psip->mrp[psip->mrp_size]; 
-                         
-                         mp->media_ip.len = 0;
-                         mp->media_ip.s = NULL;
-                         
-                         mp->rtcp_ip.len = 0;
-                         mp->rtcp_ip.s = NULL;
-                         
-                         mp->media_port = 0;
-                         mp->rtcp_port = 0;
-                         
-                    	 parseSdpCLine(mp, tmp+2, (offset - last_offset - 2));
-                    	 psip->mrp_size++;                        	 
-                    	 set_ip = 1;
-                    	 
+                    	 parseSdpCLine(mp, tmp+2, (offset - last_offset - 2));                    	 
+                    	 set_ip = 1;                    	 
+
+                    	 if(make_index == 1) { psip->mrp_size++; make_index = 0;}
+                         else make_index = 1;
                      }
 
                      /* m=audio 3000 RTP/AVP 8 0 18 101 */
                      if((*tmp == 'm' && *(tmp+1) == '='))
                      {   
-                         if(mp == NULL) {
-                            printf("BAD SDP. Couldn't parse it!\n");
-                            return 0;
-                         }
                      
                          if(set_ip == 1) set_ip = 0;
                          else {                                                                             
-
-                             memset(&psip->mrp[psip->mrp_size], 0, sizeof(miprtcp_t *));                                                        
-                             psip->mrp[psip->mrp_size].media_ip.s =  psip->mrp[psip->mrp_size-1].media_ip.s;                             
-                             psip->mrp[psip->mrp_size].media_ip.len =  psip->mrp[psip->mrp_size-1].media_ip.len;                           
-                             mp = &psip->mrp[psip->mrp_size];
-                             
-                             mp->media_ip.len = 0;
-                             mp->media_ip.s = NULL;
-                         
-                             mp->rtcp_ip.len = 0;
-                             mp->rtcp_ip.s = NULL;
-                         
-                             mp->media_port = 0;
-                             mp->rtcp_port = 0;
-                             
-                             psip->mrp_size++;
+                                 
+                             if(psip->mrp_size > 0) 
+                             {
+                                     psip->mrp[psip->mrp_size].media_ip.s =  psip->mrp[psip->mrp_size-1].media_ip.s;                             
+                                     psip->mrp[psip->mrp_size].media_ip.len =  psip->mrp[psip->mrp_size-1].media_ip.len;                           
+                                     mp = &psip->mrp[psip->mrp_size];
+                                     
+                              }
                          }                         
-                                                                       
+                                                                                                
                     	 parseSdpMLine(mp, tmp+2, (offset - last_offset - 2));                    	 
+                    	 
+                    	 if(make_index == 1)  { psip->mrp_size++; make_index = 0; }
+                         else make_index = 1;
                     	 
                      }
 		     /* a=rtcp:53020 IN IP4 126.16.64.4 */
