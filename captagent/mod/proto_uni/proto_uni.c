@@ -285,6 +285,7 @@ int dump_proto_packet(struct pcap_pkthdr *pkthdr, u_char *packet, uint8_t proto,
         uint32_t newlen;
         int skip_len = 0;
         int loop = 1;
+        int count_loop = 0;
                         
         
         gettimeofday(&tv,NULL);
@@ -313,6 +314,13 @@ int dump_proto_packet(struct pcap_pkthdr *pkthdr, u_char *packet, uint8_t proto,
         newlen =  len;
         
         while(loop) {
+                
+                count_loop++;
+                if(count_loop > 10) {
+                	LERR("TOO MANY LOOP [%d]\n", count_loop);
+                	LERR("PACKET [%s]\n", data);
+                	loop = 0;
+                }
                 
                 /* we can have more SIP message in one buffer */
                 if(proto == IPPROTO_TCP && len > 1300) 
