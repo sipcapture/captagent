@@ -81,6 +81,27 @@ case "${host}" in
 esac
 
 
+dnl
+dnl IPv6 (and ICMPv6) support
+dnl
+
+AC_ARG_ENABLE(ipv6,
+[  --enable-ipv6           enable IPv6 (and ICMPv6) support],
+[
+  use_ipv6="$enableval"
+],
+[  
+  use_ipv6="no"
+]) 
+
+if test $use_ipv6 = yes; then
+   USE_IPv6="1"
+else
+   USE_IPv6="0"
+fi 
+
+AC_DEFINE_UNQUOTED(USE_IPv6,                  $USE_IPv6,                  [whether to use IPv6 (default off)])
+
 # Checks for libraries.
 AC_CHECK_LIB(pthread, pthread_create, , [AC_MSG_ERROR([captagent requires but cannot find pthread])])
 if test "$OS_LINUX" = 1 ; then

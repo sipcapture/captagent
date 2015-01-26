@@ -143,6 +143,9 @@
 /* Define to 1 if you have the ANSI C header files. */
 #undef STDC_HEADERS
 
+/* whether to use IPv6 (default off) */
+#undef USE_IPv6
+
 /* Use OpenSSL SSL library */
 #undef USE_SSL
 
