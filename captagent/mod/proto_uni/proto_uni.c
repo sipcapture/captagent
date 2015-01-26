@@ -38,6 +38,8 @@
 #include <signal.h>
 #include <time.h>
 #include <pthread.h>
+#include <inttypes.h>
+
 
 #ifndef __FAVOR_BSD
 #define __FAVOR_BSD
@@ -322,10 +324,11 @@ int dump_proto_packet(struct pcap_pkthdr *pkthdr, u_char *packet, uint8_t proto,
         while(loop) {
                 
                 count_loop++;
-                if(count_loop > 10) {
-                	LERR("TOO MANY LOOP [%d]\n", count_loop);
+                if(count_loop > 5) {
+                	LERR("TOO MANY LOOP LEN [%d] vs NEWLEN: [%"PRIu32"] vs SKIP: [%d] vs PARSED: [%"PRIu32"]\n", len, newlen, skip_len, bytes_parsed);
                 	LERR("PACKET [%s]\n", data);
                 	loop = 0;
+                	break;
                 }
                 
                 /* we can have more SIP message in one buffer */
