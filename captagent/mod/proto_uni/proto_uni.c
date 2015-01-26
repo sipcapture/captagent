@@ -112,8 +112,8 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
         uint8_t  psh = 0;
 	int ret;
 
+        if(debug_proto_uni_enable) LDEBUG("GOT Message: LEN:[%d]\n", len);
 
-	
 	if (reasm != NULL && reasm_enable) {
 		unsigned new_len;
         	u_char *new_p = malloc(len - link_offset - ((ntohs((uint16_t)*(packet + 12)) == 0x8100)? 4:0));
@@ -148,6 +148,8 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
 	            frag_offset = (fragmented) ? (ip_off & IP_OFFMASK) * 8 : 0;
         	    frag_id     = ntohs(ip4_pkt->ip_id);
 
+		    if(debug_proto_uni_enable) LDEBUG("Message IPV4: LEN:[%d]\n", len);
+
 	            inet_ntop(AF_INET, (const void *)&ip4_pkt->ip_src, ip_src, sizeof(ip_src));
 	            inet_ntop(AF_INET, (const void *)&ip4_pkt->ip_dst, ip_dst, sizeof(ip_dst));
         	} break;
@@ -168,6 +170,8 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
                 	frag_offset = ntohs(ip6_fraghdr->ip6f_offlg & IP6F_OFF_MASK);
 	                frag_id     = ntohl(ip6_fraghdr->ip6f_ident);
         	    }
+
+		    if(debug_proto_uni_enable) LDEBUG("Message IPV6: LEN:[%d]\n", len);
 
 	            inet_ntop(AF_INET6, (const void *)&ip6_pkt->ip6_src, ip_src, sizeof(ip_src));
         	    inet_ntop(AF_INET6, (const void *)&ip6_pkt->ip6_dst, ip_dst, sizeof(ip_dst));
@@ -244,6 +248,8 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
                     data = (unsigned char *)(udp_pkt) + udphdr_offset;
                     
                     len -= link_offset + ip_hl + udphdr_offset + hdr_offset;
+                    
+                    if(debug_proto_uni_enable) LDEBUG("UDP Message: LEN:[%d] [.*s]\n", len, len, data);
 
 #if USE_IPv6
                     if (ip_ver == 6)
