@@ -420,7 +420,7 @@ int dump_proto_packet(struct pcap_pkthdr *pkthdr, u_char *packet, uint8_t proto,
                 
                 skip_len += newlen;
                 
-                if(skip_len >= len || newlen >= len) {
+                if(skip_len >= len || newlen >= len || newlen == 0 ) {
                         loop = 0;
                         break;
                 }                
