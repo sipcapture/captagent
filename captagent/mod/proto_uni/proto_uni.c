@@ -393,6 +393,15 @@ int dump_proto_packet(struct pcap_pkthdr *pkthdr, u_char *packet, uint8_t proto,
         	
                  }
                  //LDEBUG("SIP: [%.*s]\n", len, data);
+                 
+                if(newlen <= 172) {
+        	        //LDEBUG("SIP the message is too small: %d\n", len);
+                	break;
+        	}
+	        /* SIP must have alpha */
+        	if((proto_type == PROTO_SIP && !isalpha((data+skip_len)[0])) || !strncmp((char *)(data+skip_len), "HEP3", 4)) {                
+                	break;
+        	}
 
                 rcinfo.src_port   = sport;
                 rcinfo.dst_port   = dport;
