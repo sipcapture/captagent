@@ -112,7 +112,7 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
 	    
 	uint32_t len = pkthdr->caplen;
         uint8_t  psh = 0;
-	int ret;
+	int ret = 0;
 
         if(debug_proto_uni_enable) LDEBUG("GOT Message: LEN:[%d]\n", len);
 
@@ -397,12 +397,12 @@ int dump_proto_packet(struct pcap_pkthdr *pkthdr, u_char *packet, uint8_t proto,
                 if(newlen <= 172) {
         	        //LDEBUG("SIP the message is too small: %d\n", len);
         	        loop = 0;
-                	break;
+                	return -1;
         	}
 	        /* SIP must have alpha */
         	if((proto_type == PROTO_SIP && !isalpha((data+skip_len)[0])) || !strncmp((char *)(data+skip_len), "HEP3", 4)) {                
         		loop = 0;
-                	break;
+                	return -1;
         	}
 
                 rcinfo.src_port   = sport;
@@ -419,6 +419,21 @@ int dump_proto_packet(struct pcap_pkthdr *pkthdr, u_char *packet, uint8_t proto,
                 
                 if(debug_proto_uni_enable)
                         LDEBUG("SENDING PACKET: Len: [%d]\n", newlen);                        
+
+
+                if(validate_len == 1 && check_len_message(data+skip_len, (unsigned int) newlen) == 0) 
+                {
+                        LDEBUG("BAD LEN: [%d], SKIP: [%d]\n", newlen, skip_len);                                        
+                        loop = 0;
+                        return -1;
+                }
+                
+                if(validate_sip == 1 && check_sip_message(data+skip_len, (unsigned int) newlen) == 0) 
+                {
+                        LDEBUG("BAD SIP MESSAGE: Len: [%d], SKIP: [%d]\n", newlen, skip_len);                                        
+                        loop = 0;
+                        return -1;
+                }
         
         	/* Duplcate */
         	if(send_enable) {
@@ -427,8 +442,6 @@ int dump_proto_packet(struct pcap_pkthdr *pkthdr, u_char *packet, uint8_t proto,
                         }        
                 }
 
-                //if(rcinfo) free(rcinfo);
-                
                 skip_len += newlen;
                 
                 if(skip_len >= len || newlen >= len || newlen == 0 || bytes_parsed == 0 ) {
@@ -627,6 +640,8 @@ int load_module(xml_node *config)
                         else if(!strncmp(key, "proto-type", 10)) local_pt = value;
                         else if(!strncmp(key, "portrange", 9)) portrange = value;
                         else if(!strncmp(key, "promisc", 7) && !strncmp(value, "false", 5)) promisc = 0;
+                        else if(!strncmp(key, "validate-len", 12) && !strncmp(value, "true", 4)) validate_len = 1;
+                        else if(!strncmp(key, "validate-sip", 12) && !strncmp(value, "true", 4)) validate_sip = 1;
                         else if(!strncmp(key, "expire-timer", 12)) {
                                 expire_timer_array = atoi(value);
                                 if(expire_timer_array <= 10) expire_timer_array = EXPIRE_TIMER_ARRAY;

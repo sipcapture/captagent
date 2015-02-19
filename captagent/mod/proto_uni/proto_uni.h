@@ -57,6 +57,8 @@ int sip_method_not = 0;
 int sip_parse = 0;
 int rtcp_tracking = 0;
 int send_enable = 1;
+int validate_sip = 0;
+int validate_len = 0;
 
 #define EXPIRE_RTCP_HASH 80
 #define EXPIRE_TIMER_ARRAY 80

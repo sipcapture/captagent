@@ -488,3 +488,60 @@ int light_parse_message(char *message, unsigned int blen, unsigned int* bytes_pa
         return 1;
 }
 
+int check_len_message(unsigned char *message, unsigned int blen) {
+        
+        unsigned char *c;
+        unsigned int new_len = blen;   
+        unsigned int count = 0;
+        
+        c = message;                    
+        
+        if(message == NULL) return 0;        
+                                        
+        for (; *c && c-message < new_len; c++) {
+
+                if (*c == '\0') { 
+                        break;
+                }
+                
+                count++;
+        }
+
+        if(count != blen) return 0;
+
+        return 1;
+}
+
+
+int check_sip_message(unsigned char *message, unsigned int blen)
+{
+	int ret = 0;	
+	if (blen <= 2) return 0;
+
+        char *tmp;
+
+        tmp = (char *) message;
+
+        if(!memcmp("SIP/2.0 ", tmp, 8)) {
+                ret = 1;
+        }
+        else {
+
+                if(!memcmp(tmp, INVITE_METHOD, INVITE_LEN)) ret = 1;
+                else if(!memcmp(tmp, ACK_METHOD, ACK_LEN)) ret = 1;
+		else if(!memcmp(tmp, BYE_METHOD, BYE_LEN)) ret = 1;
+		else if(!memcmp(tmp, CANCEL_METHOD, CANCEL_LEN)) ret = 1;
+		else if(!memcmp(tmp, OPTIONS_METHOD, OPTIONS_LEN)) ret =1;
+		else if(!memcmp(tmp, REGISTER_METHOD, REGISTER_LEN)) ret = 1;
+		else if(!memcmp(tmp, PRACK_METHOD, PRACK_LEN)) ret =1;
+		else if(!memcmp(tmp, SUBSCRIBE_METHOD, SUBSCRIBE_LEN)) ret =1;
+		else if(!memcmp(tmp, NOTIFY_METHOD, NOTIFY_LEN)) ret = 1;
+		else if(!memcmp(tmp, PUBLISH_METHOD, PUBLISH_LEN)) ret = 1;
+		else if(!memcmp(tmp, INFO_METHOD, INFO_LEN)) ret = 1;
+		else if(!memcmp(tmp, REFER_METHOD, REFER_LEN)) ret =1;
+		else if(!memcmp(tmp, MESSAGE_METHOD, MESSAGE_LEN)) ret = 1;
+                else if(!memcmp(tmp, UPDATE_METHOD, UPDATE_LEN)) ret = 1;
+        }
+	
+        return ret;
+}

@@ -138,6 +138,9 @@ int parseSdpCLine(miprtcp_t *mp, char *data, int len);
 int parseSdpALine(miprtcp_t *mp, char *data, int len);
 int parseSdpMLine(miprtcp_t *mp, char *data, int len);
 int light_parse_message(char *message, unsigned int blen, unsigned int* bytes_parsed, struct preparsed_sip *psip);
+int check_len_message(unsigned char *message, unsigned int blen);
+int check_sip_message(unsigned char *message, unsigned int blen);
+
 
 
 #endif /* _SIPPARSE_H */
