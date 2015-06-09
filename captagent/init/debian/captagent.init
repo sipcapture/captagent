@@ -18,8 +18,8 @@ lockfile=/var/lock/$prog
 RETVAL=0
 
 start() {
-  if [ -e /var/run/captagent.pid ]; then
-        echo "[FAILED] Captagent is already running with PID: `cat /var/run/captagent.pid`"
+  if [ -e $pidfile ]; then
+        echo "[FAILED] Captagent is already running with PID: `cat $pidfile`"
   else      
         echo -n "Starting $prog: "
         # there is something at end of this output which is needed to
@@ -34,7 +34,7 @@ start() {
 stop() {
 	echo -n "Stopping $prog: "
 	#killproc $cap
-	if [ -e /var/run/captagent.pid ]; then
+	if [ -e $pidfile ]; then
 		start-stop-daemon --oknodo --stop --quiet --pidfile $pidfile --exec $cap || echo "Failed"
 		RETVAL=$?
 		echo
@@ -51,8 +51,8 @@ stop() {
 
 status() {
 	RETVAL=0
-        if [ -e /var/run/captagent.pid ]; then
-                        echo "[OK] Captagent is running with PID: `cat /var/run/captagent.pid`"
+        if [ -e $pidfile ]; then
+                        echo "[OK] Captagent is running with PID: `cat $pidfile`"
         else
                         echo "[FAILED] Captagent is not running"
                         RETVAL=1
@@ -66,7 +66,7 @@ status() {
 
 [ -z "$CONFIG" ]  && CONFIG=/usr/local/etc/captagent/captagent.xml
 
-OPTIONS="-f $CONFIG"
+OPTIONS="-d -f $CONFIG"
 
 # See how we were called.
 case "$1" in
