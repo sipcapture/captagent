@@ -1,4 +1,0 @@
-#
-# captagent startup options
-#
-CONFIG=/usr/local/etc/captagent/captagent.xml
