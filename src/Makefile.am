@@ -18,5 +18,7 @@ capplan.tab.c: capplan.y
 install: install-am
 	if test ! -f $(DESTDIR)/$(config); then \
 		mkdir -p $(DESTDIR)$(sysconfdir)/$(bin_PROGRAMS); \
-		cp $(top_srcdir)/conf/$(bin_PROGRAMS).xml $(DESTDIR)$(sysconfdir)/$(bin_PROGRAMS); \
+		cp $(top_srcdir)/conf/*.xml $(DESTDIR)$(sysconfdir)/; \
+		mkdir -p $(DESTDIR)$(sysconfdir)/$(bin_PROGRAMS)/captureplans; \
+		cp $(top_srcdir)/conf/captureplans/*.cfg $(DESTDIR)$(sysconfdir)/$(bin_PROGRAMS)/captureplans/; \
 fi;

@@ -130,10 +130,10 @@
 #define STDC_HEADERS 1
 
 /* Use MYSQL library */
-#define USE_MYSQL 1
+/* #undef USE_MYSQL */
 
 /* Use PCRE library */
-#define USE_PCRE 1
+/* #undef USE_PCRE */
 
 /* Use REDIS library */
 /* #undef USE_REDIS */
