@@ -1,0 +1,43 @@
+#!/bin/sh
+
+
+# PROVIDE: captagent
+# REQUIRE: DAEMON
+# KEYWORD: shutdown
+#
+# Add the following lines to /etc/rc.conf to enable captagent:
+#
+# captagent_enable="YES"
+#
+
+. /etc/rc.subr
+
+name="captagent"
+rcvar=`set_rcvar`
+
+load_rc_config $name
+
+: ${captagent_enable="NO"}
+: ${captagent_pidfile="/var/run/captagent.pid"}
+
+start_cmd=${name}_start
+stop_cmd=${name}_stop
+
+pidfile=${captagent_pidfile}
+
+captagent_start() {
+        /usr/local/bin/captagent -d
+}
+
+captagent_stop() {
+        kill `cat ${captagent_pidfile}`
+
+}
+
+#command="/usr/local/bin/captagent -P /var/run/captagent.pid"
+
+pidfile=${captagent_pidfile:-"/var/run/captagent.pid"}
+
+#captagent_enable=${captagent_enable:-"NO"}
+
+run_rc_command "$1"

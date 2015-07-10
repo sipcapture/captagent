@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<document type="captagent_module/xml">
+
+<module name="transport_json" description="JSON Protocol" serial="2014010402">		
+		<profile name="jsonsocket" description="Transport JSON" enable="true" serial="2014010402">  
+          		<settings>
+            		<param name="capture-version" value="1"/>
+					<param name="capture-host" value="elastic.sipcapture.org"/>            
+					<param name="capture-port" value="9061"/>
+					<param name="capture-proto" value="udp"/>
+					<param name="capture-id" value="2001"/>				
+					<param name="payload-send" value="true" />						
+          		</settings>
+          	</profile> 
+</module>	
+</document>
