@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <document type="captagent_module/xml">
 	<module name="socket_rtcpxr" description="RTCPXR Socket" serial="2014010402">		
-		<profile name="socketsrtcp" description="RTCPXR local" enable="true" serial="2014010402">  
+		<profile name="socketsrtcp" description="RTCPXR local" enable="false" serial="2014010402">  
           		<settings>
             			<param name="host" value="0.0.0.0"/>
             			<param name="port" value="9070"/>	  
