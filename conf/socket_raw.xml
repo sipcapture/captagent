@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <document type="captagent_module/xml">
 	<module name="socket_raw" description="RAW Socket" serial="2014010402">		
-		<profile name="socketsraw_spec" description="SPEC Socket" enable="true" serial="2014010402">  
+		<profile name="socketsraw_spec" description="SPEC Socket" enable="false" serial="2014010402">  
           		<settings>
             			<param name="dev" value="any"/>     
 	                	<param name="promisc" value="true"/>
