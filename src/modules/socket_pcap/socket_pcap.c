@@ -119,13 +119,11 @@ int bind_api(socket_module_api_t* api)
 
 int bind_check_size(msg_t *_m, char *param1, char *param2)
 {
-        LERR("CHECK SIZE!!!!!!!!!!!!!!\n");
         return 0;
 }
 
 int apply_filter (filter_msg_t *filter) {
 
-	LNOTICE("NEW FILTER!");
 	return 1;
 }
 
@@ -501,7 +499,7 @@ static int load_module(xml_node *config) {
 	char *key, *value = NULL;
 	unsigned int i = 0;
 	char loadplan[1024];
-    FILE* cfg_stream;
+        FILE* cfg_stream;
 
 	LNOTICE("Loaded %s", module_name);
 

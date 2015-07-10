@@ -107,9 +107,7 @@ int w_send_hep_api(msg_t *_m, char *param1)
     int ret = 0;
 
     _m->profile_name = param1;
-    
-    LERR("SEND_HEP_API: [%s]\n", param1);    
-    
+        
     ret =  send_hep(_m);    
     
     return ret;
