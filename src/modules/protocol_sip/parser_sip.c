@@ -61,6 +61,7 @@ int parseSdpMLine(miprtcp_t *mp, char *data, int len) {
 			if (data[i] == ' ') {
 				st = ST_END;
 				mp->media_port = atoi((char *) data + last_offset);
+				if(mp->rtcp_port == 0) mp->rtcp_port = mp->media_port + 1;
 				last_offset = i;
 				return 1;
 			}
@@ -166,6 +167,10 @@ int parseSdpCLine(miprtcp_t *mp, char *data, int len) {
 		case ST_CONNECTIONADRESS:
 			mp->media_ip.s = (char *) data + last_offset + 1;
 			mp->media_ip.len = len - last_offset - 3;
+			if(mp->rtcp_ip.len == 0) {
+				mp->rtcp_ip.len = mp->media_ip.len;
+				mp->rtcp_ip.s = mp->media_ip.s;
+			}
 			st = ST_END;
 			break;
 
