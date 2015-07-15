@@ -35,7 +35,6 @@
 #include <errno.h>
 
 #include "captarray.h"
-#include "database_hash.h"
 #include "src/api.h"
 #include "src/log.h"
 

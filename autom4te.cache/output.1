@@ -13600,7 +13600,7 @@ fi
 done
 
 
-ac_config_files="$ac_config_files Makefile src/Makefile src/modules/socket_pcap/Makefile src/modules/socket_raw/Makefile src/modules/protocol_sip/Makefile src/modules/transport_hep/Makefile src/modules/transport_json/Makefile src/modules/socket_rtcpxr/Makefile"
+ac_config_files="$ac_config_files Makefile src/Makefile src/modules/socket_pcap/Makefile src/modules/socket_raw/Makefile src/modules/protocol_sip/Makefile src/modules/protocol_rtcp/Makefile src/modules/transport_hep/Makefile src/modules/transport_json/Makefile src/modules/socket_rtcpxr/Makefile src/modules/database_hash/Makefile"
 
 
 
@@ -14611,9 +14611,11 @@ do
     "src/modules/socket_pcap/Makefile") CONFIG_FILES="$CONFIG_FILES src/modules/socket_pcap/Makefile" ;;
     "src/modules/socket_raw/Makefile") CONFIG_FILES="$CONFIG_FILES src/modules/socket_raw/Makefile" ;;
     "src/modules/protocol_sip/Makefile") CONFIG_FILES="$CONFIG_FILES src/modules/protocol_sip/Makefile" ;;
+    "src/modules/protocol_rtcp/Makefile") CONFIG_FILES="$CONFIG_FILES src/modules/protocol_rtcp/Makefile" ;;
     "src/modules/transport_hep/Makefile") CONFIG_FILES="$CONFIG_FILES src/modules/transport_hep/Makefile" ;;
     "src/modules/transport_json/Makefile") CONFIG_FILES="$CONFIG_FILES src/modules/transport_json/Makefile" ;;
     "src/modules/socket_rtcpxr/Makefile") CONFIG_FILES="$CONFIG_FILES src/modules/socket_rtcpxr/Makefile" ;;
+    "src/modules/database_hash/Makefile") CONFIG_FILES="$CONFIG_FILES src/modules/database_hash/Makefile" ;;
 
   *) as_fn_error $? "invalid argument: \`$ac_config_target'" "$LINENO" 5;;
   esac

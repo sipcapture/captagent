@@ -12,6 +12,7 @@
 
 extern int expire_timer_array;
 extern int timer_loop_stop;
+extern int check_ipport(char *name);
 
 typedef struct timer_queue {
         struct list_head node;

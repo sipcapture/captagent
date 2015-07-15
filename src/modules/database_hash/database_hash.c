@@ -39,10 +39,6 @@
 #include <time.h>
 #include <pthread.h>
 
-#include "config.h"
-
-#include <json/json.h>
-
 #include "src/api.h"
 #include "src/structure.h"
 #include "src/modules_api.h"
@@ -99,12 +95,10 @@ int bind_api(database_module_api_t* api)
 int w_check_rtcp_ipport(msg_t *msg)
 {
 
-	int ret = 0;
 	int i = 0;
 	miprtcp_t *mp = NULL;
 	char ipptmp[256];
 	char callid[256];
-	bool del = FALSE;
 
 
 	snprintf(callid, sizeof(callid), "%.*s", msg->sip.callId.len, msg->sip.callId.s);
@@ -122,7 +116,7 @@ int w_check_rtcp_ipport(msg_t *msg)
 	            add_timer(ipptmp);
 			}
 
-            add_ipport(ipptmp, msg->sip.callId);
+            add_ipport(ipptmp, callid);
 		}
 	}
 
@@ -142,8 +136,8 @@ int w_is_rtcp_exists(msg_t *msg)
           msg->rcinfo.direction = 0;
     }
 
-    msg->rcinfo.correlation_id.s = &ipport->callid;
-    msg->rcinfo.correlation_id.len = strlen(ipport->callid);
+    msg->rcinfo.correlation_id->s = ipport->sessionid;
+    msg->rcinfo.correlation_id->len = strlen(ipport->sessionid);
 
     msg->var = (void *) ipport;
 
@@ -159,7 +153,7 @@ void add_ipport(char *key, char *callid) {
         ipport = (struct ipport_items*)malloc(sizeof(struct ipport_items));
 
         snprintf(ipport->name, sizeof(ipport->name), "%s",  key);
-        snprintf(ipport->callid, sizeof(ipport->callid), "%s", callid);
+        snprintf(ipport->sessionid, sizeof(ipport->sessionid), "%s", callid);
 
         ipport->modify_ts = (unsigned)time(NULL);
 
@@ -195,7 +189,7 @@ int find_and_update(char *callid, const char *srcip, int srcport, const char *ds
         }
 
         if(ipport) {
-                snprintf(callid,sizeof(ipport->callid), "%s", ipport->callid);
+                snprintf(callid, sizeof(ipport->sessionid), "%s", ipport->sessionid);
                 ipport->modify_ts = (unsigned)time(NULL);
                 ret = 1;
         }
@@ -225,7 +219,6 @@ struct ipport_items *find_ipport_key(char *key) {
 
 struct ipport_items *find_ipport(char *ip, int port) {
 
-        struct ipport_items *ipport;
         
         char name[400];
         snprintf(name, 400, "%s:%i",  ip, port);
@@ -339,7 +332,6 @@ void print_ipports() {
         HASH_ITER(hh, ipports, s, tmp) {
 
                 LDEBUG("NAME IPPORTS: %s", s->name);
-                LDEBUG("CID  IPPORTS: %s", s->uuid);
         }
         
         pthread_rwlock_unlock(&ipport_lock);
@@ -411,12 +403,8 @@ void free_module_xml_config() {
 
 static int load_module(xml_node *config) {
 
-	xml_node *params, *profile=NULL, *settings, *condition, *action;
+	xml_node *params, *profile=NULL, *settings;
 	char *key, *value = NULL;
-	unsigned int i = 0;
-	char module_api_name[256], loadplan[1024];
-    int status;
-    FILE* cfg_stream;
 
 	LNOTICE("Loaded %s", module_name);
 

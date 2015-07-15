@@ -254,9 +254,11 @@ AC_CONFIG_FILES([
 		src/modules/socket_pcap/Makefile
 		src/modules/socket_raw/Makefile
 		src/modules/protocol_sip/Makefile
+		src/modules/protocol_rtcp/Makefile
 		src/modules/transport_hep/Makefile
 		src/modules/transport_json/Makefile
 		src/modules/socket_rtcpxr/Makefile
+		src/modules/database_hash/Makefile
 		
 ])
 

@@ -1,6 +1,6 @@
 #
 
-database_hash_la_SOURCES = database_hash.c localapi.c  
+database_hash_la_SOURCES = database_hash.c captarray.c localapi.c  
 database_hash_la_CFLAGS = -Wall ${MODULE_CFLAGS} ${AM_CFLAGS} ${EXPAT_LIBS}
 database_hash_la_LDFLAGS = -module -avoid-version 
 

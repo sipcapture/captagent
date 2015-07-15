@@ -43,8 +43,10 @@ int cin_max = 800;
 #define MAX_DATABASE 10
 profile_database_t profile_database[MAX_DATABASE];
 
-extern struct stats_object stats_obj;
+#define EXPIRE_RTCP_HASH 80
+#define EXPIRE_TIMER_ARRAY 80
 
+int expire_hash_value = EXPIRE_RTCP_HASH;
 
 typedef struct mediaport {
   char ipportid[400];
@@ -65,7 +67,7 @@ extern char* global_config_path;
 /* IPPORTS */
 struct ipport_items *find_ipport(char *ip, int port);
 struct ipport_items *find_ipport_key(char *key);
-void add_ipport(char *key, str *callid);
+void add_ipport(char *key, char *callid);
 int delete_ipport(char *ip, int port);
 int clear_ipport(struct ipport_items *ipport);
 int find_and_update(char *callid, const char *srcip, int srcport, const char *dstip, int dstport);
