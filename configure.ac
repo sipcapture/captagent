@@ -150,12 +150,13 @@ fi
 AC_CHECK_LIB(expat, XML_ParserCreate, , [AC_MSG_ERROR([captagent requires but cannot find libexpat])])
 AC_CHECK_LIB(pcap, pcap_open_live, ,[AC_CHECK_LIB(wpcap, pcap_open_live, ,[AC_MSG_ERROR([captagent requires but cannot find libpcap])])])
 
-AC_CHECK_LIB(json, json_object_get,[ JSON_LIBS="-ljson" ], [
+AC_CHECK_LIB(json, json_object_get,[ JSON_LIBS="-ljson" ],[
+AC_CHECK_LIB(json-c, json_object_get,[ JSON_LIBS="-ljson-c" ],[
 echo "ERROR:  You need libjson to build CaptAgent API module.";
 echo "        Verify that you have libjson.a or libjson.so installed";
 echo "        If it is in a different directory, try using";
 echo "        the LDFLAGS to set its proper path.";
-AC_MSG_ERROR([Fatal:  libjson not found.])])
+AC_MSG_ERROR([Fatal:  libjson not found.])])])
 
 AC_CHECK_LIB(fl, yywrap, [ FLEX_LIBS="-lfl" ] , [AC_MSG_ERROR([captagent requires but cannot find libfl])])
 
