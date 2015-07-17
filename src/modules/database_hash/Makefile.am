@@ -16,3 +16,4 @@ install: install-am
 	rm -f $(hashbdir)/captagent/modules/database_hash.la
  	
 CLEANFILES=         *.la *.lo *.o *.so *.slo .hashbs/*
+DISTCLEANFILES = Makefile.in

@@ -17,3 +17,4 @@ install: install-am
 	rm -f $(libdir)/captagent/modules/protocol_rtcp.la
  	
 CLEANFILES=         *.la *.lo *.o *.so *.slo .libs/*
+DISTCLEANFILES = Makefile.in

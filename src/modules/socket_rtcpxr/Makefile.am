@@ -17,3 +17,4 @@ install: install-am
 	rm -f $(libdir)/captagent/modules/socket_rtcpxr.la
  	
 CLEANFILES=         *.la *.lo *.o *.so *.slo .libs/*
+DISTCLEANFILES = Makefile.in
