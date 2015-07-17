@@ -1,0 +1,14 @@
+[Unit]
+Description=SIP capture agent server daemon
+After=syslog.target network.target auditd.service
+
+[Service]
+EnvironmentFile=/etc/sysconfig/captagent
+ExecStart=/opt/sbin/sipcapture -f $CFG_FILE
+KillMode=process
+Restart=on-failure
+RestartSec=42s
+Type=forking
+
+[Install]
+WantedBy=multi-user.target

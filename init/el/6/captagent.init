@@ -20,44 +20,46 @@
 # Source function library.
 . /etc/rc.d/init.d/functions
 
-cap=/usr/local/bin/captagent
 prog=captagent
+APP_FILE=/usr/local/bin/$prog
+PID_FILE=/var/run/$prog.pid
+LOCK_FILE=/var/lock/subsys/$prog
 RETVAL=0
 
-[ -z "$CONFIG" ]  && CONFIG=/usr/local/etc/captagent/captagent.xml
+[ -z "$CFG_FILE" ]  && CFG_FILE=/usr/local/etc/captagent/captagent.xml
 
-OPTIONS="-f $CONFIG"
+OPTIONS="-f $CFG_FILE"
 
 
 [ -f /etc/sysconfig/$prog ] && . /etc/sysconfig/$prog
 
 start() {
-  if [ -e /var/run/captagent.pid ]; then
-        echo "[FAILED] Captagent is already running with PID: `cat /var/run/captagent.pid`"
+  if [ -e $PID_FILE ]; then
+        echo "[FAILED] Captagent is already running with PID: `cat $PID_FILE`"
   else  
         echo -n $"Starting $prog: "
          # there is something at end of this output which is needed to
          # report proper [ OK ] status in CentOS scripts
-         $cap $OPTIONS && success || failure
+         $APP_FILE $OPTIONS && success || failure
          RETVAL=$?
          echo
-         [ $RETVAL = 0 ] && touch /var/lock/subsys/$prog
+         [ $RETVAL = 0 ] && touch $LOCK_FILE
   fi       
 }
 
 stop() {
 	echo -n $"Stopping $prog: "
-	killproc $cap
+	killproc $APP_FILE
 	RETVAL=$?
 	echo
-	[ $RETVAL = 0 ] && rm -f /var/lock/subsys/$prog /var/run/$prog.pid
+	[ $RETVAL = 0 ] && rm -f $LOCK_FILE $PID_FILE
 }
 
 status() {
-  if [ -e /var/run/captagent.pid ]; then
-             echo "[OK] Captagent is running with PID: `cat /var/run/captagent.pid`"
+  if [ -e $PID_FILE ]; then
+             echo "[OK] Captagent is running with PID: `cat $PID_FILE`"
   else
-             echo "[FAILED] /var/run/captagent.pid does not exist"
+             echo "[FAILED] $PID_FILE does not exist"
              RETVAL=1
   fi   
 	return $RETVAL
@@ -80,7 +82,7 @@ case "$1" in
 		start
 		;;
 	condrestart)
-		if [ -f /var/run/$prog.pid ] ; then
+		if [ -f $PID_FILE ] ; then
 			stop
 			start
 		fi
