@@ -40,7 +40,7 @@ start() {
         echo -n $"Starting $prog: "
          # there is something at end of this output which is needed to
          # report proper [ OK ] status in CentOS scripts
-         $cap $OPTIONS && success || failure
+         $APP_FILE $OPTIONS && success || failure
          RETVAL=$?
          echo
          [ $RETVAL = 0 ] && touch $LOCK_FILE
@@ -49,7 +49,7 @@ start() {
 
 stop() {
 	echo -n $"Stopping $prog: "
-	killproc $cap
+	killproc $APP_FILE
 	RETVAL=$?
 	echo
 	[ $RETVAL = 0 ] && rm -f $LOCK_FILE $PID_FILE
