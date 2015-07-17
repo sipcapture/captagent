@@ -15,7 +15,13 @@ libtool
 ltmain.sh
 missing
 stamp-h1
+*.o
+*.lo
+*.a
+*.la
 *.Po
 *.Plo
+.deps
+.libs
 autom4te.cache
 m4
