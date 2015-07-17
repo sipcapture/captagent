@@ -24,9 +24,9 @@ cap=/usr/local/bin/captagent
 prog=captagent
 RETVAL=0
 
-[ -z "$CONFIG" ]  && CONFIG=/usr/local/etc/captagent/captagent.xml
+[ -z "$CONFIG" ]  && CFG_FILE=/usr/local/etc/captagent/captagent.xml
 
-OPTIONS="-f $CONFIG"
+OPTIONS="-f $CFG_FILE"
 
 
 [ -f /etc/sysconfig/$prog ] && . /etc/sysconfig/$prog
