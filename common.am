@@ -1,0 +1,20 @@
+DISTCLEANFILES = \
+	INSTALL \
+	Makefile \
+	Makefile.in \
+	configure \
+	config \
+	aclocal.m4 \
+	config.guess \
+	config.h.in \
+	config.h.in~ \
+	config.log \
+	config.status \
+	config.sub \
+	depcomp \
+	install-sh \
+	ltmain.sh \
+	missing
+
+SUFFIXES = .c .h .y .l
+AM_YFLAGS = -d
