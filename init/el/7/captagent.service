@@ -5,7 +5,6 @@ After=syslog.target network.target auditd.service
 [Service]
 EnvironmentFile=/etc/sysconfig/captagent
 ExecStart=/opt/sbin/sipcapture -f $CFG_FILE
-PIDFile=/var/run/captagent.pid
 KillMode=process
 Restart=on-failure
 RestartSec=42s
