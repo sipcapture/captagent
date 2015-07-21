@@ -250,19 +250,11 @@ AC_FUNC_MALLOC
 AC_CHECK_FUNCS([gettimeofday memset select socket strdup strerror strndup])
 
 AC_CONFIG_FILES([
-		Makefile
-		src/Makefile
-		src/modules/database/hash/Makefile
-		src/modules/protocol/sip/Makefile
-		src/modules/protocol/rtcp/Makefile
-		src/modules/socket/pcap/Makefile
-		src/modules/socket/raw/Makefile
-		src/modules/socket/rtcpxr/Makefile
-		src/modules/transport/hep/Makefile
-		src/modules/transport/json/Makefile
+	Makefile
+	src/Makefile
 ])
 
-m4_include([modules_makefiles.m4])
+m4_include([m4/modules_makefiles.m4])
 
 AC_OUTPUT
 
