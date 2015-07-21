@@ -21,8 +21,8 @@ config = $(sysconfdir)/$(bin_PROGRAMS)/$(bin_PROGRAMS).xml
 
 lex.yy.c: capplan.l
 	flex capplan.l
-	
-capplan.tab.c: capplan.y
+
+capplan.tab.c capplan.tab.h: capplan.y
 	bison -d capplan.y
 
 install: install-am

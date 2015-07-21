@@ -25,3 +25,5 @@ stamp-h1
 .libs
 autom4te.cache
 m4
+capplan.tab.h
+lex.yy.c
