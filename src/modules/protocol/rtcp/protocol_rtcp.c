@@ -29,6 +29,7 @@
 #include <stdint.h>
 #include <inttypes.h>
 
+#include "src/globals.h"
 #include "src/api.h"
 #include "src/structure.h"
 #include "src/modules_api.h"
@@ -292,7 +293,7 @@ static int unload_module(void)
 
 static uint64_t serial_module(void)
 {
-	 return module_serial;
+	return module_serial;
 }
 
 
@@ -300,7 +301,7 @@ static int free_profile(unsigned int idx) {
 
 	/*free profile chars **/
 
-	if (profile_protocol[idx].name)	 free(profile_protocol[idx].name);
+	if (profile_protocol[idx].name) free(profile_protocol[idx].name);
 	if (profile_protocol[idx].description) free(profile_protocol[idx].description);
 	if (profile_protocol[idx].ignore) free(profile_protocol[idx].ignore);
 
@@ -320,10 +321,9 @@ static int statistic(char *buf, size_t len)
 {
 	int ret = 0;
 
-		ret += snprintf(buf+ret, len-ret, "Total received: [%" PRId64 "]\r\n", stats.recieved_packets_total);
-		ret += snprintf(buf+ret, len-ret, "Parsed packets: [%" PRId64 "]\r\n", stats.parsed_packets);
-		ret += snprintf(buf+ret, len-ret, "Total sent: [%" PRId64 "]\r\n", stats.send_packets);
+	ret += snprintf(buf+ret, len-ret, "Total received: [%" PRId64 "]\r\n", stats.recieved_packets_total);
+	ret += snprintf(buf+ret, len-ret, "Parsed packets: [%" PRId64 "]\r\n", stats.parsed_packets);
+	ret += snprintf(buf+ret, len-ret, "Total sent: [%" PRId64 "]\r\n", stats.send_packets);
 
-		return 1;
+	return 1;
 }
-                        
