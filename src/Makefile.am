@@ -11,7 +11,6 @@ SUBDIRS = \
 	modules/transport/json \
 	modules/database/hash
 
-
 bin_PROGRAMS = captagent
 BUILT_SOURCES = capplan.tab.h
 AM_CFLAGS = -g -fPIC -rdynamic -I$(top_srcdir)/include

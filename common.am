@@ -1,6 +1,5 @@
 DISTCLEANFILES = \
 	INSTALL \
-	Makefile \
 	Makefile.in \
 	configure \
 	config \

@@ -3,5 +3,8 @@ moddir = $(libdir)/captagent/modules
 AM_CPPFLAGS = ${AM_INCLUDES} -I$(top_srcdir)/include
 AM_CFLAGS = ${AM_CFLAGS} -I$(top_srcdir)/include
 
-CLEANFILES = *.la *.lo *.o *.so *.slo .*
-DISTCLEANFILES = Makefile.in
+CLEANFILES = *.la *.lo *.o *.so *.slo
+
+distclean-local:
+	rm -rf .deps .libs Makefile.in
+
