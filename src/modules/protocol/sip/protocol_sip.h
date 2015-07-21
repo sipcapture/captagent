@@ -26,7 +26,7 @@
 #ifndef _PROTOCOL_SIP_H_
 #define _PROTOCOL_SIP_H_
 
-#include "../../xmlread.h"
+#include <captagent/xmlread.h>
 #include "parser_sip.h"
 
 #define FILTER_LEN 4080

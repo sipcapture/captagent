@@ -1,12 +1,12 @@
 
 
-#include "src/api.h"
-#include "src/structure.h"
-#include "src/modules_api.h"
-#include "src/modules.h"
+#include <captagent/api.h>
+#include <captagent/structure.h>
+#include <captagent/modules_api.h>
+#include <captagent/modules.h>
 #include "parser_sip.h"
-#include "src/proto_sip.h"
-#include "src/log.h"
+#include <captagent/proto_sip.h>
+#include <captagent/log.h>
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>

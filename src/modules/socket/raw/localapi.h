@@ -26,8 +26,8 @@
 #ifndef SOCKET_RAW_API_H_
 #define SOCKET_RAW_API_H_
 
-#include "src/log.h"
-#include "src/export_function.h"
+#include <captagent/log.h>
+#include <captagent/export_function.h>
 
 typedef int (*rawapi_set_filter_f)(unsigned int index, char *filter);
 int rawapi_set_filter(unsigned int index, char *filter);

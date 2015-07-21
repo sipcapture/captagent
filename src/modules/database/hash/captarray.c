@@ -35,8 +35,8 @@
 #include <errno.h>
 
 #include "captarray.h"
-#include "src/api.h"
-#include "src/log.h"
+#include <captagent/api.h>
+#include <captagent/log.h>
 
       
 pthread_t thread_timer;

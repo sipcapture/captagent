@@ -1,4 +1,6 @@
-include ../../../modules.am
+include $(top_srcdir)/modules.am
+
+SUBDIRS = .
 #
 transport_json_la_SOURCES = transport_json.c
 transport_json_la_CFLAGS = -Wall ${MODULE_CFLAGS}

@@ -29,7 +29,7 @@
 
 #include "proto_sip.h"
 
-struct msg {
+typedef struct msg {
         void *data;
         char *profile_name;
         uint32_t len;
@@ -40,9 +40,7 @@ struct msg {
         sip_msg_t sip;
         void *var;
         int flag[10];
-};
-
-typedef struct msg msg_t;
+} msg_t;
 
 typedef struct stats_msg {
         char *mod_name;

@@ -32,13 +32,13 @@
 #include <dlfcn.h>
 #include <string.h>
 
-#include "api.h"
-#include "proto_sip.h"
-#include "structure.h"
-#include "log.h"
-#include "xmlread.h"
-#include "modules_api.h"
-#include "modules.h"
+#include <captagent/api.h>
+#include <captagent/proto_sip.h>
+#include <captagent/structure.h>
+#include <captagent/log.h>
+#include <captagent/xmlread.h>
+#include <captagent/modules_api.h>
+#include <captagent/modules.h>
 
 int register_module(char *resource_name, xml_node *config, bool global) {
 	const char *error;

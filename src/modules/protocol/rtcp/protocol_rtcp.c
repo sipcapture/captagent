@@ -29,13 +29,13 @@
 #include <stdint.h>
 #include <inttypes.h>
 
-#include "src/globals.h"
-#include "src/api.h"
-#include "src/structure.h"
-#include "src/modules_api.h"
-#include "src/modules.h"
+#include <captagent/globals.h>
+#include <captagent/api.h>
+#include <captagent/structure.h>
+#include <captagent/modules_api.h>
+#include <captagent/modules.h>
 #include "protocol_rtcp.h"
-#include "src/log.h"
+#include <captagent/log.h>
 
 xml_node *module_xml_config = NULL;
 char *module_name="protocol_rtcp";
@@ -71,7 +71,8 @@ struct module_exports exports = {
 
 int bind_api(protocol_module_api_t* api)
 {
-		api->parse_only_f = parse_only_packet;
+#pragma message __FILE__ ": =================== TODO: Uncomment after this message ====================="
+//		api->parse_only_f = parse_only_packet;
 		api->reload_f = reload_config;
 		api->module_name = module_name;
 

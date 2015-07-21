@@ -27,7 +27,7 @@
 #ifndef LOG_C_
 #define LOG_C_
 
-#include "log.h"
+#include <captagent/log.h>
 #include <stdio.h>
 #include <stdarg.h>
 

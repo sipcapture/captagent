@@ -39,12 +39,12 @@
 #include <time.h>
 #include <pthread.h>
 
-#include "src/api.h"
-#include "src/structure.h"
-#include "src/modules_api.h"
-#include "src/modules.h"
+#include <captagent/api.h>
+#include <captagent/structure.h>
+#include <captagent/modules_api.h>
+#include <captagent/modules.h>
 #include "database_hash.h"
-#include "src/log.h"
+#include <captagent/log.h>
 #include "localapi.h"
 #include "captarray.h"
 

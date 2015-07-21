@@ -54,15 +54,15 @@
 #endif /* USE_IPV6 */
 
 
-#include "src/capture.h"
-#include "src/globals.h"
-#include "src/api.h"
-#include "src/proto_sip.h"
-#include "src/structure.h"
-#include "src/modules_api.h"
+#include <captagent/capture.h>
+#include <captagent/globals.h>
+#include <captagent/api.h>
+#include <captagent/proto_sip.h>
+#include <captagent/structure.h>
+#include <captagent/modules_api.h>
 #include "socket_rtcpxr.h"
-#include "src/modules.h"
-#include "src/log.h"
+#include <captagent/modules.h>
+#include <captagent/log.h>
 
 profile_socket_t profile_socket[MAX_SOCKETS];
 

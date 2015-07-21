@@ -38,17 +38,17 @@
 #include <netinet/in.h>
 
 
-#include "api.h"
-#include "proto_sip.h"
-#include "structure.h"
-#include "capture.h"
-#include "xmlread.h"
-#include "modules_api.h"
-#include "modules.h"
-#include "log.h"
+#include <captagent/api.h>
+#include <captagent/proto_sip.h>
+#include <captagent/structure.h>
+#include <captagent/capture.h>
+#include <captagent/xmlread.h>
+#include <captagent/modules_api.h>
+#include <captagent/modules.h>
+#include <captagent/log.h>
 #include "md5.h"
-#include "globals.h"
-#include "capture.h"
+#include <captagent/globals.h>
+#include <captagent/capture.h>
 #include "conf_function.h"
 
 #define E_UNSPEC      -1

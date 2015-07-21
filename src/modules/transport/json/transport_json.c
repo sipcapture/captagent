@@ -51,14 +51,14 @@
 #include <netinet/tcp.h>
 #include <netinet/udp.h>
 
-#include "src/api.h"
-#include "src/proto_sip.h"
-#include "src/structure.h"
-#include "src/modules_api.h"
-#include "src/modules.h"
+#include <captagent/api.h>
+#include <captagent/proto_sip.h>
+#include <captagent/structure.h>
+#include <captagent/modules_api.h>
+#include <captagent/modules.h>
 //#include "../protocol_sip/parser_sip.h"
 #include "transport_json.h"
-#include "src/log.h"
+#include <captagent/log.h>
 
 xml_node *module_xml_config = NULL;
 char *module_name="transport_json";
