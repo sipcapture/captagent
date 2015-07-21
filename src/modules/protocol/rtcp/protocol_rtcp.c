@@ -90,7 +90,7 @@ int w_parse_rtcp_to_json(msg_t *_m)
 	  json_rtcp_buffer = malloc(JSON_BUFFER_LEN);
 
 	  json_rtcp_buffer[0] = '\0';
-	  if((json_len = capt_parse_rtcp((char *)_m.data, _m.len, json_rtcp_buffer, JSON_BUFFER_LEN)) > 0) {
+	  if((json_len = capt_parse_rtcp((char *)_m->data, _m->len, json_rtcp_buffer, JSON_BUFFER_LEN)) > 0) {
 	      _m->rcinfo.proto_type = rtcp_proto_type;
 	      if(_m->data) free(_m->data);
 	      _m->data = json_rtcp_buffer;
