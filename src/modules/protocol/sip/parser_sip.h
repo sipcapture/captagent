@@ -8,7 +8,7 @@
 #ifndef _PARSE_SIP_H
 #define _PARSE_SIP_H
 
-#include "src/api.h"
+#include <captagent/api.h>
 
 int set_hname(str *hname, int len, char *s);
 int parse_message(char *message, unsigned int blen, unsigned int* bytes_parsed, sip_msg_t *psip, unsigned int type);

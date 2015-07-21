@@ -12,14 +12,14 @@
 #include <arpa/inet.h>
 #include <string.h>
 #include <errno.h>
-#include "api.h"
-#include "proto_sip.h"
-#include "structure.h"
-#include "capture.h"
-#include "modules_api.h"
-#include "modules.h"
+#include <captagent/api.h>
+#include <captagent/proto_sip.h>
+#include <captagent/structure.h>
+#include <captagent/capture.h>
+#include <captagent/modules_api.h>
+#include <captagent/modules.h>
 #include "conf_function.h"
-#include "globals.h"
+#include <captagent/globals.h>
 #include "../config.h"
 
 extern int yylex();

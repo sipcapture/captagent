@@ -32,9 +32,9 @@
 #include <expat.h>
 #include <string.h>
 
-#include "log.h"
-#include "api.h"
-#include "xmlread.h"
+#include <captagent/log.h>
+#include <captagent/api.h>
+#include <captagent/xmlread.h>
 
 xml_node *xml_alloc(xml_node *parent) {
 	xml_node *n, **link = &parent->child;

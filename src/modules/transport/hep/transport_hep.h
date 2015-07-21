@@ -26,7 +26,7 @@
 #ifndef _transport_hep_H_
 #define _transport_hep_H_
 
-#include "../../xmlread.h"
+#include <captagent/xmlread.h>
 
 #include <netinet/ip.h>
 #include <netinet/tcp.h>

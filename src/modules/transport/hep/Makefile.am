@@ -1,4 +1,6 @@
-include ../../../modules.am
+include $(top_srcdir)/modules.am
+
+SUBDIRS = .
 #
 transport_hep_la_SOURCES = transport_hep.c
 transport_hep_la_CFLAGS = -Wall ${MODULE_CFLAGS}

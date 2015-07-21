@@ -78,7 +78,7 @@
 #include <string.h>
 #include <errno.h>
 #include "conf_function.h"
-#include "globals.h"
+#include <captagent/globals.h>
 #include "../config.h"
 
 extern int yylex();

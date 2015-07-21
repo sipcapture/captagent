@@ -26,7 +26,7 @@
 #ifndef _socket_rtcpxr_H_
 #define _socket_rtcpxr_H_
 
-#include "../../xmlread.h"
+#include <captagent/xmlread.h>
 
 #define FILTER_LEN 4080
 

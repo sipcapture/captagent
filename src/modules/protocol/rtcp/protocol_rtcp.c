@@ -29,12 +29,13 @@
 #include <stdint.h>
 #include <inttypes.h>
 
-#include "src/api.h"
-#include "src/structure.h"
-#include "src/modules_api.h"
-#include "src/modules.h"
+#include <captagent/globals.h>
+#include <captagent/api.h>
+#include <captagent/structure.h>
+#include <captagent/modules_api.h>
+#include <captagent/modules.h>
 #include "protocol_rtcp.h"
-#include "src/log.h"
+#include <captagent/log.h>
 
 xml_node *module_xml_config = NULL;
 char *module_name="protocol_rtcp";
@@ -70,7 +71,8 @@ struct module_exports exports = {
 
 int bind_api(protocol_module_api_t* api)
 {
-		api->parse_only_f = parse_only_packet;
+#pragma message __FILE__ ": =================== TODO: Uncomment after this message ====================="
+//		api->parse_only_f = parse_only_packet;
 		api->reload_f = reload_config;
 		api->module_name = module_name;
 
@@ -90,7 +92,7 @@ int w_parse_rtcp_to_json(msg_t *_m)
 	  json_rtcp_buffer = malloc(JSON_BUFFER_LEN);
 
 	  json_rtcp_buffer[0] = '\0';
-	  if((json_len = capt_parse_rtcp((char *)_m.data, _m.len, json_rtcp_buffer, JSON_BUFFER_LEN)) > 0) {
+	  if((json_len = capt_parse_rtcp((char *)_m->data, _m->len, json_rtcp_buffer, JSON_BUFFER_LEN)) > 0) {
 	      _m->rcinfo.proto_type = rtcp_proto_type;
 	      if(_m->data) free(_m->data);
 	      _m->data = json_rtcp_buffer;
@@ -292,7 +294,7 @@ static int unload_module(void)
 
 static uint64_t serial_module(void)
 {
-	 return module_serial;
+	return module_serial;
 }
 
 
@@ -300,7 +302,7 @@ static int free_profile(unsigned int idx) {
 
 	/*free profile chars **/
 
-	if (profile_protocol[idx].name)	 free(profile_protocol[idx].name);
+	if (profile_protocol[idx].name) free(profile_protocol[idx].name);
 	if (profile_protocol[idx].description) free(profile_protocol[idx].description);
 	if (profile_protocol[idx].ignore) free(profile_protocol[idx].ignore);
 
@@ -320,10 +322,9 @@ static int statistic(char *buf, size_t len)
 {
 	int ret = 0;
 
-		ret += snprintf(buf+ret, len-ret, "Total received: [%" PRId64 "]\r\n", stats.recieved_packets_total);
-		ret += snprintf(buf+ret, len-ret, "Parsed packets: [%" PRId64 "]\r\n", stats.parsed_packets);
-		ret += snprintf(buf+ret, len-ret, "Total sent: [%" PRId64 "]\r\n", stats.send_packets);
+	ret += snprintf(buf+ret, len-ret, "Total received: [%" PRId64 "]\r\n", stats.recieved_packets_total);
+	ret += snprintf(buf+ret, len-ret, "Parsed packets: [%" PRId64 "]\r\n", stats.parsed_packets);
+	ret += snprintf(buf+ret, len-ret, "Total sent: [%" PRId64 "]\r\n", stats.send_packets);
 
-		return 1;
+	return 1;
 }
-                        

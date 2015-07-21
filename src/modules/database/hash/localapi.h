@@ -27,8 +27,8 @@
 #ifndef DATABASE_HASH_API_H_
 #define DATABASE_HASH_API_H_
 
-#include "src/log.h"
-#include "src/export_function.h"
+#include <captagent/log.h>
+#include <captagent/export_function.h>
 
 typedef char* (*hashapi_lookup_f)(char *ip, int port);
 char* hashapi_lookup(char *ip, int port);

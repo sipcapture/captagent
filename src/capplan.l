@@ -5,22 +5,22 @@
 %{
 
 #include "capplan.tab.h"
-#include "api.h"
-#include "proto_sip.h"
-#include "structure.h"
-#include "capture.h"
-#include "modules_api.h"
-#include "modules.h"
+#include <captagent/api.h>
+#include <captagent/proto_sip.h>
+#include <captagent/structure.h>
+#include <captagent/capture.h>
+#include <captagent/modules_api.h>
+#include <captagent/modules.h>
 #include "conf_function.h"
-#include "globals.h"
+#include <captagent/globals.h>
 #include <string.h>
 #include <stdlib.h>
 
 /* states */
-#define INITIAL_S		0
-#define COMMENT_S		1
+#define INITIAL_S	0
+#define COMMENT_S	1
 #define COMMENT_LN_S	2
-#define STRING_S		3
+#define STRING_S	3
 
 static int comment_nest=0;
 static int state=0;

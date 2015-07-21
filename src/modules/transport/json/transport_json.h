@@ -27,7 +27,7 @@
 #ifndef _transport_json_H_
 #define _transport_json_H_
 
-#include "../../xmlread.h"
+#include <captagent/xmlread.h>
 
 #include <netinet/ip.h>
 #include <netinet/tcp.h>
