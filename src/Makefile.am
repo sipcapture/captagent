@@ -11,7 +11,6 @@ SUBDIRS = \
 	modules/transport/json \
 	modules/database/hash
 
-
 bin_PROGRAMS = captagent
 BUILT_SOURCES = capplan.tab.h
 AM_CFLAGS = -g -fPIC -rdynamic -I$(top_srcdir)/include
@@ -22,8 +21,8 @@ config = $(sysconfdir)/$(bin_PROGRAMS)/$(bin_PROGRAMS).xml
 
 lex.yy.c: capplan.l
 	flex capplan.l
-	
-capplan.tab.c: capplan.y
+
+capplan.tab.c capplan.tab.h: capplan.y
 	bison -d capplan.y
 
 install: install-am
