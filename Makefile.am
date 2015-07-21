@@ -10,5 +10,7 @@ SUBDIRS = src \
 	src/modules/transport/json \
 	src/modules/database/hash
 
+ACLOCAL_AMFLAGS = -I m4
+
 distclean-local:
 	rm -rf autom4te.cache
