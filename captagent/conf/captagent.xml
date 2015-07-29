@@ -26,7 +26,7 @@
 	<configuration name="core_hep.conf" description="HEP Socket">
 	  <settings>
 	    <param name="version" value="3"/>
-	    <param name="capture-host" value="capture.homercloud.org"/>
+	    <param name="capture-host" value="localhost"/>
 	    <param name="capture-port" value="9000"/>      
 	    <param name="capture-proto" value="udp"/>
 	    <param name="capture-id" value="2001"/>
