@@ -79,7 +79,7 @@
 #include <errno.h>
 #include "conf_function.h"
 #include <captagent/globals.h>
-#include "../config.h"
+#include "config.h"
 
 extern int yylex();
 void yyerror(char* s);
