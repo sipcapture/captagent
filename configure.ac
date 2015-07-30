@@ -1,10 +1,10 @@
-dnl Process this file with autoconf to produce a configure script.
-
-AC_PREREQ(2.59)
-AC_INIT(captagent, 6.0, [http://www.sipcapture.org])
-
+AC_PREREQ(2.61)
+AC_INIT(captagent,6.0.0,support@sipcapture.org,,[http://www.sipcapture.org])
+AC_COPYRIGHT("SIP Capture Solution")
 AC_CONFIG_MACRO_DIR([m4])
-
+AM_INIT_AUTOMAKE(foreign tar-ustar)
+AC_CONFIG_HEADERS([src/config.h])
+AC_CONFIG_SRCDIR([src/captagent.c])
 AC_MSG_CHECKING([whether to use compression])
 enableCompression=no
 AC_ARG_ENABLE(compression,
@@ -12,7 +12,6 @@ AC_ARG_ENABLE(compression,
    [ZLIB="$enableval"]
    enableCompression=yes,
    [ZLIB="no"]
-   
 )
 AC_MSG_RESULT([$ZLIB])
 AC_SUBST([ZLIB])
@@ -23,7 +22,7 @@ AC_ARG_ENABLE(ssl,
    [  --enable-ssl	Enable SSL support)],
    [SSL="$enableval"]
    enableSSL=yes,
-   [SSL="no"]         
+   [SSL="no"]
 )
 AC_MSG_RESULT([$SSL])
 AC_SUBST([SSL])
@@ -34,7 +33,7 @@ AC_ARG_ENABLE(mysql,
    [  --enable-mysql    Enable mysql support)],
    [MYSQL="$enableval"]
    useMysql=yes,
-   [MYSQL="no"]   
+   [MYSQL="no"]
 )
 AC_MSG_RESULT([$MYSQL])
 AC_SUBST([MYSQL])
@@ -46,7 +45,7 @@ AC_ARG_ENABLE(pcre,
    [  --enable-pcre    Enable pcre support)],
    [PCRE="$enableval"]
    usePCRE=yes,
-   [PCRE="no"]   
+   [PCRE="no"]
 )
 AC_MSG_RESULT([$PCRE])
 AC_SUBST([PCRE])
@@ -62,16 +61,6 @@ AC_ARG_ENABLE(redis,
 AC_MSG_RESULT([$REDIS])
 AC_SUBST([REDIS])
 
-
-AC_CONFIG_SRCDIR([src/captagent.c])
-
-#AC_CONFIG_AUX_DIR(`pwd`)
-captagent_builddir=`pwd`
-
-AC_COPYRIGHT("SIP Capture Solution")
-
-AC_CONFIG_HEADERS([config.h])
-
 CONFIG_CFLAGS="${CFLAGS}"
 CONFIG_LDFLAGS="${LDFLAGS}"
 
@@ -83,20 +72,9 @@ AC_SUBST(OUR_MODS)
 #AC_ENABLE_STATIC(no)
 
 #AC_CANONICAL_SYSTEM
-AM_INIT_AUTOMAKE()
+#AM_INIT_AUTOMAKE()
 
 LT_INIT
-
-AC_PROG_CC
-
-# Checks for programs.
-# AC_PROG_CC([gcc cc])
-
-AC_PROG_INSTALL
-AC_PROG_LN_S
-AC_PROG_MAKE_SET
-AC_LIBTOOL_DLOPEN
-#AC_PROG_LIBTOOL
 
 AC_CANONICAL_HOST
 case "${host}" in
@@ -125,7 +103,15 @@ case "${host}" in
         ;;
 esac
 
-#check programm
+# Checks for programs
+AC_PROG_CC
+# AC_PROG_CC([gcc cc])
+
+AC_PROG_INSTALL
+AC_PROG_LN_S
+AC_PROG_MAKE_SET
+AC_LIBTOOL_DLOPEN
+AC_PROG_LIBTOOL
 AC_PROG_LEX
 if test "$LEX" != "flex"; then
 	AC_MSG_ERROR([flex not found. Please install flex])
@@ -251,6 +237,7 @@ AC_CHECK_FUNCS([gettimeofday memset select socket strdup strerror strndup])
 
 AC_CONFIG_FILES([
 	Makefile
+	captagent.spec
 	src/Makefile
 ])
 

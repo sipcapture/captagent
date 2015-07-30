@@ -1,9 +1,10 @@
 include common.am
 
 SUBDIRS = \
+	. \
 	src
 
-ACLOCAL_AMFLAGS = -I m4
+EXTRA_DIST = \
+	captagent.spec
 
-distclean-local:
-	rm -rf autom4te.cache
+ACLOCAL_AMFLAGS = -I m4

@@ -3,8 +3,11 @@ Makefile
 Makefile.in
 aclocal.m4
 config.guess
-config.h
-config.h.in
+src/config.h
+src/config.h.in
+src/config.h.in~
+src/capplan.tab.c
+src/capplan.tab.h
 config.log
 config.status
 config.sub
