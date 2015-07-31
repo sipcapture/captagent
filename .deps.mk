@@ -1,9 +1,7 @@
 PROJ = captagent
 $(PROJ)_VER = 6.0.0
-# Ugly-ugly hack !!!
-#$(PROJ)_TAG = 6.0.0
-#$(PROJ)_PACKAGE_REVISION = $(shell cd $(SRC)/$(PROJ); ../config/revision-gen $($(PROJ)_TAG))
-$(PROJ)_PACKAGE_REVISION = 0
+$(PROJ)_TAG = 6.0.0
+$(PROJ)_PACKAGE_REVISION = $(shell cd $(SRC)/$(PROJ); ../config/revision-gen $($(PROJ)_TAG))
 $(PROJ)_SRPM = $(PROJ)-$($(PROJ)_VER)-$($(PROJ)_PACKAGE_REVISION).src.rpm
 $(PROJ)_TAR = $(PROJ)/$(PROJ)-$($(PROJ)_VER).tar.gz
 
