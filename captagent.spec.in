@@ -8,7 +8,7 @@ License:	GPLv3
 URL:		http://www.sipcapture.org/
 Source0:	%name-%version.tar.gz
 
-Buildrequires:	json-c-devel expat-devel libpcap-devel
+Buildrequires:	json-c-devel expat-devel libpcap-devel flex-devel
 Requires:	json-c expat libpcap
 
 %description
@@ -21,7 +21,7 @@ HOMER is a robust, carrier-grade, scalable SIP Capture system and Monitoring App
 autoreconf -if
 %configure -C \
     --prefix=%{_prefix}
-%{_make}
+%{__make}
 
 %install
 %{__make} DESTDIR=%{buildroot} install
