@@ -1,6 +1,7 @@
 include $(top_srcdir)/modules.am
 
 SUBDIRS = .
+noinst_HEADERS = transport_hep.h
 #
 transport_hep_la_SOURCES = transport_hep.c
 transport_hep_la_CFLAGS = -Wall ${MODULE_CFLAGS}

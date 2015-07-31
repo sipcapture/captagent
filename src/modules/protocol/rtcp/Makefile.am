@@ -1,6 +1,7 @@
 include $(top_srcdir)/modules.am
 
 SUBDIRS = .
+noinst_HEADERS = parser_rtcp.h protocol_rtcp.h
 #
 protocol_rtcp_la_SOURCES = protocol_rtcp.c parser_rtcp.c
 protocol_rtcp_la_CFLAGS = -Wall ${MODULE_CFLAGS}

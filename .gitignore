@@ -6,8 +6,6 @@ config.guess
 src/config.h
 src/config.h.in
 src/config.h.in~
-src/capplan.tab.c
-src/capplan.tab.h
 src/capplan.c
 src/capplan.h
 config.log

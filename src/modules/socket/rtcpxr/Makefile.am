@@ -1,6 +1,7 @@
 include $(top_srcdir)/modules.am
 
 SUBDIRS = .
+noinst_HEADERS = socket_rtcpxr.h
 #
 socket_rtcpxr_la_SOURCES = socket_rtcpxr.c
 socket_rtcpxr_la_CFLAGS = -Wall ${MODULE_CFLAGS}

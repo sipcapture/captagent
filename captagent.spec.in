@@ -27,8 +27,10 @@ autoreconf -if
 %{__make} DESTDIR=%{buildroot} install
 
 %files
-%defattr(-,root,root)
-%attr(0755,-,-) %{_bindir}/%name
-%attr(0755,-,-) %{_libdir}/%name/modules/*.so
-%attr(0755,-,-) %{_libdir}/%name/modules/*.la
-%attr(0644,-,-) %{_libdir}/%name/modules/*.a
+%defattr(644,root,root,755)
+%{_sysconfdir}/%name/*
+%{_bindir}/%name
+# Ugly-ugly hack: do not search for modules
+#%{_libdir}/%name/modules/*.so
+#%{_libdir}/%name/modules/*.la
+#%{_libdir}/%name/modules/*.a
