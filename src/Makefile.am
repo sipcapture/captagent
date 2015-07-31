@@ -12,18 +12,18 @@ SUBDIRS = \
 	modules/database/hash
 
 bin_PROGRAMS = captagent
-BUILT_SOURCES = capplan.tab.h
 AM_CFLAGS = -g -fPIC -rdynamic -I$(top_srcdir)/include
 AM_CPPFLAGS = -DSYSCONFDIR='"$(sysconfdir)"' -I$(top_srcdir)/include
-captagent_SOURCES = capplan.c capplan.l capplan.y captagent.c conf_function.c log.c md5.c modules.c xmlread.c
+captagent_SOURCES = capplan.c captagent.c conf_function.c log.c md5.c modules.c xmlread.c lex.yy.c
 captagent_LDADD = ${PTHREAD_LIBS} ${EXPAT_LIBS} ${DL_LIBS} ${FLEX_LIBS}
+BUILT_SOURCES = capplan.tab.h capplan.l capplan.y $(captagent_SOURCES)
 config = $(sysconfdir)/$(bin_PROGRAMS)/$(bin_PROGRAMS).xml
 
-lex.yy.c: capplan.l
-	flex capplan.l
+lex.yy.c:
+	flex $(top_srcdir)/src/capplan.l
 
 capplan.tab.c capplan.tab.h: capplan.y
-	bison -d capplan.y
+	bison -d $(top_srcdir)/src/capplan.y
 
 install: install-am
 	if test ! -f $(DESTDIR)/$(config); then \
