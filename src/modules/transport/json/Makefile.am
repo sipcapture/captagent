@@ -1,6 +1,7 @@
 include $(top_srcdir)/modules.am
 
 SUBDIRS = .
+noinst_HEADERS = transport_json.h
 #
 transport_json_la_SOURCES = transport_json.c
 transport_json_la_CFLAGS = -Wall ${MODULE_CFLAGS}

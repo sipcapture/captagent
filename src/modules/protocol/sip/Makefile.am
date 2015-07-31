@@ -1,6 +1,7 @@
 include $(top_srcdir)/modules.am
 
 SUBDIRS = .
+noinst_HEADERS = parser_sip.h protocol_sip.h
 #
 protocol_sip_la_SOURCES = protocol_sip.c parser_sip.c
 protocol_sip_la_CFLAGS = -Wall ${MODULE_CFLAGS}

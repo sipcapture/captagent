@@ -1,6 +1,7 @@
 include $(top_srcdir)/modules.am
 
 SUBDIRS = .
+noinst_HEADERS = ipreasm.h socket_pcap.h
 #
 socket_pcap_la_SOURCES = socket_pcap.c ipreasm.c
 socket_pcap_la_CFLAGS = -Wall ${MODULE_CFLAGS} ${LUA_CFLAGS}

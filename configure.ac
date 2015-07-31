@@ -238,6 +238,7 @@ AC_CHECK_FUNCS([gettimeofday memset select socket strdup strerror strndup])
 AC_CONFIG_FILES([
 	Makefile
 	captagent.spec
+	include/Makefile
 	src/Makefile
 ])
 
