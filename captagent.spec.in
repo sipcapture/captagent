@@ -1,6 +1,6 @@
 Name:		@PACKAGE_NAME@
 Version:	@PACKAGE_VERSION@
-Release:	0
+Release:	%{BUILD_NUMBER}
 Summary:	SIP capture server
 
 Group:		Applications/Communications
