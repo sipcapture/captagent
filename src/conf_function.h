@@ -82,7 +82,6 @@ struct action* append_action(struct action* a, struct action* b);
 void print_action(struct action* a);
 void print_expr(struct expr* exp);
 
-typedef  int (*fixup_function)(void** param, int param_no);
 typedef  int (*response_function)(struct sip_msg*);
 typedef int (*child_init_function)(int rank);
 

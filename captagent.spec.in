@@ -28,8 +28,8 @@ autoreconf -if
 
 %files
 %defattr(644,root,root,755)
-%{_sysconfdir}/%name/*
-%{_bindir}/%name
+%config(noreplace) %{_sysconfdir}/%name/*
+%attr(755,root,root) %{_bindir}/%name
 # Ugly-ugly hack: do not search for modules
 #%{_libdir}/%name/modules/*.so
 #%{_libdir}/%name/modules/*.la
