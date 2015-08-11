@@ -71,11 +71,8 @@ struct module_exports exports = {
 
 int bind_api(protocol_module_api_t* api)
 {
-#pragma message __FILE__ ": =================== TODO: Uncomment after this message ====================="
-//		api->parse_only_f = parse_only_packet;
-		api->reload_f = reload_config;
-		api->module_name = module_name;
-
+        api->reload_f = reload_config;
+	api->module_name = module_name;
         return 0;
 }
 
