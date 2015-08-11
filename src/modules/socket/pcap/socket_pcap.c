@@ -650,7 +650,6 @@ static int load_module(xml_node *config) {
 			
 			profile_socket[i].action = main_ct.idx;
 			
-			LDEBUG("INDEX: %d, ENT: [%d]\n", main_ct.idx, main_ct.entries);
 		}
 
 		pthread_create(&call_thread, NULL, proto_collect, arg);
