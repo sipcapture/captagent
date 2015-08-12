@@ -7,6 +7,6 @@ SUBDIRS = \
 
 EXTRA_DIST = \
 	conf \
-	captagent.spec
+	@PACKAGE_NAME@.spec
 
 ACLOCAL_AMFLAGS = -I m4

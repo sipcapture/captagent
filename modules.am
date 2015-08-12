@@ -1,4 +1,5 @@
-moddir = $(libdir)/captagent/modules
+moddir = $(libdir)/@PACKAGE_NAME@/modules
+confdir = $(sysconfdir)/@PACKAGE_NAME@
 
 AM_CPPFLAGS = ${AM_INCLUDES} -I$(top_srcdir)/include
 AM_CFLAGS = ${AM_CFLAGS} -I$(top_srcdir)/include
