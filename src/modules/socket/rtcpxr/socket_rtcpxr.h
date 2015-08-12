@@ -55,9 +55,6 @@ int bind_api(socket_module_api_t* api);
 int reload_config (char *erbuf, int erlen);
 void free_module_xml_config();
 int load_module_xml_config();
-int w_send_reply_p(msg_t *_m, char *param1, char *param2);
-int w_send_reply(msg_t *_m);
-int send_sip_reply(msg_t *_m, int code, char *description);
 
 
 #endif /* _socket_rtcpxr_H_ */

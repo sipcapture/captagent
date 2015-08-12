@@ -88,6 +88,10 @@ int w_parse_sip(msg_t *_m);
 int w_clog(msg_t *_m, char *param1, char* param2);
 int w_sip_is_method(msg_t *_m);
 int w_sip_check(msg_t *_m, char *param1, char *param2);
+
+int w_send_reply_p(msg_t *_m, char *param1, char *param2);
+int w_send_reply(msg_t *_m);
+int send_sip_reply(msg_t *_m, int code, char *description);
                                     
 
 
