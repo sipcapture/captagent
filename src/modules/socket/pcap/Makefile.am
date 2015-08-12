@@ -9,7 +9,3 @@ socket_pcap_la_LDFLAGS = -module -avoid-version
 socket_pcap_la_LIBADD = ${PTHREAD_LIBS} ${EXPAT_LIBS} ${PCAP_LIBS} ${LUA_LIBS}
 
 mod_LTLIBRARIES = socket_pcap.la
-
-install: install-am
-	rm -f $(moddir)/socket_pcap.a
-	rm -f $(moddir)/socket_pcap.la

@@ -9,7 +9,3 @@ protocol_rtcp_la_LDFLAGS = -module -avoid-version
 protocol_rtcp_la_LIBADD = ${PTHREAD_LIBS} ${EXPAT_LIBS}
 
 mod_LTLIBRARIES = protocol_rtcp.la
-
-install: install-am
-	rm -f $(moddir)/protocol_rtcp.a
-	rm -f $(moddir)/protocol_rtcp.la

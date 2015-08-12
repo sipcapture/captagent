@@ -9,7 +9,3 @@ database_hash_la_LDFLAGS = -module -avoid-version
 
 include_HEADERS =
 mod_LTLIBRARIES = database_hash.la
-
-install: install-am
-	rm -f $(moddir)/database_hash.a
-	rm -f $(moddir)/database_hash.la
