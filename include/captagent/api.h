@@ -82,6 +82,7 @@ struct rc_info {
     uint8_t	    direction;
     char        *uuid;
     str         *correlation_id;
+    int 	*socket;
 } ;
 
 typedef struct rc_info rc_info_t;

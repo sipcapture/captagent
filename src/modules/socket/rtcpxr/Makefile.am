@@ -1,8 +1,8 @@
 include $(top_srcdir)/modules.am
 
 SUBDIRS = \
-	. \
-	captureplan
+	. 
+#	captureplan
 
 noinst_HEADERS = socket_rtcpxr.h
 #

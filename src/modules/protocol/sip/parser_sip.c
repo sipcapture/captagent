@@ -617,6 +617,7 @@ int parse_message(char *message, unsigned int blen, unsigned int* bytes_parsed, 
 			if(type == 2) {
 				parseVIA = TRUE;
 				parseContact = TRUE;
+				allowRequest = TRUE;
 			}
 
 		}

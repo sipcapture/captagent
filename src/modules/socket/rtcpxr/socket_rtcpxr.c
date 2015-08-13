@@ -93,10 +93,8 @@ bind_protocol_module_api_t proto_bind_api;
 //osip_message_t *sip;
 
 static cmd_export_t cmds[] = {
-			{"socket_rtcpxr_bind_api", (cmd_function) bind_api, 1, 0, 0, 0 },
-	        {"send_reply", (cmd_function) w_send_reply_p, 2, 0, 0, 0 },
-	        {"send_reply", (cmd_function) w_send_reply, 0, 0, 0, 0 },
-			{ 0, 0, 0, 0, 0, 0 }
+	{"socket_rtcpxr_bind_api", (cmd_function) bind_api, 1, 0, 0, 0 },
+	{ 0, 0, 0, 0, 0, 0 }
 };
 
 struct module_exports exports = {
@@ -111,19 +109,9 @@ struct module_exports exports = {
 
 int bind_api(socket_module_api_t* api)
 {
-		api->reload_f = reload_config;
-		api->module_name = module_name;
+	api->reload_f = reload_config;
+	api->module_name = module_name;
         return 0;
-}
-
-int w_send_reply_p(msg_t *_m, char *param1, char *param2)
-{
-	return send_sip_reply(_m, atoi(param1), param2);
-}
-
-int w_send_reply(msg_t *_m)
-{
-	return send_sip_reply(_m, 200, "OK");
 }
 
 int reload_config (char *erbuf, int erlen) {
@@ -243,6 +231,7 @@ void* proto_collect(void *arg) {
 		_msg.rcinfo.time_usec = tv.tv_usec;
 		_msg.tcpflag = 0;
 		_msg.parse_it = 0;
+		_msg.rcinfo.socket = &profile_socket[loc_idx].socket;
 
 		action_idx = profile_socket[loc_index].action;
 		run_actions(main_ct.clist[action_idx], &_msg);
@@ -251,33 +240,6 @@ void* proto_collect(void *arg) {
 
 	return NULL;
 }
-
-int send_sip_reply(msg_t *_m, int code, char *description)
-{
-	int n = 0;
-    struct sockaddr_in cliaddr;
-
-    char reply[1000];
-
-	n = snprintf(reply, sizeof(reply), "SIP/2.0 %d %s\r\nVia: %.*s\r\nFrom: %.*s\r\nTo: %.*s;tag=%s\r\nContact: %.*s\r\nCall-ID: %.*s\r\nCseq: %.*s\r\n"
-							  "User-Agent: Captagent\r\nContent-Length: 0\r\n\r\n",
-							  code, description,
-							  _m->sip.via.len, _m->sip.via.s,
-							  _m->sip.fromURI.len, _m->sip.fromURI.s,
-							  _m->sip.toURI.len, _m->sip.toURI.s,
-							  "Fg2Uy0r7geBQF",
-							  _m->sip.contactURI.len, _m->sip.contactURI.s,
-							  _m->sip.callId.len, _m->sip.callId.s,
-							  _m->sip.cSeq.len, _m->sip.cSeq.s
-	);
-
-
-	sendto(profile_socket[_m->rcinfo.liid].socket, reply, n, 0, (struct sockaddr *)&cliaddr,sizeof(cliaddr));
-
-	return 1;
-}
-
-
 
 int init_socket(unsigned int loc_idx) {
 
@@ -482,6 +444,7 @@ static int load_module(xml_node *config) {
 			snprintf(loadplan, sizeof(loadplan), "%s/%s", global_capture_plan_path, profile_socket[i].capture_plan);
 			cfg_stream=fopen (loadplan, "r");
 
+			fprintf(stderr, "loading config file(%s): %s\n", loadplan, strerror(errno));
 			if (cfg_stream==0){
 			   fprintf(stderr, "ERROR: loading config file(%s): %s\n", loadplan, strerror(errno));
 			}
@@ -492,8 +455,6 @@ static int load_module(xml_node *config) {
 			}
 
 			profile_socket[i].action = main_ct.idx;
-
-			LDEBUG("INDEX: %d, ENT: [%d]\n", main_ct.idx, main_ct.entries);
 		}
 
 		// start thread

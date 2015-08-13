@@ -62,6 +62,8 @@ static cmd_export_t cmds[] = {
         {"clog", (cmd_function) w_clog, 2, 0, 0, 0 },
         /* ================================ */
         {"sip_has_sdp", (cmd_function) w_sip_has_sdp, 0, 0, 0, 0 },
+        {"send_reply", (cmd_function) w_send_reply_p, 2, 0, 0, 0 },
+        {"send_reply", (cmd_function) w_send_reply, 0, 0, 0, 0 },          
 
         {0, 0, 0, 0, 0, 0}
 };
@@ -78,12 +80,22 @@ struct module_exports exports = {
 
 int bind_api(protocol_module_api_t* api)
 {
-		api->parse_only_f = parse_only_packet;
-		api->reload_f = reload_config;
-		api->module_name = module_name;
+	api->parse_only_f = parse_only_packet;
+	api->reload_f = reload_config;
+	api->module_name = module_name;
 
         return 0;
 
+}
+
+int w_send_reply_p(msg_t *_m, char *param1, char *param2)
+{
+   return send_sip_reply(_m, atoi(param1), param2);
+}
+        
+int w_send_reply(msg_t *_m)
+{
+   return send_sip_reply(_m, 200, "OK");
 }
 
 int w_parse_sip(msg_t *_m)
@@ -137,7 +149,7 @@ int w_sip_has_sdp(msg_t *_m)
 int w_sip_check(msg_t *_m, char *param1, char *param2)
 {
 
-        int ret = 0;
+        int ret = -1;
         int intval = 0;
         
         
@@ -173,12 +185,42 @@ int w_sip_check(msg_t *_m, char *param1, char *param2)
 }
 
 
+int send_sip_reply(msg_t *_m, int code, char *description)
+{
+        int n = 0;
+	struct sockaddr_in cliaddr; 
+	char reply[1000];
+ 
+        n = snprintf(reply, sizeof(reply), "SIP/2.0 %d %s\r\nVia: %.*s\r\nFrom: %.*s\r\nTo: %.*s;tag=%s\r\nContact: %.*s\r\nCall-ID: %.*s\r\nCseq: %.*s\r\n"
+                                                          "User-Agent: Captagent\r\nContent-Length: 0\r\n\r\n",
+                                                          code, description,
+                                                          _m->sip.via.len, _m->sip.via.s,
+                                                          _m->sip.fromURI.len, _m->sip.fromURI.s,
+                                                          _m->sip.toURI.len, _m->sip.toURI.s,
+                                                          "Fg2Uy0r7geBQF",
+                                                          _m->sip.contactURI.len, _m->sip.contactURI.s,
+                                                          _m->sip.callId.len, _m->sip.callId.s,
+                                                          _m->sip.cSeq.len, _m->sip.cSeq.s
+        );
+        
+        LERR("XXXXXXX: [%d] [%s]", *_m->rcinfo.socket, reply);
+        
+        cliaddr.sin_family = _m->rcinfo.ip_family;
+        cliaddr.sin_port = htons(_m->rcinfo.dst_port);
+        cliaddr.sin_addr.s_addr = inet_addr(_m->rcinfo.dst_ip);        
+
+        sendto(*_m->rcinfo.socket, reply, n, 0, (struct sockaddr *)&cliaddr,sizeof(cliaddr));
+
+        return 1;
+}
+
+
 
 
 int w_proto_check_size(msg_t *_m, char *param1, char *param2)
 {
 
-        int ret = 0;
+        int ret = -1;
         int intval = 0;
         
         
