@@ -12,7 +12,140 @@ Buildrequires:	json-c-devel expat-devel libpcap-devel flex-devel
 Requires:	json-c expat libpcap
 
 %description
-HOMER is a robust, carrier-grade, scalable SIP Capture system and Monitoring Application with HEP/HEP2, IP Proto4 (IPIP) encapsulation & port mirroring/monitoring support right out of the box, ready to process & store insane amounts of signaling with instant search, end-to-end analysis and drill-down capabilities for ITSPs, VoIP Providers and Trunk Suppliers using SIP signaling
+HOMER5 a robust, carrier-grade, scalable SIP Capture system and Monitoring Application with HEP/HEP2, IP Proto4 (IPIP) encapsulation & port mirroring/monitoring support right out of the box, ready to process & store insane amounts of signaling with instant search, end-to-end analysis and drill-down capabilities for ITSPs, VoIP Providers and Trunk Suppliers using SIP signaling
+
+########### module packages ###########################
+
+%package database-hash
+Requires:	%name = %version
+Summary:	database hash module for sipcapture HOMER5
+
+%description database-hash
+hash database module for a robust, carrier-grade, scalable SIP Capture system and Monitoring Application with HEP/HEP2, IP Proto4 (IPIP) encapsulation & port mirroring/monitoring support right out of the box, ready to process & store insane amounts of signaling with instant search, end-to-end analysis and drill-down capabilities for ITSPs, VoIP Providers and Trunk Suppliers using SIP signaling
+
+%package protocol-sip
+Requires:	%name = %version
+Summary:	protocol sip module for sipcapture HOMER5
+
+%description protocol-sip
+sip protocol module for a robust, carrier-grade, scalable SIP Capture system and Monitoring Application with HEP/HEP2, IP Proto4 (IPIP) encapsulation & port mirroring/monitoring support right out of the box, ready to process & store insane amounts of signaling with instant search, end-to-end analysis and drill-down capabilities for ITSPs, VoIP Providers and Trunk Suppliers using SIP signaling
+
+%package protocol-rtcp
+Requires:	%name = %version
+Summary:	protocol rtcp module for sipcapture HOMER5
+
+%description protocol-rtcp
+rtcp protocol module for a robust, carrier-grade, scalable SIP Capture system and Monitoring Application with HEP/HEP2, IP Proto4 (IPIP) encapsulation & port mirroring/monitoring support right out of the box, ready to process & store insane amounts of signaling with instant search, end-to-end analysis and drill-down capabilities for ITSPs, VoIP Providers and Trunk Suppliers using SIP signaling
+
+%package socket-pcap
+Requires:	%name = %version
+Summary:	socket pcap module for sipcapture HOMER5
+
+%description socket-pcap
+pcap socket module for a robust, carrier-grade, scalable SIP Capture system and Monitoring Application with HEP/HEP2, IP Proto4 (IPIP) encapsulation & port mirroring/monitoring support right out of the box, ready to process & store insane amounts of signaling with instant search, end-to-end analysis and drill-down capabilities for ITSPs, VoIP Providers and Trunk Suppliers using SIP signaling
+
+%package socket-raw
+Requires:	%name = %version
+Summary:	socket raw module for sipcapture HOMER5
+
+%description socket-raw
+raw socket module for a robust, carrier-grade, scalable SIP Capture system and Monitoring Application with HEP/HEP2, IP Proto4 (IPIP) encapsulation & port mirroring/monitoring support right out of the box, ready to process & store insane amounts of signaling with instant search, end-to-end analysis and drill-down capabilities for ITSPs, VoIP Providers and Trunk Suppliers using SIP signaling
+
+%package socket-rtcpxr
+Requires:	%name = %version
+Summary:	socket rtcpxr module for sipcapture HOMER5
+
+%description socket-rtcpxr
+rtcpxr socket module for a robust, carrier-grade, scalable SIP Capture system and Monitoring Application with HEP/HEP2, IP Proto4 (IPIP) encapsulation & port mirroring/monitoring support right out of the box, ready to process & store insane amounts of signaling with instant search, end-to-end analysis and drill-down capabilities for ITSPs, VoIP Providers and Trunk Suppliers using SIP signaling
+
+%package transport-hep
+Requires:	%name = %version
+Summary:	transport hep module for sipcapture HOMER5
+
+%description transport-hep
+hep transport module for a robust, carrier-grade, scalable SIP Capture system and Monitoring Application with HEP/HEP2, IP Proto4 (IPIP) encapsulation & port mirroring/monitoring support right out of the box, ready to process & store insane amounts of signaling with instant search, end-to-end analysis and drill-down capabilities for ITSPs, VoIP Providers and Trunk Suppliers using SIP signaling
+
+%package transport-json
+Requires:	%name = %version
+Summary:	transport json module for sipcapture HOMER5
+
+%description transport-json
+json transport module for a robust, carrier-grade, scalable SIP Capture system and Monitoring Application with HEP/HEP2, IP Proto4 (IPIP) encapsulation & port mirroring/monitoring support right out of the box, ready to process & store insane amounts of signaling with instant search, end-to-end analysis and drill-down capabilities for ITSPs, VoIP Providers and Trunk Suppliers using SIP signaling
+
+########### module development packages ###########################
+
+%package database-hash-devel
+Requires:	%name = %version
+Requires:	database-hash
+
+Summary:	database hash module development package for sipcapture HOMER5
+
+%description database-hash-devel
+hash database module development package for a robust, carrier-grade, scalable SIP Capture system and Monitoring Application with HEP/HEP2, IP Proto4 (IPIP) encapsulation & port mirroring/monitoring support right out of the box, ready to process & store insane amounts of signaling with instant search, end-to-end analysis and drill-down capabilities for ITSPs, VoIP Providers and Trunk Suppliers using SIP signaling
+
+%package protocol-sip-devel
+Requires:	%name = %version
+Requires:	protocol-sip
+
+Summary:	protocol sip module development package for sipcapture HOMER5
+
+%description protocol-sip-devel
+sip protocol module development package for a robust, carrier-grade, scalable SIP Capture system and Monitoring Application with HEP/HEP2, IP Proto4 (IPIP) encapsulation & port mirroring/monitoring support right out of the box, ready to process & store insane amounts of signaling with instant search, end-to-end analysis and drill-down capabilities for ITSPs, VoIP Providers and Trunk Suppliers using SIP signaling
+
+%package protocol-rtcp-devel
+Requires:	%name = %version
+Requires:	protocol-rtcp
+
+Summary:	protocol rtcp module development package for sipcapture HOMER5
+
+%description protocol-rtcp-devel
+rtcp protocol module development package for a robust, carrier-grade, scalable SIP Capture system and Monitoring Application with HEP/HEP2, IP Proto4 (IPIP) encapsulation & port mirroring/monitoring support right out of the box, ready to process & store insane amounts of signaling with instant search, end-to-end analysis and drill-down capabilities for ITSPs, VoIP Providers and Trunk Suppliers using SIP signaling
+
+%package socket-pcap-devel
+Requires:	%name = %version
+Requires:	socket-pcap
+
+Summary:	socket pcap module development package for sipcapture HOMER5
+
+%description socket-pcap-devel
+pcap socket module development package for a robust, carrier-grade, scalable SIP Capture system and Monitoring Application with HEP/HEP2, IP Proto4 (IPIP) encapsulation & port mirroring/monitoring support right out of the box, ready to process & store insane amounts of signaling with instant search, end-to-end analysis and drill-down capabilities for ITSPs, VoIP Providers and Trunk Suppliers using SIP signaling
+
+%package socket-raw-devel
+Requires:	%name = %version
+Requires:	socket-raw
+
+Summary:	socket raw module development package for sipcapture HOMER5
+
+%description socket-raw-devel
+raw socket module development package for a robust, carrier-grade, scalable SIP Capture system and Monitoring Application with HEP/HEP2, IP Proto4 (IPIP) encapsulation & port mirroring/monitoring support right out of the box, ready to process & store insane amounts of signaling with instant search, end-to-end analysis and drill-down capabilities for ITSPs, VoIP Providers and Trunk Suppliers using SIP signaling
+
+%package socket-rtcpxr-devel
+Requires:	%name = %version
+Requires:	socket-rtcpxr
+
+Summary:	socket rtcpxr module development package for sipcapture HOMER5
+
+%description socket-rtcpxr-devel
+rtcpxr socket module development package for a robust, carrier-grade, scalable SIP Capture system and Monitoring Application with HEP/HEP2, IP Proto4 (IPIP) encapsulation & port mirroring/monitoring support right out of the box, ready to process & store insane amounts of signaling with instant search, end-to-end analysis and drill-down capabilities for ITSPs, VoIP Providers and Trunk Suppliers using SIP signaling
+
+%package transport-hep-devel
+Requires:	%name = %version
+Requires:	transport-hep
+
+Summary:	transport hep module development package for sipcapture HOMER5
+
+%description transport-hep-devel
+hep transport module development package for a robust, carrier-grade, scalable SIP Capture system and Monitoring Application with HEP/HEP2, IP Proto4 (IPIP) encapsulation & port mirroring/monitoring support right out of the box, ready to process & store insane amounts of signaling with instant search, end-to-end analysis and drill-down capabilities for ITSPs, VoIP Providers and Trunk Suppliers using SIP signaling
+
+%package transport-json-devel
+Requires:	%name = %version
+Requires:	transport-json
+
+Summary:	transport json module development package for sipcapture HOMER5
+
+%description transport-json-devel
+json transport module development package for a robust, carrier-grade, scalable SIP Capture system and Monitoring Application with HEP/HEP2, IP Proto4 (IPIP) encapsulation & port mirroring/monitoring support right out of the box, ready to process & store insane amounts of signaling with instant search, end-to-end analysis and drill-down capabilities for ITSPs, VoIP Providers and Trunk Suppliers using SIP signaling
+
 
 %prep
 %setup -b0 -q
@@ -31,6 +164,65 @@ autoreconf -if
 %config(noreplace) %{_sysconfdir}/%name/*
 %attr(755,root,root) %{_bindir}/%name
 # Ugly-ugly hack: do not search for modules
-#%{_libdir}/%name/modules/*.so
 #%{_libdir}/%name/modules/*.la
 #%{_libdir}/%name/modules/*.a
+
+%files database-hash
+%{_libdir}/%name/modules/database_hash.so
+
+%files protocol-sip
+%{_libdir}/%name/modules/protocol_sip.so
+
+%files protocol-rtcp
+%{_libdir}/%name/modules/protocol_rtcp.so
+
+%files socket-pcap
+%{_libdir}/%name/modules/socket_pcap.so
+
+%files socket-raw
+%{_libdir}/%name/modules/socket_raw.so
+
+%files socket-rtcpxr
+%{_libdir}/%name/modules/socket_rtcpxr.so
+
+%files transport-hep
+%{_libdir}/%name/modules/transport_hep.so
+
+%files transport-json
+%{_libdir}/%name/modules/transport_json.so
+
+####################################################
+
+%files database-hash-devel
+%{_libdir}/%name/modules/database_hash.la
+%{_libdir}/%name/modules/database_hash.a
+
+%files protocol-sip-devel
+%{_libdir}/%name/modules/protocol_sip.la
+%{_libdir}/%name/modules/protocol_sip.a
+
+%files protocol-rtcp-devel
+%{_libdir}/%name/modules/protocol_rtcp.la
+%{_libdir}/%name/modules/protocol_rtcp.a
+
+%files socket-pcap-devel
+%{_libdir}/%name/modules/socket_pcap.la
+%{_libdir}/%name/modules/socket_pcap.a
+
+%files socket-raw-devel
+%{_libdir}/%name/modules/socket_raw.la
+%{_libdir}/%name/modules/socket_raw.a
+
+%files socket-rtcpxr-devel
+%{_libdir}/%name/modules/socket_rtcpxr.la
+%{_libdir}/%name/modules/socket_rtcpxr.a
+
+%files transport-hep-devel
+%{_libdir}/%name/modules/transport_hep.la
+%{_libdir}/%name/modules/transport_hep.a
+
+%files transport-json-devel
+%{_libdir}/%name/modules/transport_json.la
+%{_libdir}/%name/modules/transport_json.a
+
+####################################################

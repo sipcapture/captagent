@@ -3,8 +3,10 @@ AC_CONFIG_FILES([
 	src/modules/protocol/sip/Makefile
 	src/modules/protocol/rtcp/Makefile
 	src/modules/socket/pcap/Makefile
+	src/modules/socket/pcap/captureplan/Makefile
 	src/modules/socket/raw/Makefile
 	src/modules/socket/rtcpxr/Makefile
+	src/modules/socket/rtcpxr/captureplan/Makefile
 	src/modules/transport/hep/Makefile
 	src/modules/transport/json/Makefile
 ])
