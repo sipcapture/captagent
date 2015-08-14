@@ -159,5 +159,6 @@ typedef struct _rtcp_app
 #define sdes_chunk_item_get_type(item) (item)->type
 
 int capt_parse_rtcp(char *packet, int len, char *json_buffer, int buffer_len);
+int check_rtcp_version (char *packet, int len);
 
 #endif /* _RTCP_PARSER_H*/

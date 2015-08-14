@@ -55,12 +55,13 @@ unsigned int profile_size = 0;
 static cmd_export_t cmds[] = {
         {"protocol_rtcp_bind_api",  (cmd_function)bind_api,   1, 0, 0, 0},
         {"parse_rtcp_to_json", (cmd_function) w_parse_rtcp_to_json, 0, 0, 0, 0 },
+        {"is_rtcp", (cmd_function) w_is_rtcp, 0, 0, 0, 0 },
         {"set_rtcp_flag", (cmd_function) w_set_rtcp_flag, 0, 0, 0, 0 },
         {0, 0, 0, 0, 0, 0}
 };
 
 struct module_exports exports = {
-		"protocol_rtcp",
+        "protocol_rtcp",
         cmds,        /* Exported functions */
         load_module,    /* module initialization function */
         unload_module,
@@ -105,6 +106,13 @@ int w_parse_rtcp_to_json(msg_t *_m)
 
 	  return 1;
 }
+
+int w_is_rtcp (msg_t *msg) {
+
+         
+         return check_rtcp_version (msg->data, msg->len);
+}
+
 
 int w_set_rtcp_flag(msg_t *msg) {
 
