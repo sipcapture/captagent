@@ -444,7 +444,6 @@ static int load_module(xml_node *config) {
 			snprintf(loadplan, sizeof(loadplan), "%s/%s", global_capture_plan_path, profile_socket[i].capture_plan);
 			cfg_stream=fopen (loadplan, "r");
 
-			fprintf(stderr, "loading config file(%s): %s\n", loadplan, strerror(errno));
 			if (cfg_stream==0){
 			   fprintf(stderr, "ERROR: loading config file(%s): %s\n", loadplan, strerror(errno));
 			}
