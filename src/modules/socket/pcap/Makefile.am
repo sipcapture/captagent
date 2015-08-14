@@ -1,8 +1,7 @@
 include $(top_srcdir)/modules.am
 
 SUBDIRS = \
-	. \
-	captureplan
+	.
 
 noinst_HEADERS = ipreasm.h socket_pcap.h
 #

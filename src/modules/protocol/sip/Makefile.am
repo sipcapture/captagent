@@ -1,6 +1,9 @@
 include $(top_srcdir)/modules.am
 
-SUBDIRS = .
+SUBDIRS = \
+	. \
+	captureplan
+
 noinst_HEADERS = parser_sip.h protocol_sip.h
 #
 protocol_sip_la_SOURCES = protocol_sip.c parser_sip.c

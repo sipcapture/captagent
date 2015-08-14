@@ -22,7 +22,8 @@ DISTCLEANFILES = \
 	m4/lt~obsolete.m4 \
 	m4/ltoptions.m4 \
 	m4/ltsugar.m4 \
-	m4/ltversion.m4
+	m4/ltversion.m4 \
+	ylwrap
 
 SUFFIXES = .c .h .y .l
 AM_YFLAGS = -d

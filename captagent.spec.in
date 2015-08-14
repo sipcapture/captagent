@@ -161,34 +161,41 @@ autoreconf -if
 
 %files
 %defattr(644,root,root,755)
-%config(noreplace) %{_sysconfdir}/%name/*
+%config(noreplace) %{_sysconfdir}/%name/%name.xml
 %attr(755,root,root) %{_bindir}/%name
-# Ugly-ugly hack: do not search for modules
-#%{_libdir}/%name/modules/*.la
-#%{_libdir}/%name/modules/*.a
 
 %files database-hash
 %{_libdir}/%name/modules/database_hash.so
 
 %files protocol-sip
+%config(noreplace) %{_sysconfdir}/%name/protocol_sip.xml
+%config(noreplace) %{_sysconfdir}/%name/captureplans/sip_capture_plan.cfg
 %{_libdir}/%name/modules/protocol_sip.so
 
 %files protocol-rtcp
+%config(noreplace) %{_sysconfdir}/%name/protocol_rtcp.xml
+%config(noreplace) %{_sysconfdir}/%name/captureplans/rtcp_capture_plan.cfg
 %{_libdir}/%name/modules/protocol_rtcp.so
 
 %files socket-pcap
+%config(noreplace) %{_sysconfdir}/%name/socket_pcap.xml
 %{_libdir}/%name/modules/socket_pcap.so
 
 %files socket-raw
+%config(noreplace) %{_sysconfdir}/%name/socket_raw.xml
 %{_libdir}/%name/modules/socket_raw.so
 
 %files socket-rtcpxr
+%config(noreplace) %{_sysconfdir}/%name/socket_rtcpxr.xml
+%config(noreplace) %{_sysconfdir}/%name/captureplans/rtcpxr_capture_plan.cfg
 %{_libdir}/%name/modules/socket_rtcpxr.so
 
 %files transport-hep
+%config(noreplace) %{_sysconfdir}/%name/transport_hep.xml
 %{_libdir}/%name/modules/transport_hep.so
 
 %files transport-json
+%config(noreplace) %{_sysconfdir}/%name/transport_json.xml
 %{_libdir}/%name/modules/transport_json.so
 
 ####################################################
