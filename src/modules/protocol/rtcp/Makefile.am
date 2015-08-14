@@ -1,6 +1,9 @@
 include $(top_srcdir)/modules.am
 
-SUBDIRS = .
+SUBDIRS = \
+	. \
+	captureplan
+
 noinst_HEADERS = parser_rtcp.h protocol_rtcp.h
 #
 protocol_rtcp_la_SOURCES = protocol_rtcp.c parser_rtcp.c
