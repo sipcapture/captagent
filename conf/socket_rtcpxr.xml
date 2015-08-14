@@ -1,15 +1,15 @@
 <?xml version="1.0"?>
 <document type="captagent_module/xml">
-	<module name="socket_rtcpxr" description="RTCPXR Socket" serial="2014010402">		
-		<profile name="socketsrtcp" description="RTCPXR local" enable="false" serial="2014010402">  
-          		<settings>
-            			<param name="host" value="0.0.0.0"/>
-            			<param name="port" value="9070"/>	  
-            			<param name="proto" value="udp"/>	                	        	        	               			              	        	        	  
-        	        	<param name="method-publish" value="true"/>                                                
-        	        	<param name="short-report" value="true"/>
-				<param name="capture-plan" value="rtcpxr_capture_plan.cfg"/>        	        	                                
-          		</settings>          		
-         </profile>       
-	</module>		
+    <module name="socket_rtcpxr" description="RTCPXR Socket" serial="2014010402">
+	<profile name="socketsrtcp" description="RTCPXR local" enable="false" serial="2014010402">
+	    <settings>
+		<param name="host" value="0.0.0.0"/>
+		<param name="port" value="9070"/>
+		<param name="proto" value="udp"/>
+		<param name="method-publish" value="true"/>
+		<param name="short-report" value="true"/>
+		<param name="capture-plan" value="rtcpxr_capture_plan.cfg"/>
+	    </settings>
+	</profile>
+    </module>
 </document>
