@@ -1,10 +1,10 @@
 <?xml version="1.0"?>
 <document type="captagent_module/xml">
-<module name="protocol_rtcp" description="RTCP Protocol" serial="2014010402">
-                <profile name="proto_rtcp" description="PROTO RTCP" enable="true" serial="2014010402">
-                        <settings>
-                                <param name="rtcp-version" value="2"/>
-                        </settings>
-                </profile> 
-</module>  
+    <module name="protocol_rtcp" description="RTCP Protocol" serial="2014010402">
+	<profile name="proto_rtcp" description="PROTO RTCP" enable="true" serial="2014010402">
+	    <settings>
+		<param name="rtcp-version" value="2"/>
+	    </settings>
+	</profile>
+    </module>
 </document>
