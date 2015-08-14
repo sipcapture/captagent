@@ -1,4 +1,7 @@
+
+
 #ifndef _CAPTARRAY_H
+
 #define _CAPTARRAY_H
 
 #include <stdio.h>
@@ -10,8 +13,10 @@
 #define IS_EQUAL(x, y) ((x) == (y))
 #define IS_BIGGER (x, y) ((x) > (y))
 
-extern int expire_timer_array;
+#define EXPIRE_TIMER_ARRAY 80
+
 extern int timer_loop_stop;
+
 extern int check_ipport(char *name);
 
 typedef struct timer_queue {

@@ -38,6 +38,7 @@
 #include <captagent/api.h>
 #include <captagent/log.h>
 
+int expire_timer_array = EXPIRE_TIMER_ARRAY;
       
 pthread_t thread_timer;
 

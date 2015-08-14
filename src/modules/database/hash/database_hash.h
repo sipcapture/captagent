@@ -33,7 +33,7 @@
 
 int timer_timeout = 10;
 int rtcp_timeout = 3600;
-
+int timer_loop_stop = 0;
 
 static int global_session_id = 0;
 

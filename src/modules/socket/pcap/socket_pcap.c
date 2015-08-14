@@ -377,8 +377,7 @@ void* proto_collect(void *arg) {
 	unsigned int loc_idx = (int *) arg;
 	int ret = 0;
 
-	/* free arg */
-	free(arg);
+
 
 	/* detect link_offset. Thanks ngrep for this. */
 	switch (pcap_datalink(sniffer_proto[loc_idx])) {
@@ -430,9 +429,12 @@ void* proto_collect(void *arg) {
 		{
 			LDEBUG("loop stopped by breakloop");
 			pcap_close(sniffer_proto[loc_idx]);
-			return NULL;
+			break;
 		}
 	}
+
+	/* free arg */
+	if(arg) free(arg);
 
 	/* terminate from here */
 	//if (usefile) sleep(10);
