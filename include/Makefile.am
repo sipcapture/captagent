@@ -1,3 +1,5 @@
+include $(top_srcdir)/common.am
+
 noinst_HEADERS =  \
 	captagent/api.h \
 	captagent/capture.h \
