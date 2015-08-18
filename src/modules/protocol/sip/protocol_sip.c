@@ -336,7 +336,7 @@ int parse_sip(msg_t *msg, unsigned int type) {
 
 		goto error;
 	}
-
+	
 	stats.send_packets++;
 
 	return ret;
@@ -359,6 +359,10 @@ int parse_packet(msg_t *msg, sip_msg_t *sipPacket, unsigned int type) {
 		LERR("sipPacket CALLID has 0 len");
 		return 0;
 	}
+	
+	if(sipPacket->hasVqRtcpXR) {
+             msg->rcinfo.correlation_id = &sipPacket->rtcpxr_callid;
+        }
 
 	return 1;
 }

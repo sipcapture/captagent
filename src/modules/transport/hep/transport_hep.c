@@ -79,6 +79,7 @@ unsigned int profile_size = 0;
 static cmd_export_t cmds[] = {
         {"transport_hep_bind_api",  (cmd_function)bind_usrloc,   1, 0, 0, 0},
         { "send_hep", (cmd_function) w_send_hep_api, 1, 0, 0, 0 },
+        { "send_hep_proto", (cmd_function) w_send_hep_proto, 2, 0, 0, 0 },
         {0, 0, 0, 0, 0, 0}
 };
 
@@ -107,6 +108,19 @@ int w_send_hep_api(msg_t *_m, char *param1)
     int ret = 0;
 
     _m->profile_name = param1;
+        
+    ret =  send_hep(_m);    
+    
+    return ret;
+}
+
+int w_send_hep_proto(msg_t *_m, char *param1, char *param2) 
+{
+    
+    int ret = 0;
+
+    _m->profile_name = param1;
+    _m->rcinfo.proto_type = atoi(param2);
         
     ret =  send_hep(_m);    
     
@@ -328,7 +342,7 @@ int send_hepv3 (rc_info_t *rcinfo, unsigned char *data, unsigned int len, unsign
     hg->proto_t.chunk.type_id   = htons(0x000b);
     hg->proto_t.data = rcinfo->proto_type;
     hg->proto_t.chunk.length = htons(sizeof(hg->proto_t));
-
+    
     /* Capture ID */
     hg->capt_id.chunk.vendor_id = htons(0x0000);
     hg->capt_id.chunk.type_id   = htons(0x000c);

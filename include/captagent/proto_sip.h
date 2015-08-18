@@ -175,12 +175,13 @@ typedef struct sip_msg {
 	str callId;
 	str reason;
 	bool hasSdp;
-    miprtcp_t mrp[MAX_MEDIA_HOSTS];
+        miprtcp_t mrp[MAX_MEDIA_HOSTS];
 	unsigned int mrp_size;
 	unsigned int contentLength;
 	unsigned int len;
 	unsigned int cSeqNumber;
-
+	bool hasVqRtcpXR;
+	str rtcpxr_callid;
 	str cSeqMethodString;
 	method_t cSeqMethod;
 

@@ -183,6 +183,37 @@ int parseSdpCLine(miprtcp_t *mp, char *data, int len) {
 	return 1;
 }
 
+int parseVQRtcpXR(char *body, sip_msg_t *psip) {
+
+        char *c, *tmp;
+        int offset, last_offset;
+
+        c=body;
+	last_offset = 0;
+	offset = 0;
+
+
+	for (; *c; c++) {
+	           /* END MESSAGE and START BODY */
+               if (*c == '\r' && *(c+1) == '\n') {        /* end of this line */
+                     //*c = '\0';
+                     last_offset = offset;
+                     offset = (c+2) - body;
+                     tmp = (char *) (body + last_offset);
+
+                     if(strlen(tmp) < 4) continue;
+
+                     /* CallID: */
+                     if(*tmp == 'C' && *(tmp+4) == 'I' && *(tmp+RTCPXR_CALLID_LEN) == ':')
+                     {
+			set_hname(&psip->rtcpxr_callid, (offset - last_offset - RTCPXR_CALLID_LEN), tmp + RTCPXR_CALLID_LEN);
+			break;
+                     }
+               }
+	}
+
+	return 1;
+}
 
 bool getUser(str *user, str *domain, char *s, int len)
 {
@@ -670,6 +701,9 @@ int parse_message(char *message, unsigned int blen, unsigned int* bytes_parsed, 
 				if (psip->hasSdp) {
 					parseSdp(c, psip);
 				}
+				else if(psip->hasVqRtcpXR) {
+					parseVQRtcpXR(c, psip);
+                            	}
 
 				break;
 			}
@@ -710,9 +744,12 @@ int parse_message(char *message, unsigned int blen, unsigned int* bytes_parsed, 
 				else
 					header_offset = 13;
 
-				if (!memcmp((tmp + CONTENTTYPE_LEN + header_offset), "sdp", 3)) {
-					psip->hasSdp = TRUE;
+				if(!strncmp((tmp + CONTENTTYPE_LEN + header_offset), "vq-rtcpxr", 9)) {
+                            		psip->hasVqRtcpXR = TRUE;
 				}
+				else if (!memcmp((tmp + CONTENTTYPE_LEN + header_offset), "sdp", 3)) {
+					psip->hasSdp = TRUE;
+				}				
 
 				continue;
 			}

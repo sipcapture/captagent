@@ -69,6 +69,7 @@ SSL_CTX* initCTX(void);
 
 extern char *global_config_path;
 
+
 int send_hepv3 (rc_info_t *rcinfo, unsigned char *data, unsigned int len, unsigned int sendzip, unsigned int idx);
 int send_hepv2 (rc_info_t *rcinfo, unsigned char *data, unsigned int len, unsigned int idx);
 int send_data (void *buf, unsigned int len, unsigned int idx);
@@ -85,7 +86,7 @@ int reload_config (char *erbuf, int erlen);
 int check_module_xml_config();
 /*API*/
 int w_send_hep_api(msg_t *_m, char *param1);
-
+int w_send_hep_proto(msg_t *_m, char *param1, char *param2);
 
 /* HEPv3 types */
 

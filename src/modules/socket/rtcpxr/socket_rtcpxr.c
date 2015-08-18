@@ -226,7 +226,8 @@ void* proto_collect(void *arg) {
 
 		_msg.rcinfo.ip_family = cliaddr.sin_family = 4 ? AF_INET : AF_INET6;
 		_msg.rcinfo.ip_proto = IPPROTO_UDP;
-		_msg.rcinfo.proto_type = PROTO_SIP;
+		
+		_msg.rcinfo.proto_type = profile_socket[loc_index].protocol;
 		_msg.rcinfo.time_sec = tv.tv_sec;
 		_msg.rcinfo.time_usec = tv.tv_usec;
 		_msg.tcpflag = 0;
@@ -374,8 +375,8 @@ static int load_module(xml_node *config) {
 		profile_socket[profile_size].name = strdup(profile->attr[1]);
 		profile_socket[profile_size].description = strdup(profile->attr[3]);
 		profile_socket[profile_size].serial = atoi(profile->attr[7]);
-
-
+		profile_socket[profile_size].protocol = PROTO_REPORT;
+		
 		/* SETTINGS */
 		settings = xml_get("settings", profile, 1);
 
@@ -415,6 +416,8 @@ static int load_module(xml_node *config) {
 						profile_socket[profile_size].host = strdup(value);
 					else if (!strncmp(key, "port", 4))
 						profile_socket[profile_size].port = strdup(value);
+					else if (!strncmp(key, "protocol-type", 13))
+						profile_socket[profile_size].protocol = atoi(value);						
 					else if (!strncmp(key, "capture-plan", 12))
 						profile_socket[profile_size].capture_plan = strdup(value);
 				}
@@ -423,7 +426,7 @@ static int load_module(xml_node *config) {
 
 			}
 		}
-
+		
 		profile_size++;
 
 		nextprofile: profile = profile->next;

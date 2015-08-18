@@ -31,6 +31,7 @@
 #define FILTER_LEN 4080
 
 #define PROTO_SIP    0x01
+#define PROTO_REPORT    0x63
 
 extern char *global_config_path;
 extern char *global_scripts_path;
