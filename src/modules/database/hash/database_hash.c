@@ -105,18 +105,15 @@ int w_check_rtcp_ipport(msg_t *msg)
 
 	for (i = 0; i < msg->sip.mrp_size; i++) {
 		mp = &msg->sip.mrp[i];
-		if (mp->media_ip.len > 0 && mp->media_ip.s) {
 
-			snprintf(ipptmp, sizeof(ipptmp), "%.*s:%d", mp->media_ip.len, mp->media_ip.s, mp->media_port);
+		if (mp->rtcp_ip.len > 0 && mp->rtcp_ip.s) {
+			snprintf(ipptmp, sizeof(ipptmp), "%.*s:%d", mp->rtcp_ip.len, mp->rtcp_ip.s, mp->rtcp_port);			
 			LDEBUG("RTCP CALLID: %.*s", msg->sip.callId.len, msg->sip.callId.s);
 			LDEBUG("RTCP IP PORT: %s", ipptmp);
 
 			/* one pair = one timer */
-			if(find_ipport_key(ipptmp) != NULL) {
-	            add_timer(ipptmp);
-			}
-
-            add_ipport(ipptmp, callid);
+			if(find_ipport_key(ipptmp) != NULL) add_timer(ipptmp);			
+                        add_ipport(ipptmp, callid);
 		}
 	}
 
