@@ -17,6 +17,7 @@
 		<param name="dev" value="any"/>
 		<param name="promisc" value="true"/>
 		<param name="reasm" value="false"/>
+		<param name="capture-filter" value="rtcp"/>		                
 		<param name="capture-plan" value="rtcp_capture_plan.cfg"/>
 		<param name="filter">
 		    <value>portrange 3000-5000</value>

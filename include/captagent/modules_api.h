@@ -152,6 +152,7 @@ typedef struct profile_socket {
 		char *filter;
 		int action;
 		int protocol;
+		char *capture_filter;
                 struct profile_socket *next;
                 void *reasm_t;
 } profile_socket_t;

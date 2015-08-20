@@ -87,14 +87,15 @@ int w_parse_rtcp_to_json(msg_t *_m)
 	  int json_len, len;
 	  char *json_rtcp_buffer;
 
-	  json_rtcp_buffer = malloc(JSON_BUFFER_LEN);
-
+	  _m->mfree = 0;
+	  json_rtcp_buffer = malloc(JSON_BUFFER_LEN);	  
 	  json_rtcp_buffer[0] = '\0';
+	  
 	  if((json_len = capt_parse_rtcp((char *)_m->data, _m->len, json_rtcp_buffer, JSON_BUFFER_LEN)) > 0) {
 	      _m->rcinfo.proto_type = rtcp_proto_type;
-	      if(_m->data) free(_m->data);
 	      _m->data = json_rtcp_buffer;
 	      _m->len = json_len;
+	      _m->mfree = 1;
 	  }
 	  else {
 	    	LDEBUG("GOODBYE or APP MESSAGE. Ignore!\n");
@@ -109,7 +110,6 @@ int w_parse_rtcp_to_json(msg_t *_m)
 
 int w_is_rtcp (msg_t *msg) {
 
-         
          return check_rtcp_version (msg->data, msg->len);
 }
 

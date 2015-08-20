@@ -126,19 +126,22 @@ int w_is_rtcp_exists(msg_t *msg)
 
 	LDEBUG("IP PORT: %s:%i", msg->rcinfo.src_ip, msg->rcinfo.src_port);
 
-    ipport = find_ipport(msg->rcinfo.src_ip, msg->rcinfo.src_port);
-    if(!ipport) {
-          ipport = find_ipport( msg->rcinfo.dst_ip, msg->rcinfo.dst_port);
-          if(!ipport) return -1;
-          msg->rcinfo.direction = 0;
-    }
+        ipport = find_ipport(msg->rcinfo.src_ip, msg->rcinfo.src_port);
+        if(!ipport) {
+               ipport = find_ipport( msg->rcinfo.dst_ip, msg->rcinfo.dst_port);
+               if(!ipport) return -1;
+               msg->rcinfo.direction = 0;
+               ipport->modify_ts = (unsigned)time(NULL);
+        }	
 
-    msg->rcinfo.correlation_id->s = ipport->sessionid;
-    msg->rcinfo.correlation_id->len = strlen(ipport->sessionid);
+        LDEBUG("SESSION ID: %s", ipport->sessionid);
+        
+        ipport->modify_ts = (unsigned)time(NULL);
+        msg->rcinfo.correlation_id.s = ipport->sessionid;
+        msg->rcinfo.correlation_id.len = strlen(ipport->sessionid);
+        msg->var = (void *) ipport;
 
-    msg->var = (void *) ipport;
-
-    return 1;
+        return 1;
 }
 
 

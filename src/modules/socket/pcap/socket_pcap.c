@@ -340,6 +340,7 @@ int init_socket(unsigned int loc_idx) {
 	char errbuf[PCAP_ERRBUF_SIZE];
 	char filter_expr[FILTER_LEN];
 	uint16_t snaplen = 65535, timeout = 100;
+	int len=0;
 
 	if (profile_socket[loc_idx].device) {
 		if ((sniffer_proto[loc_idx] = pcap_open_live((char *) profile_socket[loc_idx].device, snaplen, profile_socket[loc_idx].promisc,
@@ -356,12 +357,35 @@ int init_socket(unsigned int loc_idx) {
 	}
 
 	/* create filter string */
+	if(profile_socket[loc_idx].capture_filter)
+	{
+	        if(!strncmp(profile_socket[loc_idx].capture_filter, "rtcp", 4))
+	        {	        
+                        len = snprintf(filter_expr, sizeof(filter_expr), "%s", RTCP_FILTER);        
+                }                
+                else if(!strncmp(profile_socket[loc_idx].capture_filter, "rtp", 3))
+	        {
+	                len = snprintf(filter_expr, sizeof(filter_expr), "%s", RTP_FILTER);        
+	        }
+	        
+	        if(profile_socket[loc_idx].filter && strlen(profile_socket[loc_idx].filter) > 0)
+	        {
+        	        len += snprintf(filter_expr+len, sizeof(filter_expr)-len, " and (%s)", profile_socket[loc_idx].filter);        	        
+                }
 
-	/* compile filter expression (global constant, see above) */
-	if (pcap_compile(sniffer_proto[loc_idx], &filter, profile_socket[loc_idx].filter, 1, 0) == -1) {
-		LERR("Failed to compile filter \"%s\": %s", filter_expr, pcap_geterr(sniffer_proto[loc_idx]));
-		return -1;
+	        if (pcap_compile(sniffer_proto[loc_idx], &filter, filter_expr, 1, 0) == -1) {
+        		LERR("Failed to compile filter \"%s\": %s", filter_expr, pcap_geterr(sniffer_proto[loc_idx]));
+        		return -1;
+		}	        
 	}
+	else {		
+        	/* compile filter expression (global constant, see above) */
+        	if (pcap_compile(sniffer_proto[loc_idx], &filter, profile_socket[loc_idx].filter, 1, 0) == -1) {
+        		LERR("Failed to compile filter \"%s\": %s", profile_socket[loc_idx].filter, pcap_geterr(sniffer_proto[loc_idx]));
+        		return -1;
+		}
+		
+        }
 
 	/* install filter on sniffer session */
 	if (pcap_setfilter(sniffer_proto[loc_idx], &filter)) {
@@ -543,6 +567,7 @@ static int load_module(xml_node *config) {
 		profile_socket[profile_size].description = strdup(profile->attr[3]);
 		profile_socket[profile_size].serial = atoi(profile->attr[7]);
 		profile_socket[profile_size].capture_plan = NULL;
+		profile_socket[profile_size].capture_filter = NULL;
 		profile_socket[profile_size].action = -1;
 
 		/* SETTINGS */
@@ -590,6 +615,8 @@ static int load_module(xml_node *config) {
 						profile_socket[profile_size].filter = strdup(value);
 					else if (!strncmp(key, "capture-plan", 12))
 						profile_socket[profile_size].capture_plan = strdup(value);
+                                        else if (!strncmp(key, "capture-filter", 14))
+						profile_socket[profile_size].capture_filter = strdup(value);
 				}
 
 				nextparam: params = params->next;
@@ -694,6 +721,7 @@ static int free_profile(unsigned int idx) {
 	if (profile_socket[idx].device) free(profile_socket[idx].device);
 	if (profile_socket[idx].filter) free(profile_socket[idx].filter);
 	if (profile_socket[idx].capture_plan) free(profile_socket[idx].capture_plan);
+	if (profile_socket[idx].capture_filter) free(profile_socket[idx].capture_filter);
 
 	return 1;
 }

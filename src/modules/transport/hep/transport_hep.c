@@ -234,6 +234,7 @@ int send_hep (msg_t *msg) {
 
 #ifdef USE_ZLIB
 
+        if(msg->data.mfree == 1) free(msg->data);
         if(pl_compress && zipData) free(zipData);
 
 #endif /* USE_ZLIB */
@@ -368,14 +369,14 @@ int send_hepv3 (rc_info_t *rcinfo, unsigned char *data, unsigned int len, unsign
     }
 
     /* correlation key */
-    if(rcinfo->correlation_id && rcinfo->correlation_id->len > 0) {
+    if(rcinfo->correlation_id.s && rcinfo->correlation_id.len > 0) {
 
              tlen += sizeof(hep_chunk_t);
              /* Correlation key */
              correlation_chunk.vendor_id = htons(0x0000);
              correlation_chunk.type_id   = htons(0x0011);
-             correlation_chunk.length    = htons(sizeof(correlation_chunk) + rcinfo->correlation_id->len);
-             tlen += rcinfo->correlation_id->len;
+             correlation_chunk.length    = htons(sizeof(correlation_chunk) + rcinfo->correlation_id.len);
+             tlen += rcinfo->correlation_id.len;
     }
 
     /* total */
@@ -424,14 +425,14 @@ int send_hepv3 (rc_info_t *rcinfo, unsigned char *data, unsigned int len, unsign
     }
 
     /* Correlation KEY CHUNK */
-    if(rcinfo->correlation_id && rcinfo->correlation_id->len > 0) {
+    if(rcinfo->correlation_id.s && rcinfo->correlation_id.len > 0) {
 
            memcpy((void*) buffer+buflen, &correlation_chunk,  sizeof(struct hep_chunk));
            buflen += sizeof(struct hep_chunk);
 
            /* Now copying payload self */
-           memcpy((void*) buffer+buflen, rcinfo->correlation_id->s, rcinfo->correlation_id->len);
-           buflen+= rcinfo->correlation_id->len;
+           memcpy((void*) buffer+buflen, rcinfo->correlation_id.s, rcinfo->correlation_id.len);
+           buflen+= rcinfo->correlation_id.len;
     }
 
     /* PAYLOAD CHUNK */

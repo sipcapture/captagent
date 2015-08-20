@@ -107,7 +107,7 @@ int bind_usrloc(transport_module_api_t *api)
 int w_send_json_api(msg_t *_m, char *param1)
 {
     
-    int ret = 0;
+    int ret = -1;
 
     _m->profile_name = param1;
     
@@ -177,7 +177,7 @@ int send_json (msg_t *msg) {
         static int errors = 0;
         char tmpser[100];
 
-		jobj_reply = json_object_new_object();
+        jobj_reply = json_object_new_object();
 
         idx = get_profile_index_by_name(msg->profile_name);
         rcinfo = &msg->rcinfo;
@@ -189,39 +189,38 @@ int send_json (msg_t *msg) {
         /* workaround for old json */
         snprintf(tmpser, 100, "%" PRId64, (int64_t) stats.recieved_packets_total);
 
-		json_object_object_add(jobj_reply, "packet_id", json_object_new_string(tmpser));
+	json_object_object_add(jobj_reply, "packet_id", json_object_new_string(tmpser));
         json_object_object_add(jobj_reply, "my_time", json_object_new_int(time(0)));
-		json_object_object_add(jobj_reply, "ip_family", json_object_new_int(rcinfo->ip_family));
-		json_object_object_add(jobj_reply, "ip_proto", json_object_new_int(rcinfo->ip_proto));
+	json_object_object_add(jobj_reply, "ip_family", json_object_new_int(rcinfo->ip_family));
+	json_object_object_add(jobj_reply, "ip_proto", json_object_new_int(rcinfo->ip_proto));
 
-		if(rcinfo->ip_family == AF_INET) {
-			json_object_object_add(jobj_reply, "src_ip4", json_object_new_string(rcinfo->src_ip));
-			json_object_object_add(jobj_reply, "dst_ip4", json_object_new_string(rcinfo->dst_ip));
-		}
-		else {
-			json_object_object_add(jobj_reply, "src_ip6", json_object_new_string(rcinfo->src_ip));
-			json_object_object_add(jobj_reply, "dst_ip6", json_object_new_string(rcinfo->dst_ip));
-		}
+	if(rcinfo->ip_family == AF_INET) {
+	     json_object_object_add(jobj_reply, "src_ip4", json_object_new_string(rcinfo->src_ip));
+	     json_object_object_add(jobj_reply, "dst_ip4", json_object_new_string(rcinfo->dst_ip));
+	}
+	else {
+	     json_object_object_add(jobj_reply, "src_ip6", json_object_new_string(rcinfo->src_ip));
+	     json_object_object_add(jobj_reply, "dst_ip6", json_object_new_string(rcinfo->dst_ip));
+	}
 
-		json_object_object_add(jobj_reply, "src_port", json_object_new_int(rcinfo->src_port));
-		json_object_object_add(jobj_reply, "dst_port", json_object_new_int(rcinfo->dst_port));
+	json_object_object_add(jobj_reply, "src_port", json_object_new_int(rcinfo->src_port));
+	json_object_object_add(jobj_reply, "dst_port", json_object_new_int(rcinfo->dst_port));
 
-		json_object_object_add(jobj_reply, "tss", json_object_new_int(rcinfo->time_sec));
-		json_object_object_add(jobj_reply, "tsu", json_object_new_int(rcinfo->time_usec));
+	json_object_object_add(jobj_reply, "tss", json_object_new_int(rcinfo->time_sec));
+	json_object_object_add(jobj_reply, "tsu", json_object_new_int(rcinfo->time_usec));
 
-		/* payload */
-		if(profile_transport[idx].flag == 1)
-			json_object_object_add(jobj_reply, "payload", json_object_new_string(msg->data));
+	/* payload */
+	if(profile_transport[idx].flag == 1) json_object_object_add(jobj_reply, "payload", json_object_new_string(msg->data));
 
-		if(rcinfo->correlation_id && rcinfo->correlation_id->len > 0) {
-			json_object_object_add(jobj_reply, "corr_id", json_object_new_string_len(rcinfo->correlation_id->s, rcinfo->correlation_id->len));
-		}
+	if(rcinfo->correlation_id.s && rcinfo->correlation_id.len > 0) {
+	     json_object_object_add(jobj_reply, "corr_id", json_object_new_string_len(rcinfo->correlation_id.s, rcinfo->correlation_id.len));
+        }
 
-		json_object_object_add(jobj_reply, "proto_type", json_object_new_int(rcinfo->proto_type));
-		json_object_object_add(jobj_reply, "capt_id", json_object_new_int(profile_transport[idx].capt_id));
+	json_object_object_add(jobj_reply, "proto_type", json_object_new_int(rcinfo->proto_type));
+	json_object_object_add(jobj_reply, "capt_id", json_object_new_int(profile_transport[idx].capt_id));
 
 
-		if(sipPacket != NULL) {
+	if(sipPacket != NULL) {
 
 			if(sipPacket->callId.s && sipPacket->callId.len > 0)
 				json_object_object_add(jobj_reply, "sip_callid", json_object_new_string_len(sipPacket->callId.s, sipPacket->callId.len));
@@ -254,34 +253,36 @@ int send_json (msg_t *msg) {
 			if(sipPacket->hasSdp)
 				json_object_object_add(jobj_reply, "sip_sdp", json_object_new_int(1));
 
-		}
+	}
 
-		message = json_object_to_json_string(jobj_reply);
+	message = json_object_to_json_string(jobj_reply);
 
-		/* make sleep after 100 errors */
-		if(errors > 30) { sleep (2); errors = 0; }
+	/* make sleep after 100 errors */
+	if(errors > 30) { sleep (2); errors = 0; }
 
-		/* send this packet out of our socket */
-		if(send_data(message, strlen(message), idx) < 0) {
+	/* send this packet out of our socket */
+	if(send_data(message, strlen(message), idx) < 0) {
 		     stats.errors_total++;
 		     LERR( "JSON server is down...");
    		     if(!profile_transport[idx].usessl) {
-      		      if(init_jsonsocket_blocking(idx)) {
-      		   	   profile_transport[idx].initfails++;
-      		      }
-      		      errors=0;
-		     }
+      	  	           if(init_jsonsocket_blocking(idx)) {
+      		   	         profile_transport[idx].initfails++;
+                           }
+                           errors=0;
+                     }
 #ifdef USE_SSL
- 	        else {
-                if(initSSL(idx)) profile_transport[idx].initfails++;
+                     else {
+                           if(initSSL(idx)) profile_transport[idx].initfails++;
     		                errors=0;
-		        }
+                     }
 #endif /* USE SSL */
-	     }
+        }
 
-		json_object_put(jobj_reply);
+	json_object_put(jobj_reply);
+	
+	if(msg->mfree == 1) free(msg->data);
 
-        return 0;
+        return 1;
 }
 
 

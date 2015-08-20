@@ -361,7 +361,8 @@ int parse_packet(msg_t *msg, sip_msg_t *sipPacket, unsigned int type) {
 	}
 	
 	if(sipPacket->hasVqRtcpXR) {
-             msg->rcinfo.correlation_id = &sipPacket->rtcpxr_callid;
+             msg->rcinfo.correlation_id.s = sipPacket->rtcpxr_callid.s;
+             msg->rcinfo.correlation_id.len = sipPacket->rtcpxr_callid.len;
         }
 
 	return 1;

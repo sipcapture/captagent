@@ -79,9 +79,9 @@ struct rc_info {
     uint32_t    time_usec;
     uint32_t	liid;
     uint16_t	sessionid;
-    uint8_t	    direction;
+    uint8_t	direction;
     char        *uuid;
-    str         *correlation_id;
+    str         correlation_id;
     int 	*socket;
 } ;
 

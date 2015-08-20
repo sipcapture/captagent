@@ -39,6 +39,7 @@ typedef struct msg {
         void *parsed_data;
         sip_msg_t sip;
         void *var;
+        uint8_t mfree;
         int flag[10];
 } msg_t;
 
