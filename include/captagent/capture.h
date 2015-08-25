@@ -33,5 +33,12 @@ struct capture_list{
         char names[20][100]; 
 };
 
+#define FILTER_LEN 4080
+
+/* our payload range between 0 - 191 */
+#define RTP_FILTER "(ip and ip[6] & 0x2 = 0 and ip[6:2] & 0x1fff = 0 and udp and udp[8] & 0xc0 = 0x80 )"
+/* our payload range between 200 and 204 */
+#define RTCP_FILTER "(ip and ip[6] & 0x2 = 0 and ip[6:2] & 0x1fff = 0 and udp and udp[8] & 0xc0 = 0x80 and udp[9] >= 0xc8 && udp[9] <= 0xcc)"
+
 
 #endif /* CAPTURE_H_ */

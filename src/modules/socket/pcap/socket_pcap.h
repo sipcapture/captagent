@@ -29,8 +29,6 @@
 
 #include <captagent/xmlread.h>
 
-#define FILTER_LEN 4080
-
 extern char *usefile;
 extern int handler(int value);
 extern char *global_config_path;
@@ -46,11 +44,6 @@ extern char *global_scripts_path;
 #define FDDIHDR_SIZE 21
 #define ISDNHDR_SIZE 16
 #define IEEE80211HDR_SIZE 32
-
-/* our payload range between 0 - 191 */
-#define RTP_FILTER "(ip and ip[6] & 0x2 = 0 and ip[6:2] & 0x1fff = 0 and udp and udp[8] & 0xc0 = 0x80 )"
-/* our payload range between 200 and 204 */
-#define RTCP_FILTER "(ip and ip[6] & 0x2 = 0 and ip[6:2] & 0x1fff = 0 and udp and udp[8] & 0xc0 = 0x80 and udp[9] >= 0xc8 && udp[9] <= 0xcc)"
 
 #define MAX_SOCKETS 10
 profile_socket_t profile_socket[MAX_SOCKETS];
