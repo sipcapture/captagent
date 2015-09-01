@@ -46,6 +46,7 @@
 #define __FAVOR_BSD
 #endif /* __FAVOR_BSD */
 
+#include <net/ethernet.h> 
 #include <netinet/ip.h>
 #include <netinet/tcp.h>
 #include <netinet/udp.h>
@@ -165,10 +166,9 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
 	char ip_src[INET6_ADDRSTRLEN + 1], ip_dst[INET6_ADDRSTRLEN + 1];
 	u_char *pack = NULL;
 	int action_idx = 0;
-
+        char mac_src[20], mac_dst[20];
 	char *data;
 	uint32_t len = pkthdr->caplen;
-
 
 	/* stats */
 	stats.recieved_packets_total++;
@@ -195,6 +195,9 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
 	}
 
 	ip_ver = ip4_pkt->ip_v;
+
+	snprintf(mac_src, sizeof(mac_src), "%.2X-%.2X-%.2X-%.2X-%.2X-%.2X",eth->h_source[0] , eth->h_source[1] , eth->h_source[2] , eth->h_source[3] , eth->h_source[4] , eth->h_source[5]);
+        snprintf(mac_dst, sizeof(mac_dst), "%.2X-%.2X-%.2X-%.2X-%.2X-%.2X", eth->h_dest[0] , eth->h_dest[1] , eth->h_dest[2] , eth->h_dest[3] , eth->h_dest[4] , eth->h_dest[5]);
 
 	switch (ip_ver) {
 
@@ -269,6 +272,8 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
 		_msg.rcinfo.dst_port = ntohs(tcp_pkt->th_dport);
 		_msg.rcinfo.src_ip = ip_src;
 		_msg.rcinfo.dst_ip = ip_dst;
+	        _msg.rcinfo.src_mac = mac_src;
+                _msg.rcinfo.dst_mac = mac_dst;
 		_msg.rcinfo.ip_family = ip_ver = 4 ? AF_INET : AF_INET6;
 		_msg.rcinfo.ip_proto = ip_proto;
 		_msg.rcinfo.time_sec = pkthdr->ts.tv_sec;
@@ -309,6 +314,8 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
 		_msg.len = len;
 		_msg.rcinfo.src_port = ntohs(udp_pkt->uh_sport);
 		_msg.rcinfo.dst_port = ntohs(udp_pkt->uh_dport);
+	        _msg.rcinfo.src_mac = mac_src;
+                _msg.rcinfo.dst_mac = mac_dst;
 		_msg.rcinfo.src_ip = ip_src;
 		_msg.rcinfo.dst_ip = ip_dst;
 		_msg.rcinfo.ip_family = ip_ver = 4 ? AF_INET : AF_INET6;
