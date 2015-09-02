@@ -198,7 +198,9 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
 
 	snprintf(mac_src, sizeof(mac_src), "%.2X-%.2X-%.2X-%.2X-%.2X-%.2X",eth->h_source[0] , eth->h_source[1] , eth->h_source[2] , eth->h_source[3] , eth->h_source[4] , eth->h_source[5]);
         snprintf(mac_dst, sizeof(mac_dst), "%.2X-%.2X-%.2X-%.2X-%.2X-%.2X", eth->h_dest[0] , eth->h_dest[1] , eth->h_dest[2] , eth->h_dest[3] , eth->h_dest[4] , eth->h_dest[5]);
-
+ 	
+ 	memset(&_msg, 0, sizeof(msg_t));
+ 	
 	switch (ip_ver) {
 
 	case 4: {
@@ -251,19 +253,23 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
 		uint16_t tcphdr_offset = frag_offset ? 0 : (uint16_t) (tcp_pkt->th_off * 4);
 
 		data = (char *) (tcp_pkt) + tcphdr_offset;
+		_msg.hdr_len = link_offset + ip_hl + tcphdr_offset;
+		
 		len -= link_offset + ip_hl + tcphdr_offset;
 
 		stats.recieved_tcp_packets++;
 
 #if USE_IPv6
 		if (ip_ver == 6)
-		len -= ntohs(ip6_pkt->ip6_plen);
+		{
+			len -= ntohs(ip6_pkt->ip6_plen);
+			 _msg.hdr_len += ntohs(ip6_pkt->ip6_plen);
+		}
 #endif
 
 		if ((int32_t) len < 0)
 			len = 0;
 
-		memset(&_msg, 0, sizeof(msg_t));
 
 		_msg.data = data;
 		_msg.len = len;
@@ -295,11 +301,16 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
 		uint16_t udphdr_offset = (frag_offset) ? 0 : sizeof(*udp_pkt);
 
 		data = (char *) (udp_pkt) + udphdr_offset;
+		_msg.hdr_len = link_offset + ip_hl + udphdr_offset;
+		
 		len -= link_offset + ip_hl + udphdr_offset;
 
 #if USE_IPv6
 		if (ip_ver == 6)
-		len -= ntohs(ip6_pkt->ip6_plen);
+		{
+			len -= ntohs(ip6_pkt->ip6_plen);
+			 _msg.hdr_len += ntohs(ip6_pkt->ip6_plen);
+		}
 #endif
 
 		/* stats */
@@ -307,8 +318,6 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
 
 		if ((int32_t) len < 0)
 			len = 0;
-
-		memset(&_msg, 0, sizeof(msg_t));
 
 		_msg.data = data;
 		_msg.len = len;
