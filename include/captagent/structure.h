@@ -33,6 +33,7 @@ typedef struct msg {
         void *data;
         char *profile_name;
         uint32_t len;
+        uint16_t hdr_len;
         uint8_t tcpflag;
         rc_info_t rcinfo;
         uint8_t parse_it;
