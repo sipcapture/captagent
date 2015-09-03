@@ -1,3 +1,5 @@
+![Travis](https://travis-ci.org/sipcapture/captagent.svg?branch=master)
+
 ![](http://i.imgur.com/3kEIR.png)
 
 CaptAgent Project
