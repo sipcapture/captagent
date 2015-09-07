@@ -61,6 +61,17 @@ AC_ARG_ENABLE(redis,
 AC_MSG_RESULT([$REDIS])
 AC_SUBST([REDIS])
 
+useLIBUV=no
+AC_MSG_CHECKING([whether to use libuv])
+AC_ARG_ENABLE(libuv,
+   [  --enable-libuv    Enable libuv support)],
+   [LIBUV="$enableval"]
+   useLIBUV=yes,
+   [LIBUV="no"]
+)
+AC_MSG_RESULT([$LIBUV])
+AC_SUBST([LIBUV])
+
 CONFIG_CFLAGS="${CFLAGS}"
 CONFIG_LDFLAGS="${LDFLAGS}"
 
@@ -204,7 +215,22 @@ if test "$REDIS" = "yes"; then
    AC_CHECK_HEADER(hiredis/hiredis.h,,[AC_MSG_ERROR([hiredis/hiredis.h headers not found.])])
    AC_CHECK_LIB(hiredis, redisCommand, [ LIBS="${LIBS} -lhiredis" ], [AC_MSG_ERROR([captagent requires but cannot find lhiredis])])
    AC_DEFINE(USE_REDIS, 1, [Use REDIS library])
+   AC_SUBST(HIREDIS_LIBS)
 fi
+
+
+dnl
+dnl check for libuv library
+dnl
+   
+if test "$LIBUV" = "yes"; then
+   AC_CHECKING([for LiBUV and Header files])
+   AC_CHECK_HEADER(uv.h,,[AC_MSG_ERROR([uv.h headers not found.])])
+   AC_CHECK_LIB(uv, uv_now, [ LIBS="${LIBS} -luv" ], [AC_MSG_ERROR([captagent requires but cannot find libuv])])
+   AC_DEFINE(USE_LIBUV, 1, [Use lib UV])
+   AC_SUBST(UV_LIBS)
+fi
+
 
 
 dnl
@@ -261,5 +287,6 @@ echo
 echo Build with REDIS............ : $useRedis
 echo Build with MySQL............ : $useMysql
 echo Build with PCRE............. : $usePCRE
+echo Build with LibUV............ : $useLIBUV
 echo
 
