@@ -149,6 +149,8 @@ int reload_config (char *erbuf, int erlen) {
 /* Callback function that is passed to pcap_loop() */
 void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet) {
 
+        struct ethhdr *eth = (struct ethhdr *)packet;
+        
 	struct ip *ip4_pkt = (struct ip *) (packet + link_offset);
 #if USE_IPv6
 	struct ip6_hdr *ip6_pkt = (struct ip6_hdr*)(packet + link_offset);
