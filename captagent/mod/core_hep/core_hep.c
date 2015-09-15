@@ -315,6 +315,11 @@ int send_hepv3 (rc_info_t *rcinfo, unsigned char *data, unsigned int len, unsign
     memcpy((void*) buffer+buflen, &payload_chunk,  sizeof(struct hep_chunk));
     buflen +=  sizeof(struct hep_chunk);            
 
+    if(!data) {
+     	LERR( "the captured data is empty....\n");
+     	goto error;
+    }
+    
     /* Now copying payload self */
     memcpy((void*) buffer+buflen, data, len);    
     buflen+=len;    
@@ -351,6 +356,11 @@ int send_hepv3 (rc_info_t *rcinfo, unsigned char *data, unsigned int len, unsign
     if(hg) free(hg);        
     
     return 1;
+    
+   error:
+     if(buffer) free(buffer);
+     if(hg) free(hg);        
+     return 0;    
 }
 
 
@@ -440,6 +450,11 @@ int send_hepv2 (rc_info_t *rcinfo, unsigned char *data, unsigned int len) {
      	/* TIMING  */
         memcpy((void*)buffer + buflen, &hep_time, sizeof(struct hep_timehdr));
         buflen += sizeof(struct hep_timehdr);
+     }
+
+     if(!data) {
+     	LERR( "the captured data is empty....\n");
+     	goto error;
      }
 
      memcpy((void *)(buffer + buflen) , (void*)(data), len);
