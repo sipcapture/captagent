@@ -41,6 +41,9 @@
 #include <signal.h>
 #include <time.h>
 #include <pthread.h>
+
+#include <pcap.h>
+
 #include <linux/filter.h>
 #include <linux/if_ether.h>
 #include <linux/if_packet.h>
@@ -56,8 +59,6 @@
 #ifdef USE_IPV6
 #include <netinet/ip6.h>
 #endif /* USE_IPV6 */
-
-#include <pcap.h>
 
 #include <captagent/capture.h>
 #include <captagent/globals.h>
