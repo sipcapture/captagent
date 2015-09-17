@@ -13,7 +13,8 @@ Architecture: amd64
 Depends: ${shlibs:Depends}, ${misc:Depends}
 Build-Depends:	bison,
 		flex,
-		libjson-dev,
+		libexpat-dev,
+		libjson0-dev,
 		libmysqlclient-dev
 Description: <insert up to 60 chars description>
  <insert long description, indented with spaces>
