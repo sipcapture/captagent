@@ -58,6 +58,7 @@
 #endif /* USE_IPV6 */
 
 #include <pcap.h>
+#include <pcap/bpf.h>
 
 #include <captagent/capture.h>
 #include <captagent/globals.h>
