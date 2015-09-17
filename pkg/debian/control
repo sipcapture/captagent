@@ -11,6 +11,10 @@ Homepage: <insert the upstream URL, if relevant>
 Package: captagent
 Architecture: amd64
 Depends: ${shlibs:Depends}, ${misc:Depends}
+Build-Depends:	bison,
+		flex,
+		libjson-dev,
+		libmysqlclient-dev
 Description: <insert up to 60 chars description>
  <insert long description, indented with spaces>
 #
