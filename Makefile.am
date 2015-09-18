@@ -12,3 +12,25 @@ ACLOCAL_AMFLAGS = -I m4
 
 distclean-local:
 	rm -rf autom4te.cache
+
+.PHONY: deb
+deb:
+	-@if [ -d debian ]; then \
+	    dpkg-buildpackage -rfakeroot -tc; \
+	    rm debian; \
+	else \
+	    ln -s pkg/debian debian; \
+	    dpkg-buildpackage -rfakeroot -tc; \
+	    rm debian; \
+	fi
+
+.PHONY: deb-stable
+deb-stable:
+	-@if [ -d debian ]; then \
+	    dpkg-buildpackage -rfakeroot -tc; \
+	    rm debian; \
+	else \
+	    ln -s pkg/wheezy debian; \
+	    dpkg-buildpackage -rfakeroot -tc; \
+	    rm debian; \
+	fi

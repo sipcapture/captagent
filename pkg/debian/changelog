@@ -1,0 +1,5 @@
+captagent (6.0.1-1) unstable; urgency=low
+
+  * Initial release (Closes: #nnnn)  <nnnn is the bug number of your ITP>
+
+ -- Konstantin S. Vishnivetsky <developer@unknown>  Wed, 16 Sep 2015 21:52:10 +0600
