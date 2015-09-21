@@ -35,7 +35,7 @@ stop() {
 	echo -n "Stopping $prog: "
 	#killproc $cap
 	if [ -e $pidfile ]; then
-		start-stop-daemon --oknodo --stop --quiet --pidfile $pidfile --exec $cap || echo "Failed"
+		start-stop-daemon --oknodo --stop --quiet --pidfile $pidfile --signal 9 || echo "Failed"
 		RETVAL=$?
 		echo
 		[ $RETVAL = 0 ] && rm -f $lockfile $pidfile
