@@ -60,7 +60,7 @@
 #include "../proto_uni/capthash.h"
 #include "rtcp_parser.h"
 
-uint8_t link_offset = 14;
+static uint8_t rtcp_link_offset = 14;
 uint8_t hdr_offset = 0;
 
 pcap_t *sniffer_rtp;
@@ -85,9 +85,9 @@ void rtcpback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
           }
         }
 
-        struct ip      *ip4_pkt = (struct ip *)    (packet + link_offset + hdr_offset);
+        struct ip      *ip4_pkt = (struct ip *)    (packet + rtcp_link_offset + hdr_offset);
 #if USE_IPv6
-        struct ip6_hdr *ip6_pkt = (struct ip6_hdr*)(packet + link_offset + ((ntohs((uint16_t)*(packet + 12)) == 0x8100)? 4: 0) );
+        struct ip6_hdr *ip6_pkt = (struct ip6_hdr*)(packet + rtcp_link_offset + ((ntohs((uint16_t)*(packet + 12)) == 0x8100)? 4: 0) );
 #endif
 
 	uint32_t ip_ver;
@@ -157,7 +157,7 @@ void rtcpback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
 
                     data = (unsigned char *)(udp_pkt) + udphdr_offset;
                     
-                    len -= link_offset + ip_hl + udphdr_offset + hdr_offset;
+                    len -= rtcp_link_offset + ip_hl + udphdr_offset + hdr_offset;
 
 #if USE_IPv6
                     if (ip_ver == 6)
@@ -302,43 +302,43 @@ void* rtp_collect( void* device ) {
 
         if(filter_expr) free(filter_expr);
         
-        /* detect link_offset. Thanks ngrep for this. */
+        /* detect rtcp_link_offset. Thanks ngrep for this. */
         switch(pcap_datalink(sniffer_rtp)) {
                 case DLT_EN10MB:
-                    link_offset = ETHHDR_SIZE;
+                    rtcp_link_offset = ETHHDR_SIZE;
                     break;
 
                 case DLT_IEEE802:
-                    link_offset = TOKENRING_SIZE;
+                    rtcp_link_offset = TOKENRING_SIZE;
                     break;
 
                 case DLT_FDDI:
-                    link_offset = FDDIHDR_SIZE;
+                    rtcp_link_offset = FDDIHDR_SIZE;
                     break;
 
                 case DLT_SLIP:
-                    link_offset = SLIPHDR_SIZE;
+                    rtcp_link_offset = SLIPHDR_SIZE;
                     break;
 
                 case DLT_PPP:
-                    link_offset = PPPHDR_SIZE;
+                    rtcp_link_offset = PPPHDR_SIZE;
                     break;
 
                 case DLT_LOOP:
                 case DLT_NULL:
-                    link_offset = LOOPHDR_SIZE;
+                    rtcp_link_offset = LOOPHDR_SIZE;
                     break;
 
                 case DLT_RAW:
-                    link_offset = RAWHDR_SIZE;
+                    rtcp_link_offset = RAWHDR_SIZE;
                     break;
 
                 case DLT_LINUX_SLL:
-                    link_offset = ISDNHDR_SIZE;
+                    rtcp_link_offset = ISDNHDR_SIZE;
                     break;
 
                 case DLT_IEEE802_11:
-                    link_offset = IEEE80211HDR_SIZE;
+                    rtcp_link_offset = IEEE80211HDR_SIZE;
                     break;
 
                 default:
