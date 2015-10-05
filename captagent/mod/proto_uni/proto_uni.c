@@ -67,7 +67,7 @@
 #include "captarray.h"
 #include "capthash.h"
 
-uint8_t link_offset = 14;
+static uint8_t link_offset = 14;
 
 pcap_t *sniffer_proto;
 pthread_t call_thread;   
