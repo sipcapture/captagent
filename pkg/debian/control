@@ -3,6 +3,7 @@ Section: comm
 Priority: optional
 Maintainer: Konstantin S. Vishnivetsky <developer@unknown>
 Build-Depends:	debhelper (>= 8.0.0),
+		debconf,
 		autotools-dev,
 		bison,
 		flex,
