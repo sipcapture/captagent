@@ -161,7 +161,7 @@ int w_sip_check(msg_t *_m, char *param1, char *param2)
                     ret = 1;             
              }
         }
-        if(!strncmp("rmethod", param1, strlen("rmethod")))
+        else if(!strncmp("rmethod", param1, strlen("rmethod")))
         {                     
              if(param2 != NULL && _m->sip.cSeqMethodString.s && _m->sip.cSeqMethodString.len > 0
                  && !strncmp(_m->sip.cSeqMethodString.s, param2, strlen(param2)))
