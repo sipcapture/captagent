@@ -14,3 +14,6 @@ script:
   - ./configure
   - make
   - ./src/captagent -h
+
+notifications:
+  slack: qxip:WuEGMSIAa8KEX6iL2zN2bZbv
