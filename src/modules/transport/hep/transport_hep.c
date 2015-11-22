@@ -771,7 +771,8 @@ SSL_CTX* initCTX(void) {
         SSL_load_error_strings();   /* Bring in and register error messages */
 
         /* we use SSLv3 */
-        method = SSLv3_client_method();  /* Create new client-method instance */
+        /* method = SSLv3_client_method();  */
+        method = TLSv1_method(); /* Create new client-method instance */
 
         ctx = SSL_CTX_new(method);   /* Create new context */
         if ( ctx == NULL ) {
@@ -820,6 +821,7 @@ int initSSL(unsigned int idx) {
         /* workaround bug openssl */
         ctx_options = SSL_OP_ALL;
         ctx_options |= SSL_OP_NO_SSLv2;
+        ctx_options |= SSL_OP_NO_SSLv3;
         SSL_CTX_set_options(profile_transport[idx].ctx, ctx_options);
 
         /*extra*/
