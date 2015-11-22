@@ -859,8 +859,11 @@ SSL_CTX* initCTX(void) {
         OpenSSL_add_all_algorithms();  /* Load cryptos, et.al. */
         SSL_load_error_strings();   /* Bring in and register error messages */
 
-        /* we use SSLv3 */
-        method = SSLv3_client_method();  /* Create new client-method instance */
+        /* we use SSLv3 OBSOLETE */
+       // method = SSLv3_client_method();  /* Create new client-method instance */
+       /* tls v1  */
+       method = TLSv1_method(); 
+       
 
         ctx = SSL_CTX_new(method);   /* Create new context */
         if ( ctx == NULL ) {
@@ -909,6 +912,7 @@ int initSSL(void) {
         /* workaround bug openssl */
         ctx_options = SSL_OP_ALL;   
         ctx_options |= SSL_OP_NO_SSLv2;
+        ctx_options |= SSL_OP_NO_SSLv3;
         SSL_CTX_set_options(ctx, ctx_options);
                 
         /*extra*/
