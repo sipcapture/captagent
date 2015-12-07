@@ -625,9 +625,9 @@ static int load_module(xml_node *config) {
 
 					if (!strncmp(key, "dev", 3))
 						profile_socket[profile_size].device = strdup(value);
-					else if (!strncmp(key, "reasm", 5) && !strncmp(value, "true", 5))
+					else if (!strncmp(key, "reasm", 5) && !strncmp(value, "true", 4))
 						profile_socket[profile_size].reasm = 1;
-					else if (!strncmp(key, "promisc", 7) && !strncmp(value, "false", 5))
+					else if (!strncmp(key, "promisc", 7) && !strncmp(value, "true", 4))
 						profile_socket[profile_size].promisc = 1;
 					else if (!strncmp(key, "filter", 6))
 						profile_socket[profile_size].filter = strdup(value);
