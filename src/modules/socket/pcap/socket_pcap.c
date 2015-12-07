@@ -79,7 +79,7 @@ char *module_description;
 static socket_pcap_stats_t stats;
 
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
-pthread_t call_thread;
+pthread_t call_thread[MAX_SOCKETS];
 pcap_t *sniffer_proto[MAX_SOCKETS];
 struct reasm_ip *reasm[MAX_SOCKETS];
 
@@ -699,7 +699,7 @@ static int load_module(xml_node *config) {
 			
 		}
 
-		pthread_create(&call_thread, NULL, proto_collect, arg);
+		pthread_create(&call_thread[i], NULL, proto_collect, arg);
 
 	}
 
@@ -715,7 +715,7 @@ static int unload_module(void) {
 
 		if(sniffer_proto[i]) {
   		    pcap_breakloop(sniffer_proto[i]);
-  		    pthread_join(call_thread,NULL);
+  		    pthread_join(call_thread[i],NULL);
 		}
 
 		if (profile_socket[i].reasm == 1 && reasm[i] != NULL) {
