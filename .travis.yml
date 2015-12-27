@@ -6,10 +6,23 @@ compiler:
 install: 
   - sudo apt-get update || true
   - sudo apt-get install build-essential
+<<<<<<< HEAD
   - sudo apt-get install libpcap-dev libexpat-dev libjson0-dev bison flex libtool autoconf automake autogen
 
 script:
+=======
+  - sudo apt-get install libpcap-dev libexpat-dev libtool autoconf automake autogen
+
+script:
+  - cd captagent
+>>>>>>> 750568c90c3d4733408d37ac6500be0086cb3137
   - ./build.sh
   - ./configure
   - make
   - ./src/captagent -h
+<<<<<<< HEAD
+=======
+
+notifications:
+  slack: qxip:WuEGMSIAa8KEX6iL2zN2bZbv
+>>>>>>> 750568c90c3d4733408d37ac6500be0086cb3137
