@@ -5,18 +5,20 @@ Maintainer: Konstantin S. Vishnivetsky <developer@unknown>
 Build-Depends:	debhelper (>= 8.0.0),
 		debconf,
 		autotools-dev,
+		dh-autoreconf,
 		bison,
 		flex,
 		libexpat-dev,
 		libjson0-dev,
-		libmysqlclient-dev
+		libmysqlclient-dev,
+		libpcap0.8-dev
 Standards-Version: 6.0.1
 Homepage: http://sipcapture.org
 Vcs-Git: git://github.com/sipcapture/captagent/tree/captagent6
 
 Package: captagent
 Architecture: linux-any
-Depends: ${shlibs:Depends}, ${misc:Depends}
+Depends: ${shlibs:Depends}, ${misc:Depends}, libpcap0.8, libexpat1
 Description: SIP capture server
  HOMER5 a robust, carrier-grade, scalable SIP Capture system and Monitoring Application with HEP/HEP2, IP Proto4 (IPIP) encapsulation & port mirroring/monitoring support right out of the box, ready to process & store insane amounts of signaling with instant search, end-to-end analysis and drill-down capabilities for ITSPs, VoIP Providers and Trunk Suppliers using SIP signaling
 
