@@ -9,6 +9,7 @@
 		<param name="daemon" value="false"/>
 		<param name="syslog" value="false"/>
 		<param name="pid_file" value="/var/run/captagent.pid"/>
+		<!-- COnfigure using install path, ie: /usr/local/etc/captagent -->
 		<param name="module_path" value="/usr/lib64/captagent/modules"/>
 		<param name="config_path" value="/etc/captagent"/>
 		<param name="capture_plans_path" value="/etc/captagent/captureplans"/>
@@ -18,16 +19,17 @@
 	</configuration>
 	<configuration name="modules.conf" description="Modules">
 	    <modules>
-		<load module="transport_json" register="local"/>
+	
 		<load module="transport_hep" register="local"/>
-		<load module="protocol_sip" register="local"/>
-		<load module="database_hash" register="local"/>
 		<load module="protocol_sip" register="local"/>
 		<load module="protocol_rtcp" register="local"/>		                                  
 		<load module="socket_rtcpxr" register="local"/>
 		<load module="socket_pcap" register="local"/>
 		<load module="socket_raw" register="local"/>
 	    <!--
+	    	<load module="transport_json" register="local"/>
+   		<load module="database_hash" register="local"/>
+
 		<load module="protocol_rtcp" register="local"/>
 		<load module="interface_http" register="local"/>
 		<load module="database_redis" register="local"/>
