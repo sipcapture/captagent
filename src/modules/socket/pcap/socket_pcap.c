@@ -187,8 +187,9 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
 	u_char *pack = NULL;
 	int action_idx = 0;
         char mac_src[20], mac_dst[20];
-	char *data;
+	unsigned char *data, *datatcp;
 	uint32_t len = pkthdr->caplen;
+	uint8_t  psh = 0;
 
 	/* stats */
 	stats.recieved_packets_total++;
@@ -272,7 +273,7 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
 		//uint16_t tcphdr_offset = (frag_offset) ? 0 : (tcp_pkt->th_off * 4);
 		uint16_t tcphdr_offset = frag_offset ? 0 : (uint16_t) (tcp_pkt->th_off * 4);
 
-		data = (char *) (tcp_pkt) + tcphdr_offset;
+		data = (unsigned char *) (tcp_pkt) + tcphdr_offset;
 		_msg.hdr_len = link_offset + ip_hl + tcphdr_offset;
 		
 		len -= link_offset + ip_hl + tcphdr_offset + hdr_offset;
@@ -299,9 +300,7 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
 			if((tcp_pkt->th_flags & TH_PUSH)) psh = 1;
 
 					
-			if(debug_socket_pcap_enable)
-			        LDEBUG("DEFRAG TCP process: EN:[%d], LEN:[%d], ACK:[%d], PSH[%d]\n", 
-			                        tcpdefrag_enable, len, (tcp_pkt->th_flags & TH_ACK), psh);
+			if(debug_socket_pcap_enable) LDEBUG("DEFRAG TCP process: LEN:[%d], ACK:[%d], PSH[%d]\n", len, (tcp_pkt->th_flags & TH_ACK), psh);
 			
 	                datatcp = tcpreasm_ip_next_tcp(tcpreasm[loc_index], new_p_2, len , (tcpreasm_time_t) 1000000UL * pkthdr->ts.tv_sec + pkthdr->ts.tv_usec, &new_len, &ip4_pkt->ip_src, &ip4_pkt->ip_dst, ntohs(tcp_pkt->th_sport), ntohs(tcp_pkt->th_dport), psh);
 
@@ -365,7 +364,7 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
 		struct udphdr *udp_pkt = (struct udphdr *) ((unsigned char *) (ip4_pkt) + ip_hl);
 		uint16_t udphdr_offset = (frag_offset) ? 0 : sizeof(*udp_pkt);
 
-		data = (char *) (udp_pkt) + udphdr_offset;
+		data = (unsigned char *) (udp_pkt) + udphdr_offset;
 		_msg.hdr_len = link_offset + ip_hl + udphdr_offset;
 		
 		len -= link_offset + ip_hl + udphdr_offset + hdr_offset;
@@ -800,7 +799,7 @@ static int unload_module(void) {
 		}
 		
 		if (tcpreasm[i] != NULL) {
-			tcpreasm_ip_free(reasm[i]);
+			tcpreasm_ip_free(tcpreasm[i]);
 			tcpreasm[i] = NULL;
 		}
 
