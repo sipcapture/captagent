@@ -22,7 +22,7 @@
 #include <netinet/ip6.h>
 #endif /* USE_IPv6 */
 
-extern int debug_proto_uni_enable;
+extern int debug_socket_pcap_enable;
 
 #include "tcpreasm.h"
 
@@ -241,7 +241,7 @@ tcpreasm_ip_next_tcp (struct tcpreasm_ip *tcpreasm, unsigned char *packet, unsig
         
         hash = tcpreasm_ipv4_hash (&id.ipv4);
                 
-        if(debug_proto_uni_enable) {
+        if(debug_socket_pcap_enable) {
         
         	printf("\nTCPREASM: Proto [%d], Hash:[%d] SPORT: [%d], DPORT: [%d]\n", proto, hash, sport, dport);
         }
@@ -255,14 +255,14 @@ tcpreasm_ip_next_tcp (struct tcpreasm_ip *tcpreasm, unsigned char *packet, unsig
 	/* no buffer, go out */
 	if(psh == 1 && entry == NULL) {
 		free(frag);
-		if(debug_proto_uni_enable) printf("RETURN PACKET BACK\n");
+		if(debug_socket_pcap_enable) printf("RETURN PACKET BACK\n");
 		*output_len = len;
 		return packet;
 	}		
 
 	if (entry == NULL) {
 	
-		if(debug_proto_uni_enable) printf("EMPTY ENTRY\n");
+		if(debug_socket_pcap_enable) printf("EMPTY ENTRY\n");
         			
 		entry = malloc (sizeof (*entry));
 		if (entry == NULL) {
