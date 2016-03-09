@@ -67,6 +67,7 @@
 #include "socket_pcap.h"
 #include <captagent/log.h>
 #include "ipreasm.h"
+#include "tcpreasm.h"
 
 xml_node *module_xml_config = NULL;
 
@@ -75,13 +76,14 @@ uint8_t link_offset = 14;
 char *module_name="socket_pcap";
 uint64_t module_serial = 0;
 char *module_description;
-
+int debug_socket_pcap_enable = 0;
 static socket_pcap_stats_t stats;
 
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_t call_thread[MAX_SOCKETS];
 pcap_t *sniffer_proto[MAX_SOCKETS];
 struct reasm_ip *reasm[MAX_SOCKETS];
+struct tcpreasm_ip *tcpreasm[MAX_SOCKETS];
 
 static int load_module(xml_node *config);
 static int unload_module(void);
@@ -149,11 +151,27 @@ int reload_config (char *erbuf, int erlen) {
 /* Callback function that is passed to pcap_loop() */
 void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet) {
 
+	unsigned char* ethaddr = NULL;
+	unsigned char* mplsaddr = NULL;
+	uint8_t hdr_offset = 0;
+
+	/* Pat Callahan's patch for MPLS */
+	memcpy(&ethaddr, (packet + 12), 2);
+        memcpy(&mplsaddr, (packet + 16), 2);
+        
+        if (ntohs((uint16_t)*(&ethaddr)) == 0x8100) {
+          if (ntohs((uint16_t)*(&mplsaddr)) == 0x8847) {
+             hdr_offset = 8;
+          } else {
+             hdr_offset = 4;
+          }
+        }        
+
         struct ethhdr *eth = (struct ethhdr *)packet;
         
-	struct ip *ip4_pkt = (struct ip *) (packet + link_offset);
+	struct ip *ip4_pkt = (struct ip *) (packet + link_offset + hdr_offset);
 #if USE_IPv6
-	struct ip6_hdr *ip6_pkt = (struct ip6_hdr*)(packet + link_offset);
+	struct ip6_hdr *ip6_pkt = (struct ip6_hdr*)(packet + link_offset + hdr_offset);
 #endif
 
 	uint8_t loc_index = (uint8_t *) useless;
@@ -175,7 +193,7 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
 	/* stats */
 	stats.recieved_packets_total++;
 
-	if (profile_socket[loc_index].reasm == 1 && reasm[loc_index] != NULL) {
+	if (reasm[loc_index] != NULL) {
 		unsigned new_len;
 
 		u_char *new_p = malloc(len - link_offset - ((ntohs((uint16_t) *(packet + 12)) == 0x8100) ? 4 : 0));
@@ -257,7 +275,7 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
 		data = (char *) (tcp_pkt) + tcphdr_offset;
 		_msg.hdr_len = link_offset + ip_hl + tcphdr_offset;
 		
-		len -= link_offset + ip_hl + tcphdr_offset;
+		len -= link_offset + ip_hl + tcphdr_offset + hdr_offset;
 
 		stats.recieved_tcp_packets++;
 
@@ -272,28 +290,73 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
 		if ((int32_t) len < 0)
 			len = 0;
 
+                if(tcpreasm[loc_index] != NULL &&  (len > 0) && (tcp_pkt->th_flags & TH_ACK)) {
 
-		_msg.data = data;
-		_msg.len = len;
+			unsigned new_len;
+			u_char *new_p_2 = malloc(len+10);
+			memcpy(new_p_2, data, len);
+	
+			if((tcp_pkt->th_flags & TH_PUSH)) psh = 1;
 
-		_msg.rcinfo.src_port = ntohs(tcp_pkt->th_sport);
-		_msg.rcinfo.dst_port = ntohs(tcp_pkt->th_dport);
-		_msg.rcinfo.src_ip = ip_src;
-		_msg.rcinfo.dst_ip = ip_dst;
-	        _msg.rcinfo.src_mac = mac_src;
-                _msg.rcinfo.dst_mac = mac_dst;
-		_msg.rcinfo.ip_family = ip_ver = 4 ? AF_INET : AF_INET6;
-		_msg.rcinfo.ip_proto = ip_proto;
-		_msg.rcinfo.time_sec = pkthdr->ts.tv_sec;
-		_msg.rcinfo.time_usec = pkthdr->ts.tv_usec;
-		_msg.tcpflag = tcp_pkt->th_flags;
-		_msg.parse_it = 1;
+					
+			if(debug_socket_pcap_enable)
+			        LDEBUG("DEFRAG TCP process: EN:[%d], LEN:[%d], ACK:[%d], PSH[%d]\n", 
+			                        tcpdefrag_enable, len, (tcp_pkt->th_flags & TH_ACK), psh);
+			
+	                datatcp = tcpreasm_ip_next_tcp(tcpreasm[loc_index], new_p_2, len , (tcpreasm_time_t) 1000000UL * pkthdr->ts.tv_sec + pkthdr->ts.tv_usec, &new_len, &ip4_pkt->ip_src, &ip4_pkt->ip_dst, ntohs(tcp_pkt->th_sport), ntohs(tcp_pkt->th_dport), psh);
 
-		action_idx = profile_socket[loc_index].action;
-		run_actions(main_ct.clist[action_idx], &_msg);
-		        
-		stats.send_packets++;
+        	        if (datatcp == NULL) return;
+        	                	        
+	                len = new_len;
+	                
+	                if(debug_socket_pcap_enable)
+	                        LDEBUG("COMPLETE TCP DEFRAG: LEN[%d], PACKET:[%s]\n", len, datatcp);
+	                
+			_msg.data = datatcp;
+			_msg.len = len;
 
+			_msg.rcinfo.src_port = ntohs(tcp_pkt->th_sport);
+			_msg.rcinfo.dst_port = ntohs(tcp_pkt->th_dport);
+			_msg.rcinfo.src_ip = ip_src;
+			_msg.rcinfo.dst_ip = ip_dst;
+			_msg.rcinfo.src_mac = mac_src;
+			_msg.rcinfo.dst_mac = mac_dst;
+			_msg.rcinfo.ip_family = ip_ver = 4 ? AF_INET : AF_INET6;
+			_msg.rcinfo.ip_proto = ip_proto;
+			_msg.rcinfo.time_sec = pkthdr->ts.tv_sec;
+			_msg.rcinfo.time_usec = pkthdr->ts.tv_usec;
+			_msg.tcpflag = tcp_pkt->th_flags;
+			_msg.parse_it = 1;
+			action_idx = profile_socket[loc_index].action;
+			run_actions(main_ct.clist[action_idx], &_msg);
+
+	                /* clear datatcp */
+        	        free(datatcp);
+                    
+                 }
+                 else {
+
+			_msg.data = data;
+			_msg.len = len;
+
+			_msg.rcinfo.src_port = ntohs(tcp_pkt->th_sport);
+			_msg.rcinfo.dst_port = ntohs(tcp_pkt->th_dport);
+			_msg.rcinfo.src_ip = ip_src;
+			_msg.rcinfo.dst_ip = ip_dst;
+		        _msg.rcinfo.src_mac = mac_src;
+        	        _msg.rcinfo.dst_mac = mac_dst;
+			_msg.rcinfo.ip_family = ip_ver = 4 ? AF_INET : AF_INET6;
+			_msg.rcinfo.ip_proto = ip_proto;
+			_msg.rcinfo.time_sec = pkthdr->ts.tv_sec;
+			_msg.rcinfo.time_usec = pkthdr->ts.tv_usec;
+			_msg.tcpflag = tcp_pkt->th_flags;
+			_msg.parse_it = 1;
+
+			action_idx = profile_socket[loc_index].action;
+			run_actions(main_ct.clist[action_idx], &_msg);
+					        
+			stats.send_packets++;
+		}
 
 	}
 		break;
@@ -305,7 +368,7 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
 		data = (char *) (udp_pkt) + udphdr_offset;
 		_msg.hdr_len = link_offset + ip_hl + udphdr_offset;
 		
-		len -= link_offset + ip_hl + udphdr_offset;
+		len -= link_offset + ip_hl + udphdr_offset + hdr_offset;
 
 #if USE_IPv6
 		if (ip_ver == 6)
@@ -587,6 +650,7 @@ static int load_module(xml_node *config) {
 		profile_socket[profile_size].capture_plan = NULL;
 		profile_socket[profile_size].capture_filter = NULL;
 		profile_socket[profile_size].action = -1;
+		profile_socket[profile_size].reasm = 0;		
 
 		/* SETTINGS */
 		settings = xml_get("settings", profile, 1);
@@ -626,7 +690,9 @@ static int load_module(xml_node *config) {
 					if (!strncmp(key, "dev", 3))
 						profile_socket[profile_size].device = strdup(value);
 					else if (!strncmp(key, "reasm", 5) && !strncmp(value, "true", 4))
-						profile_socket[profile_size].reasm = 1;
+						profile_socket[profile_size].reasm += 1;
+		                        else if(!strncmp(key, "tcpdefrag", 9) && !strncmp(value, "true", 4)) 
+						 profile_socket[profile_size].reasm +=2;
 					else if (!strncmp(key, "promisc", 7) && !strncmp(value, "true", 4))
 						profile_socket[profile_size].promisc = 1;
 					else if (!strncmp(key, "filter", 6))
@@ -635,6 +701,8 @@ static int load_module(xml_node *config) {
 						profile_socket[profile_size].capture_plan = strdup(value);
                                         else if (!strncmp(key, "capture-filter", 14))
 						profile_socket[profile_size].capture_filter = strdup(value);
+		                        else if(!strncmp(key, "debug", 5) && !strncmp(value, "true", 4)) 
+						debug_socket_pcap_enable = 1;
 				}
 
 				nextparam: params = params->next;
@@ -673,10 +741,18 @@ static int load_module(xml_node *config) {
 		}
 
 		/* REASM */
-		if (profile_socket[i].reasm == 1) {
+		if (profile_socket[i].reasm == 1 || profile_socket[i].reasm == 3) {
 			reasm[i] = reasm_ip_new();
 			reasm_ip_set_timeout(reasm[i], 30000000);
 		}
+		else reasm[i] = NULL;
+		
+		/* TCPREASM */
+		if (profile_socket[i].reasm == 2 || profile_socket[i].reasm == 3) {
+			tcpreasm[i] = tcpreasm_ip_new ();
+			tcpreasm_ip_set_timeout(tcpreasm[i], 30000000);
+		}
+		else tcpreasm[i] = NULL;
 
 
 		if(profile_socket[i].capture_plan != NULL)
@@ -718,9 +794,14 @@ static int unload_module(void) {
   		    pthread_join(call_thread[i],NULL);
 		}
 
-		if (profile_socket[i].reasm == 1 && reasm[i] != NULL) {
+		if (reasm[i] != NULL) {
 			reasm_ip_free(reasm[i]);
 			reasm[i] = NULL;
+		}
+		
+		if (tcpreasm[i] != NULL) {
+			tcpreasm_ip_free(reasm[i]);
+			tcpreasm[i] = NULL;
 		}
 
 
