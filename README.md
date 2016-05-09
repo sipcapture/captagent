@@ -11,7 +11,7 @@ Download the latest code from our repository and compile it on your system.
 Capagent requires: *libexpat, libpcap, libtool, automake* to compile.
 ```
   cd /usr/src
-  git clone -b captagent6 https://github.com/sipcapture/captagent.git captagent
+  git clone https://github.com/sipcapture/captagent.git captagent
   cd captagent
   ./build.sh
   ./configure
