@@ -9,7 +9,8 @@ SUBDIRS = \
 	modules/protocol/rtcp \
 	modules/transport/hep \
 	modules/transport/json \
-	modules/database/hash
+	modules/database/hash \
+	modules/interface/http
 
 bin_PROGRAMS = captagent
 AM_CFLAGS = -g -fPIC -rdynamic -I$(top_srcdir)/include

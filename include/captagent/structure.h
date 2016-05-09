@@ -39,6 +39,8 @@ typedef struct msg {
         uint8_t parse_it;
         void *parsed_data;
         sip_msg_t sip;
+        void *cap_packet;
+        void *cap_header;
         void *var;
         uint8_t mfree;
         int flag[10];

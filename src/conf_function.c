@@ -49,6 +49,7 @@
 #include "md5.h"
 #include <captagent/globals.h>
 #include <captagent/capture.h>
+#include <captagent/action.h>
 #include "conf_function.h"
 
 #define E_UNSPEC      -1
@@ -59,7 +60,7 @@
 /* ret= 0! if action -> end of list(e.g DROP),
       > 0 to continue processing next actions
    and <0 on error */
-int do_action(struct action* a, msg_t* msg)
+int do_action(struct run_act_ctx* h, struct action* a, msg_t* msg)
 {
         int ret = 0;
         int v;
@@ -84,7 +85,7 @@ int do_action(struct action* a, msg_t* msg)
 		case IF_T:
                 		/* if null expr => ignore if? */
                                 if ((a->p1_type==EXPR_ST)&&a->p1.data){
-                                        v=eval_expr((struct expr*)a->p1.data, msg);
+                                        v=eval_expr(h, (struct expr*)a->p1.data, msg);
                                         if (v<0){
                                                 if (v==EXPR_DROP){ /* hack to quit on DROP*/
                                                         ret=0;
@@ -97,10 +98,10 @@ int do_action(struct action* a, msg_t* msg)
                                         ret=1;  /*default is continue */
                                         if (v>0) {
                                                 if ((a->p2_type==ACTIONS_ST)&&a->p2.data){
-							ret=run_actions((struct action*)a->p2.data, msg);
+							ret=run_actions(h,(struct action*)a->p2.data, msg);
                                                 }
                                         }else if ((a->p3_type==ACTIONS_ST)&&a->p3.data){
-                                                        ret=run_actions((struct action*)a->p3.data, msg);
+                                                        ret=run_actions(h,(struct action*)a->p3.data, msg);
                                         }
                                 }
                         break;   
@@ -109,19 +110,19 @@ int do_action(struct action* a, msg_t* msg)
                         if ( ((a->p1_type==CMDF_ST)&&a->p1.data)){
                                 ret=((cmd_function)(a->p1.data))(msg, (char*)a->p2.data, (char*)a->p3.data);
                         }else{
-                                LDEBUG("BUG: do_action: bad module call\n");
+                                LERR("BUG: do_action: bad module call\n");
                         }
                         break;
                     
                 default:
-                        LDEBUG("BUG: do_action: unknown type %d\n", a->type);
+                        LERR("BUG: do_action: unknown type %d\n", a->type);
                         ret = 0;
         }
 
         return ret;
 }
 
-static int eval_elem(struct expr* e, msg_t* msg)
+static int eval_elem(struct run_act_ctx* h, struct expr* e, msg_t* msg)
 {
  
         int ret;
@@ -136,7 +137,7 @@ static int eval_elem(struct expr* e, msg_t* msg)
                                 ret=!(!e->r.intval); /* !! to transform it in {0,1} */
                                 break;
                 case ACTION_O:
-                                ret=run_actions( (struct action*)e->r.param, msg);
+                                ret=run_actions(h,(struct action*)e->r.param, msg);
                                 if (ret<=0) ret=(ret==0)?EXPR_DROP:0;
                                 else ret=1;
                                 break;
@@ -153,7 +154,7 @@ error:
 
 
 /* ret= 0/1 (true/false) ,  -1 on error or EXPR_DROP (-127)  */
-int eval_expr(struct expr* e, msg_t* msg)
+int eval_expr(struct run_act_ctx* h, struct expr* e, msg_t* msg)
 {
         static int rec_lev=0;
         int ret;
@@ -166,23 +167,23 @@ int eval_expr(struct expr* e, msg_t* msg)
         }
         
         if (e->type==ELEM_T){
-                ret=eval_elem(e, msg);
+                ret=eval_elem(h, e, msg);
         }else if (e->type==EXP_T){
                 switch(e->op){
                         case AND_OP:
-                                ret=eval_expr(e->l.expr, msg);
+                                ret=eval_expr(h, e->l.expr, msg);
                                 /* if error or false stop evaluating the rest */
                                 if (ret!=1) break;
-                                ret=eval_expr(e->r.expr, msg); /*ret1 is 1*/
+                                ret=eval_expr(h, e->r.expr, msg); /*ret1 is 1*/
                                 break;
                         case OR_OP:
-                                ret=eval_expr(e->l.expr, msg);
+                                ret=eval_expr(h, e->l.expr, msg);
                                 /* if true or error stop evaluating the rest */
                                 if (ret!=0) break;
-                                ret=eval_expr(e->r.expr, msg); /* ret1 is 0 */
+                                ret=eval_expr(h, e->r.expr, msg); /* ret1 is 0 */
                                 break;
                         case NOT_OP:
-                                ret=eval_expr(e->l.expr, msg);
+                                ret=eval_expr(h, e->l.expr, msg);
                                 if (ret<0) break;
                                 ret= ! ret;
                                 break;
@@ -201,40 +202,43 @@ skip:
 }
 
 
-
 /* returns: 0, or 1 on success, <0 on error */
 /* (0 if drop or break encountered, 1 if not ) */
-int run_actions(struct action* a, msg_t* msg)
+int run_actions(struct run_act_ctx* h, struct action* a, msg_t* msg)
 {
         struct action* t;
         int ret=E_UNSPEC;
-        static int rec_lev=0;
+        //static int rec_lev=0;
         struct sr_module *mod;
 
-        rec_lev++;
-        if (rec_lev>ROUTE_MAX_REC_LEV){
+        //printf("RUN: [%d]", h->rec_lev);
+
+        h->rec_lev++;
+        if (h->rec_lev>ROUTE_MAX_REC_LEV){
                 printf("WARNING: too many recursive routing table lookups (%d)"
-                                        " giving up!\n", rec_lev);
+                                        " giving up!\n", h->rec_lev);
+                printf("WARNING: Action: type: (%d), Ret: (%d), p2_type: (%s), p3_type: (%s)\n", a->type, ret, (char *)a->p2.data, (char *)a->p3.data);                                
+                                                                        
                 ret=E_UNSPEC;
                 goto error;
         }
 
         if (a==0){
                 printf("WARNING: run_actions: null action list (rec_level=%d)\n",
-                        rec_lev);
+                        h->rec_lev);
                 ret=0;
         }
 
         for (t=a; t!=0; t=t->next){
-                ret=do_action(t, msg);
+                ret=do_action(h, t, msg);
                 if(ret==0) break;
                 /* ignore errors */
-                /*else if (ret<0){ ret=-1; goto error; }*/
+                //else if (ret<0){ ret=-1; goto error; }
         }
 
-        rec_lev--;
+        h->rec_lev--;
         /* process module onbreak handlers if present */
-        if (rec_lev==0 && ret==0)
+        if (h->rec_lev==0 && ret==0)
                 for (mod=modules;mod;mod=mod->next)
                         if (mod->exports && mod->exports->onbreak_f) {
                                 mod->exports->onbreak_f( msg );
@@ -244,7 +248,7 @@ int run_actions(struct action* a, msg_t* msg)
 
 
 error:
-        rec_lev--;
+        h->rec_lev--;
         return ret;
 }
 

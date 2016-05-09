@@ -92,6 +92,7 @@ int w_sip_check(msg_t *_m, char *param1, char *param2);
 int w_send_reply_p(msg_t *_m, char *param1, char *param2);
 int w_send_reply(msg_t *_m);
 int send_sip_reply(msg_t *_m, int code, char *description);
+int w_is_flag_set(msg_t *_m, char *param1, char *param2);
                                     
 
 

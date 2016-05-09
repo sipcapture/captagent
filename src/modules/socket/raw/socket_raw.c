@@ -1,4 +1,4 @@
-/*
+	/*
  * $Id$
  *
  *  captagent - Homer capture agent. Modular
@@ -44,8 +44,11 @@
 
 #include <pcap.h>
 
+#include <linux/sockios.h>
 #include <linux/filter.h>
+#include <linux/if.h>
 #include <linux/if_ether.h>
+#include <linux/if_arp.h>
 #include <linux/if_packet.h>
 
 #ifndef __FAVOR_BSD
@@ -59,6 +62,7 @@
 #ifdef USE_IPV6
 #include <netinet/ip6.h>
 #endif /* USE_IPV6 */
+
 
 #include <captagent/capture.h>
 #include <captagent/globals.h>
@@ -74,7 +78,7 @@
 
 xml_node *module_xml_config = NULL;
 
-uint8_t link_offset = 14;
+uint8_t link_offset[MAX_SOCKETS];
 
 char *module_name="socket_raw";
 uint64_t module_serial = 0;
@@ -161,7 +165,9 @@ int init_socket(unsigned int loc_idx) {
 	int ifname_len;
 	char* ifname;
 	int err, len = 0;
-
+	struct ifreq ifr;
+	int arptype = 0;
+	        
 	ifname_len = strlen(profile_socket[loc_idx].device);
 	ifname = profile_socket[loc_idx].device;
 
@@ -180,17 +186,30 @@ int init_socket(unsigned int loc_idx) {
 		ifname_len = sizeof(short_ifname);
 		ifname = short_ifname;
 	}
-
+	
 	int ifindex = if_nametoindex(ifname);
 	if ((err = iface_bind(socket_desc[loc_idx], ifindex)) != 1) {
 		LERR("raw_socket: could not bind to %s: %s [%d] [%d]", ifname, strerror(errno), errno);
 		goto error;
-
 	}
 
 	/* now set filter */
 	LDEBUG("FILTER [%s]", profile_socket[loc_idx].filter);
 
+	/* link layer type */
+	arptype = iface_get_arptype(socket_desc[loc_idx], ifname, errbuf);
+	if(arptype < 0 ) 
+	{
+		LDEBUG("Error couldn't detect link type [%d]",  (char * )profile_socket[loc_idx].device);
+		goto error;
+	}
+	
+	if((convert_arp_to_dl(loc_idx, arptype)) == -1) 
+	{
+		LDEBUG("Error couldn't convert link type [%d] arptype: [%d]",  (char * )profile_socket[loc_idx].device, arptype);		        
+		goto error;	
+	}
+		
  	/* create filter string */
         if(profile_socket[loc_idx].capture_filter)
         {
@@ -208,7 +227,7 @@ int init_socket(unsigned int loc_idx) {
                         len += snprintf(filter_expr+len, sizeof(filter_expr)-len, " and (%s)", profile_socket[loc_idx].filter);
                 }
 
-		if (!set_raw_filter(loc_idx, &filter_expr)) {
+		if (!set_raw_filter(loc_idx, filter_expr)) {
 			LERR("Couldn't apply filter....");
 		}
         }
@@ -230,23 +249,79 @@ int init_socket(unsigned int loc_idx) {
 		return -1;
 }
 
+int convert_arp_to_dl(unsigned int loc_idx, int arptype) {
+	
+        switch (arptype) {
+        	case ARPHRD_ETHER:
+	                link_offset[loc_idx] = ETHHDR_SIZE;
+	                profile_socket[loc_idx].link_type = DLT_EN10MB;
+        	        break;
+        	        
+        	case ARPHRD_EETHER:
+	                link_offset[loc_idx] = ETHHDR_SIZE;
+	                profile_socket[loc_idx].link_type = DLT_EN10MB;
+        	        break;        	        
+
+	        case ARPHRD_IEEE802:
+        	        link_offset[loc_idx] = TOKENRING_SIZE;
+        	        profile_socket[loc_idx].link_type = DLT_IEEE802;
+	                break;
+
+		case ARPHRD_FDDI:
+	                link_offset[loc_idx] = FDDIHDR_SIZE;
+	                profile_socket[loc_idx].link_type = DLT_FDDI;
+	                break;
+
+		case ARPHRD_SLIP:
+                	link_offset[loc_idx] = SLIPHDR_SIZE;
+                	profile_socket[loc_idx].link_type = DLT_SLIP;
+	                break;
+
+		case ARPHRD_PPP:
+                	link_offset[loc_idx] = PPPHDR_SIZE;
+                	profile_socket[loc_idx].link_type = DLT_PPP;
+	                break;
+
+		case ARPHRD_LOOPBACK:
+                	link_offset[loc_idx] = LOOPHDR_SIZE;
+                	profile_socket[loc_idx].link_type = DLT_LOOP;
+	                break;
+
+		case ARPHRD_NONE:
+	        case ARPHRD_VOID:
+        	        link_offset[loc_idx] = RAWHDR_SIZE;
+        	        profile_socket[loc_idx].link_type = DLT_RAW;
+	                break;
+		
+	        case ARPHRD_ATM:
+        	        link_offset[loc_idx] = ISDNHDR_SIZE;
+        	        profile_socket[loc_idx].link_type = DLT_LINUX_SLL;
+	                break;
+
+		case ARPHRD_IEEE80211:
+                	link_offset[loc_idx] = IEEE80211HDR_SIZE;
+                	profile_socket[loc_idx].link_type = DLT_IEEE802_11;
+	                break;
+	
+	        default:
+        	        LERR("fatal: unsupported interface type [%d]", arptype);        	        
+        	        profile_socket[loc_idx].link_type = 0;
+        	        return -1;
+        }
+
+	return 1;
+}
+
 void* proto_collect(void *arg) {
 
 	unsigned int loc_idx = (int *) arg;
-	int ret = 0;
-
-	/* free arg */
-	free(arg);
-
-	link_offset = ETHHDR_SIZE;
 
 	raw_capture_rcv_loop(loc_idx);
 
 	if(socket_desc[loc_idx]) close(socket_desc[loc_idx]);
-
-	/* terminate from here */
-	//if (usefile) sleep(10);
-	//handler(1);
+	
+	/* free arg */
+	free(arg);
 
 	return NULL;
 }
@@ -257,41 +332,26 @@ int set_raw_filter(unsigned int loc_idx, char *filter) {
         uint16_t snaplen = 65535;
         struct bpf_insn *insn;
         int i, n, linktype;
-        struct sock_filter* BPF_code;
-        struct sock_fprog pf;
 
         //return 1;
-        linktype  = DEFAULT_DATALINK;
+        linktype  = profile_socket[loc_idx].link_type ? profile_socket[loc_idx].link_type : DEFAULT_DATALINK;
 
         LDEBUG("Filter expr:[%s]", filter);
 
-        if (pcap_compile_nopcap(snaplen, linktype, &raw_filter, filter, 1, 0) == -1) {
+        if (pcap_compile_nopcap(profile_socket[loc_idx].snap_len ? profile_socket[loc_idx].snap_len : 0xffff, linktype, &raw_filter, filter, 1, 0) == -1) {
                 LERR("Failed to compile filter '%s'", filter);
                 return -1;
         }
 
-        n = raw_filter.bf_len;
-        insn = raw_filter.bf_insns;
-
-        BPF_code = (struct sock_filter*) malloc(n*sizeof(struct sock_filter));
-
-        for (i = 0; i < n; ++insn, ++i) {
-                //printf("{ 0x%x, %d, %d, 0x%08x },\n", insn->code, insn->jt, insn->jf, insn->k);
-                BPF_code[i] = (struct sock_filter){(unsigned short)insn->code, insn->jt, insn->jf, insn->k };
-        }
-
-        memset(&pf, 0, sizeof(pf));
-        pf.len = n;
-        pf.filter = BPF_code;
-
         LDEBUG("SOCKET [%d]\n", socket_desc[loc_idx]);
-        /* Attach the filter to the socket */
-        if(setsockopt(socket_desc[loc_idx], SOL_SOCKET, SO_ATTACH_FILTER, &pf, sizeof(pf)) < 0 ) {
+        //if(setsockopt(socket_desc[loc_idx], SOL_SOCKET, SO_ATTACH_FILTER, &pf, sizeof(pf)) < 0 ) {
+        if(setsockopt(socket_desc[loc_idx], SOL_SOCKET, SO_ATTACH_FILTER, &raw_filter, sizeof(raw_filter)) < 0 ) {
                 LERR(" setsockopt filter: [%s] [%d]", strerror(errno), errno);
         }
-
-        free(BPF_code);
-
+                
+        //free(BPF_code);
+        pcap_freecode( (struct bpf_program *) &raw_filter);
+         
         return 1;
 
 }
@@ -306,7 +366,7 @@ int raw_capture_rcv_loop(unsigned int loc_idx) {
 	struct udphdr *udph;
 	char* udph_start;
 	unsigned short udp_len;
-	int offset = 0, orig_len;
+	int offset = 0;
 	char* end;
 	unsigned short dst_port;
 	unsigned short src_port;
@@ -318,8 +378,10 @@ int raw_capture_rcv_loop(unsigned int loc_idx) {
 	uint32_t ip_off = 0;
 	uint8_t fragmented = 0;
 	uint16_t frag_offset = 0;
-	int result;
 	int action_idx = 0;
+	char mac_src[20], mac_dst[20];	        
+	struct ethhdr *eth = NULL;
+	        
 
 	for (;;) {
 
@@ -345,13 +407,14 @@ int raw_capture_rcv_loop(unsigned int loc_idx) {
 
 		end = buf + len;
 
-		offset = ETHHDR_SIZE;
-		orig_len = len;
+		offset = link_offset[loc_idx];
 
 		if (len < (sizeof(struct ip) + sizeof(struct udphdr) + offset)) {
 			LDEBUG("received small packet: %d. Ignore it", len);
 			continue;
 		}
+
+		eth = (struct ethhdr *)buf;		        
 
 		offset += ((ntohs((uint16_t) *(buf + 12)) == 0x8100) ? 4 : 0);
 
@@ -383,6 +446,9 @@ int raw_capture_rcv_loop(unsigned int loc_idx) {
 			continue;
 		}
 
+		snprintf(mac_src, sizeof(mac_src), "%.2X-%.2X-%.2X-%.2X-%.2X-%.2X",eth->h_source[0] , eth->h_source[1] , eth->h_source[2] , eth->h_source[3] , eth->h_source[4] , eth->h_source[5]);
+		snprintf(mac_dst, sizeof(mac_dst), "%.2X-%.2X-%.2X-%.2X-%.2X-%.2X", eth->h_dest[0] , eth->h_dest[1] , eth->h_dest[2] , eth->h_dest[3] , eth->h_dest[4] , eth->h_dest[5]);		        
+
 		/* currently only IPv4 */
 		snprintf(src_ip, 250, "%s", inet_ntoa(iph->ip_src));
 		snprintf(dst_ip, 250, "%s", inet_ntoa(iph->ip_dst));
@@ -391,6 +457,9 @@ int raw_capture_rcv_loop(unsigned int loc_idx) {
 		dst_port = ntohs(udph->uh_dport);
 		src_port = ntohs(udph->uh_sport);
 
+		//LERR("IP: [%s:%d] ===> IP: [%s:%d]", src_ip, src_port, dst_ip, dst_port);
+		//LDEBUG("SNAPLEN: %d\n", offset);
+
 		/* stats */
 		stats.recieved_udp_packets++;
 		if ((int32_t) len < 0)
@@ -398,13 +467,24 @@ int raw_capture_rcv_loop(unsigned int loc_idx) {
 
 		memset(&_msg, 0, sizeof(msg_t));
 
-		_msg.data = buf;
+		
 		//_msg.data = buf + ETHHDR_SIZE;
-		_msg.len = len + offset;
+		//_msg.len = len + offset;
+		if(!profile_socket[profile_size].full_packet) {
+			_msg.data = buf + offset;
+			_msg.len = len;		
+		}
+		else {
+			_msg.len = len + offset;
+			_msg.data = buf;				
+		}
+		
 		_msg.rcinfo.src_port = src_port;
 		_msg.rcinfo.dst_port = dst_port;
 		_msg.rcinfo.src_ip = src_ip;
 		_msg.rcinfo.dst_ip = dst_ip;
+		_msg.rcinfo.src_mac = mac_src;
+		_msg.rcinfo.dst_mac = mac_dst;		                 
 		_msg.rcinfo.ip_family = ip_ver = 4 ? AF_INET : AF_INET6;
 		_msg.rcinfo.ip_proto = ip_proto;
 		_msg.rcinfo.time_sec = tv.tv_sec;
@@ -412,14 +492,39 @@ int raw_capture_rcv_loop(unsigned int loc_idx) {
 		_msg.tcpflag = 0;
 		_msg.parse_it = 1;
 
+		//LERR("PACKET LEN: [%d], D: [%.*s]", _msg.len, _msg.len, buf);
+
 		action_idx = profile_socket[loc_idx].action;
-		run_actions(main_ct.clist[action_idx], &_msg);
+		run_actions(action_idx, main_ct.clist[action_idx], &_msg);
 
 		stats.send_packets++;
 
 	}
 
 	return 0;
+}
+
+/* copy of libpcap */
+int iface_get_arptype(int fd, const char *device, char *ebuf)
+{
+        struct ifreq    ifr;
+
+        memset(&ifr, 0, sizeof(ifr));
+        strncpy(ifr.ifr_name, device, sizeof(ifr.ifr_name));
+
+        if (ioctl(fd, SIOCGIFHWADDR, &ifr) == -1) {
+                snprintf(ebuf, PCAP_ERRBUF_SIZE,
+                         "SIOCGIFHWADDR: %s", pcap_strerror(errno));
+                if (errno == ENODEV) {
+                        /*
+                         * No such device.
+                         */
+                        return PCAP_ERROR_NO_SUCH_DEVICE;
+                }
+                return PCAP_ERROR;
+        }
+
+        return ifr.ifr_hwaddr.sa_family;
 }
 
 
@@ -509,10 +614,9 @@ void free_module_xml_config() {
 }
 
 /* modules external API */
+static uint64_t serial_module(void)  {
 
-static uint64_t serial_module(void)
-{
-	 return module_serial;
+	return module_serial;
 }
 
 static int load_module(xml_node *config) {
@@ -522,8 +626,8 @@ static int load_module(xml_node *config) {
 	char *key, *value = NULL;
 	unsigned int i = 0;
 	char module_api_name[256], loadplan[1024];
-    int status;
-    FILE* cfg_stream;
+	int status;
+	FILE* cfg_stream;
 
 	LNOTICE("Loaded %s", module_name);
 
@@ -565,9 +669,14 @@ static int load_module(xml_node *config) {
 		profile_socket[profile_size].description = strdup(profile->attr[3]);
 		profile_socket[profile_size].serial = atoi(profile->attr[7]);
 		profile_socket[profile_size].capture_plan = NULL;
+		profile_socket[profile_size].snap_len = 3200;
                 profile_socket[profile_size].capture_filter = NULL;
 		profile_socket[profile_size].action = -1;
-
+		profile_socket[profile_size].ring_buffer = 12;
+		profile_socket[profile_size].promisc = 1;
+		profile_socket[profile_size].timeout = 100;
+		profile_socket[profile_size].full_packet = 0;
+		                                                                		                
 		/* SETTINGS */
 		settings = xml_get("settings", profile, 1);
 
@@ -603,16 +712,23 @@ static int load_module(xml_node *config) {
 					}
 
 
-					if (!strncmp(key, "dev", 3))
-						profile_socket[profile_size].device = strdup(value);
-					else if (!strncmp(key, "promisc", 7) && !strncmp(value, "true", 4))
-						profile_socket[profile_size].promisc = 1;
-					else if (!strncmp(key, "filter", 6))
-						profile_socket[profile_size].filter = strdup(value);
-					else if (!strncmp(key, "capture-plan", 12))
-						profile_socket[profile_size].capture_plan = strdup(value);
-					else if (!strncmp(key, "capture-filter", 14))
+					if (!usefile && !strncmp(key, "dev", 3))
+                                                profile_socket[profile_size].device = strdup(value);
+                                        else if (!strncmp(key, "reasm", 5) && !strncmp(value, "true", 4))
+                                                profile_socket[profile_size].reasm = 1;
+                                        else if (!strncmp(key, "promisc", 7) && !strncmp(value, "true", 4))
+                                                profile_socket[profile_size].promisc = 1;
+					else if (!strncmp(key, "full-packet",11) && !strncmp(value, "true", 4))
+                                        	profile_socket[profile_size].full_packet = 1;                                                                                                 
+                                        else if (!strncmp(key, "filter", 6))
+                                                profile_socket[profile_size].filter = strdup(value);
+                                        else if (!strncmp(key, "snap-len", 8))
+                                                profile_socket[profile_size].snap_len = atoi(value);                                                
+                                        else if (!strncmp(key, "capture-plan", 12))
+                                                profile_socket[profile_size].capture_plan = strdup(value);
+                                        else if (!strncmp(key, "capture-filter", 14))
                                                 profile_socket[profile_size].capture_filter = strdup(value);
+
 				}
 
 				nextparam: params = params->next;
@@ -672,7 +788,6 @@ static int load_module(xml_node *config) {
 			//LERR("INDEX: %d, ENT: [%d]\n", main_ct.idx, main_ct.entries);
 		}
 
-		LDEBUG("RTP listening device: [%s]\n", arg);
 		pthread_create(&raw_thread[i], NULL, proto_collect, arg);
 
 	}

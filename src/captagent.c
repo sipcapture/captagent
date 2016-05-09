@@ -50,7 +50,7 @@
 #include "md5.h"
 #include <captagent/globals.h>
 #include "captagent.h"
-
+#include "config.h"
 
 char *dupArgs[2];
 char *server;
@@ -65,6 +65,7 @@ char *usefile = NULL;
 char *global_license = NULL;
 char *global_chroot = NULL;
 char *global_config_path = NULL;
+char *global_node_name = "default";
 char *global_capture_plan_path = NULL;
 char *global_uuid = NULL;
 char *backup_dir;
@@ -97,6 +98,7 @@ void handler(int value) {
 	if(global_uuid) free(global_uuid);
 	if(global_chroot) free(global_chroot);
 	if(global_config_path) free(global_config_path);
+	if(global_node_name) free(global_node_name);
 	if(global_capture_plan_path) free(global_capture_plan_path);
 
 	destroy_log();
@@ -249,13 +251,13 @@ int main(int argc, char *argv[]) {
 
 	timestart = time(0);
 
-	captagent_config = DEFAULT_CONFIG;
-
+	captagent_config = DEFAULT_CAPT_CONFIG;
+	
 	while ((c = getopt(argc, argv, "dcvhnEKf:D:")) != EOF) {
 
 		switch (c) {
 		case 'v':
-			printf("version: %s\n", CAPTAGENT_VERSION);
+			printf("version: %s\n", VERSION);
 			exit(0);
 			break;
 		case 'f':
@@ -428,6 +430,7 @@ int core_config(xml_node *config) {
 	xml_node *modules;
 	char *key, *value;
 	int _use_syslog = 0;
+	int mlen = 0;
 
 	LNOTICE("Loaded core config");
 
@@ -480,6 +483,8 @@ int core_config(xml_node *config) {
 				global_chroot = strdup(value);
 			else if (!strncmp(key, "config_path", 11))
 				global_config_path = strdup(value);
+			else if (!strncmp(key, "node", 4))
+				global_node_name = strdup(value);				
 			else if (!strncmp(key, "capture_plans_path", 18))
 				global_capture_plan_path = strdup(value);
 			else if (!strncmp(key, "backup", 6))
@@ -490,8 +495,13 @@ int core_config(xml_node *config) {
 		modules = modules->next;
 	}
 
-	if(!global_config_path)	global_config_path = strdup(DEFAULT_CONFDIR);
-	if(!global_capture_plan_path) global_capture_plan_path = strdup(DEFAULT_CAPTURE_PLANDIR);
+	if(!global_config_path)	{
+		global_config_path = strdup(AGENT_CONFIG_DIR);
+	}
+
+	if(!global_capture_plan_path) {	
+		global_capture_plan_path = strdup(AGENT_PLAN_DIR);		
+	}	
 
 	set_log_level(debug_level);
 

@@ -54,23 +54,8 @@ struct expr{
         }r;
 };
 
-
-struct action{
-        int type;  /* forward, drop, log, send ...*/
-        int p1_type;
-        int p2_type;
-        int p3_type;
-        union {
-                int number;
-                char* string;
-                void* data;
-        }p1, p2, p3;
-        struct action* next;
-};
-
-
-static int eval_elem(struct expr* e, msg_t* msg);
-int eval_expr(struct expr* e, msg_t* msg);
+static int eval_elem(struct run_act_ctx* h, struct expr* e, msg_t* msg);
+int eval_expr(struct run_act_ctx* h, struct expr* e, msg_t* msg);
 int capture_get(struct capture_list* rt, char* name);
 void push(struct action* a, struct action** head);
 struct expr* mk_exp(int op, struct expr* left, struct expr* right);

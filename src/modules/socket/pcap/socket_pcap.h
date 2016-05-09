@@ -69,6 +69,8 @@ int load_module_xml_config();
 
 /* BIND */
 int bind_check_size(msg_t *_m, char *param1, char *param2);
+int set_raw_filter(unsigned int loc_idx, char *filter);
+pcap_t* get_pcap_handler(unsigned int loc_idx);
 
 int dump_proto_packet(struct pcap_pkthdr *, u_char *, uint8_t, char *, uint32_t, char *,
             char *, uint16_t, uint16_t, uint8_t,uint16_t, uint8_t, uint16_t, uint32_t, uint32_t);

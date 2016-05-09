@@ -62,6 +62,7 @@ static cmd_export_t cmds[] = {
         {"clog", (cmd_function) w_clog, 2, 0, 0, 0 },
         /* ================================ */
         {"sip_has_sdp", (cmd_function) w_sip_has_sdp, 0, 0, 0, 0 },
+        {"is_flag_set", (cmd_function) w_is_flag_set, 2, 0, 0, 0 },
         {"send_reply", (cmd_function) w_send_reply_p, 2, 0, 0, 0 },
         {"send_reply", (cmd_function) w_send_reply, 0, 0, 0, 0 },          
 
@@ -86,6 +87,12 @@ int bind_api(protocol_module_api_t* api)
 
         return 0;
 
+}
+
+int w_is_flag_set(msg_t *_m, char *param1, char *param2)
+{
+
+   return (_m->flag[atoi(param1)] == atoi(param2)) ? 1 : -1;
 }
 
 int w_send_reply_p(msg_t *_m, char *param1, char *param2)
@@ -161,7 +168,7 @@ int w_sip_check(msg_t *_m, char *param1, char *param2)
                     ret = 1;             
              }
         }
-        else if(!strncmp("rmethod", param1, strlen("rmethod")))
+        if(!strncmp("rmethod", param1, strlen("rmethod")))
         {                     
              if(param2 != NULL && _m->sip.cSeqMethodString.s && _m->sip.cSeqMethodString.len > 0
                  && !strncmp(_m->sip.cSeqMethodString.s, param2, strlen(param2)))
@@ -211,7 +218,7 @@ int send_sip_reply(msg_t *_m, int code, char *description)
                                                           _m->sip.cSeq.len, _m->sip.cSeq.s
         );
         
-        LERR("XXXXXXX: [%d] [%s]", *_m->rcinfo.socket, reply);
+        //LERR("XXXXXXX: [%d] [%s]", *_m->rcinfo.socket, reply);
         
         cliaddr.sin_family = _m->rcinfo.ip_family;
         cliaddr.sin_port = htons(_m->rcinfo.dst_port);
@@ -228,7 +235,7 @@ int send_sip_reply(msg_t *_m, int code, char *description)
 int w_proto_check_size(msg_t *_m, char *param1, char *param2)
 {
 
-        int ret = -1;
+        int ret = 0;
         int intval = 0;
         
         

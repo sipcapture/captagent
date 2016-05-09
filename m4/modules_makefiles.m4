@@ -9,5 +9,7 @@ AC_CONFIG_FILES([
 	src/modules/socket/rtcpxr/Makefile
 	src/modules/socket/rtcpxr/captureplan/Makefile
 	src/modules/transport/hep/Makefile
-	src/modules/transport/json/Makefile
+	src/modules/transport/json/Makefile	
+	src/modules/interface/http/Makefile
+	src/modules/database/redis/Makefile
 ])

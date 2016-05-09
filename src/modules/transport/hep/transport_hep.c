@@ -56,6 +56,7 @@
 #include <captagent/modules.h>
 #include "transport_hep.h"
 #include <captagent/log.h>
+#include "localapi.h"
 
 xml_node *module_xml_config = NULL;
 char *module_name="transport_hep";
@@ -78,6 +79,7 @@ unsigned int profile_size = 0;
 
 static cmd_export_t cmds[] = {
         {"transport_hep_bind_api",  (cmd_function)bind_usrloc,   1, 0, 0, 0},
+        {"bind_transport_hep",  (cmd_function)bind_transport_hep,  0, 0, 0, 0},
         { "send_hep", (cmd_function) w_send_hep_api, 1, 0, 0, 0 },
         { "send_hep_proto", (cmd_function) w_send_hep_proto, 2, 0, 0, 0 },
         {0, 0, 0, 0, 0, 0}
@@ -255,6 +257,9 @@ int send_hepv3 (rc_info_t *rcinfo, unsigned char *data, unsigned int len, unsign
     hep_chunk_t payload_chunk;
     hep_chunk_t authkey_chunk;
     hep_chunk_t correlation_chunk;
+    hep_chunk_uint16_t cval1;
+    hep_chunk_uint16_t cval2;
+            
     static int errors = 0;
 
     hg = malloc(sizeof(struct hep_generic));
@@ -275,7 +280,6 @@ int send_hepv3 (rc_info_t *rcinfo, unsigned char *data, unsigned int len, unsign
     hg->ip_proto.chunk.type_id   = htons(0x0002);
     hg->ip_proto.data = rcinfo->ip_proto;
     hg->ip_proto.chunk.length = htons(sizeof(hg->ip_proto));
-
 
     /* IPv4 */
     if(rcinfo->ip_family == AF_INET) {
@@ -300,13 +304,13 @@ int send_hepv3 (rc_info_t *rcinfo, unsigned char *data, unsigned int len, unsign
         src_ip6.chunk.vendor_id = htons(0x0000);
         src_ip6.chunk.type_id   = htons(0x0005);
         inet_pton(AF_INET6, rcinfo->src_ip, &src_ip6.data);
-        src_ip6.chunk.length = htons(sizeof(src_ip6));
+        src_ip6.chunk.length = htonl(sizeof(src_ip6));
 
         /* DST IPv6 */
         dst_ip6.chunk.vendor_id = htons(0x0000);
         dst_ip6.chunk.type_id   = htons(0x0006);
         inet_pton(AF_INET6, rcinfo->dst_ip, &dst_ip6.data);
-        dst_ip6.chunk.length = htons(sizeof(dst_ip6));
+        dst_ip6.chunk.length = htonl(sizeof(dst_ip6));
 
         iplen = sizeof(dst_ip6) + sizeof(src_ip6);
     }
@@ -378,7 +382,23 @@ int send_hepv3 (rc_info_t *rcinfo, unsigned char *data, unsigned int len, unsign
              correlation_chunk.length    = htons(sizeof(correlation_chunk) + rcinfo->correlation_id.len);
              tlen += rcinfo->correlation_id.len;
     }
-
+    
+    if(rcinfo->cval1) {
+              tlen += sizeof(hep_chunk_uint16_t);
+              cval1.chunk.vendor_id = htons(0x0000);
+              cval1.chunk.type_id   = htons(0x0020);
+              cval1.data = htons(rcinfo->cval1);
+              cval1.chunk.length = htons(sizeof(cval1));    
+    }
+    
+    if(rcinfo->cval2) {
+              tlen += sizeof(hep_chunk_uint16_t);
+              cval2.chunk.vendor_id = htons(0x0000);
+              cval2.chunk.type_id   = htons(0x0021);
+              cval2.data = htons(rcinfo->cval2);
+              cval2.chunk.length = htons(sizeof(cval2));    
+    }
+    
     /* total */
     hg->header.length = htons(tlen);
 
@@ -434,6 +454,18 @@ int send_hepv3 (rc_info_t *rcinfo, unsigned char *data, unsigned int len, unsign
            memcpy((void*) buffer+buflen, rcinfo->correlation_id.s, rcinfo->correlation_id.len);
            buflen+= rcinfo->correlation_id.len;
     }
+    
+    /* CVAL1 CHUNK */
+    if(rcinfo->cval1) {
+           memcpy((void*) buffer+buflen, &cval1,  sizeof(hep_chunk_uint16_t));
+           buflen += sizeof(hep_chunk_uint16_t);
+    }
+    
+    /* CVAL2 CHUNK */
+    if(rcinfo->cval2) {
+           memcpy((void*) buffer+buflen, &cval2,  sizeof(hep_chunk_uint16_t));
+           buflen += sizeof(hep_chunk_uint16_t);
+    }    
 
     /* PAYLOAD CHUNK */
     memcpy((void*) buffer+buflen, &payload_chunk,  sizeof(struct hep_chunk));
@@ -771,8 +803,7 @@ SSL_CTX* initCTX(void) {
         SSL_load_error_strings();   /* Bring in and register error messages */
 
         /* we use SSLv3 */
-        /* method = SSLv3_client_method();  */
-        method = TLSv1_method(); /* Create new client-method instance */
+        method = SSLv3_client_method();  /* Create new client-method instance */
 
         ctx = SSL_CTX_new(method);   /* Create new context */
         if ( ctx == NULL ) {
@@ -821,7 +852,6 @@ int initSSL(unsigned int idx) {
         /* workaround bug openssl */
         ctx_options = SSL_OP_ALL;
         ctx_options |= SSL_OP_NO_SSLv2;
-        ctx_options |= SSL_OP_NO_SSLv3;
         SSL_CTX_set_options(profile_transport[idx].ctx, ctx_options);
 
         /*extra*/

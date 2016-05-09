@@ -47,6 +47,7 @@ extern char *global_config_path;
 extern char *global_capture_plan_path;
 extern char *global_uuid;
 extern char *backup_dir;
+extern char *global_node_name;
 extern int timestart;
 extern int serial;
 extern const char *captagent_config;

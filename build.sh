@@ -4,6 +4,8 @@ echo "You need to have m4, automake, autoconf, libtool...";
 #aclocal
 
 list_of_config_files="./src/modules";
+#
+list_of_config_files_pro="./src/modules_pro";
 
 #echo adding modules
 #for file in $list_of_config_files; do

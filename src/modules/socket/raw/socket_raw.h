@@ -75,6 +75,7 @@ typedef struct socket_raw_stats {
 
 extern FILE* yyin;
 extern int yyparse();
+extern unsigned int if_nametoindex(const char*);
 
 //lua_State *LUAScript[MAX_SOCKETS];
 
@@ -84,12 +85,15 @@ int reload_config (char *erbuf, int erlen);
 int set_raw_filter(unsigned int loc_idx, char *filter);
 int iface_bind(int fd, int ifindex);
 
+int convert_arp_to_dl(unsigned int loc_idx, int arptype);
+
 int apply_filter (filter_msg_t *filter);
 void free_module_xml_config();
 int load_module_xml_config();
 
 /* BIND */
 int bind_check_size(msg_t *_m, char *param1, char *param2);
-
+int iface_get_arptype(int fd, const char *device, char *ebuf);
+int raw_capture_rcv_loop(unsigned int loc_idx);
 
 #endif /* _socket_raw_H_ */

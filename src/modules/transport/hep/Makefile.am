@@ -1,9 +1,9 @@
 include $(top_srcdir)/modules.am
 
 SUBDIRS = .
-noinst_HEADERS = transport_hep.h
+noinst_HEADERS = transport_hep.h localapi.h
 #
-transport_hep_la_SOURCES = transport_hep.c
+transport_hep_la_SOURCES = localapi.c transport_hep.c 
 transport_hep_la_CFLAGS = -Wall ${MODULE_CFLAGS}
 transport_hep_la_LDFLAGS = -module -avoid-version
 transport_hep_la_LIBADD = ${PTHREAD_LIBS} ${EXPAT_LIBS} ${PCAP_LIBS}

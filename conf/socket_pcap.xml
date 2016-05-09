@@ -3,9 +3,10 @@
     <module name="socket_pcap" description="HEP Socket" serial="2014010402">
 	<profile name="socketspcap_sip" description="HEP Socket" enable="true" serial="2014010402">
 	    <settings>
-		<param name="dev" value="any"/>
+		<param name="dev" value="eth0"/>
 		<param name="promisc" value="true"/>
 		<param name="reasm" value="false"/>
+		<param name="tcpdefrag" value="false"/>
 		<param name="capture-plan" value="sip_capture_plan.cfg"/>
 		<param name="filter">
 		    <value>portrange 5060-5091</value>
@@ -14,13 +15,17 @@
 	</profile>
 	<profile name="socketspcap_rtcp" description="RTCP Socket" enable="false" serial="2014010402">
 	    <settings>
-		<param name="dev" value="any"/>
+		<param name="dev" value="eth0"/>
 		<param name="promisc" value="true"/>
 		<param name="reasm" value="false"/>
-		<param name="capture-filter" value="rtcp"/>		                
+		<!-- size in MB -->
+		<param name="ring-buffer" value="20"/>
+		<!-- for rtp && rtcp < 250 -->
+		<param name="snap-len" value="256"/>
+		<param name="capture-filter" value="rtcp"/>
 		<param name="capture-plan" value="rtcp_capture_plan.cfg"/>
 		<param name="filter">
-		    <value>portrange 3000-5000</value>
+		    <value>portrange 5060-50000</value>
 		</param>
 	    </settings>
 	</profile>

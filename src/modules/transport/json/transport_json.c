@@ -41,7 +41,16 @@
 #include <signal.h>
 #include <time.h>
 #include <pthread.h>
+
+#include "config.h"
+
+#ifdef  HAVE_JSON_C_JSON_H  
+#include <json-c/json.h>
+#elif HAVE_JSON_JSON_H     
 #include <json/json.h>
+#elif HAVE_JSON_H  
+#include <json.h>
+#endif
 
 #ifndef __FAVOR_BSD
 #define __FAVOR_BSD
@@ -280,7 +289,7 @@ int send_json (msg_t *msg) {
 
 	json_object_put(jobj_reply);
 	
-	if(msg->mfree == 1) free(msg->data);
+	if(msg->mfree == 1) free(&msg->data);
 
         return 1;
 }

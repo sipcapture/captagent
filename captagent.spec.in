@@ -72,6 +72,13 @@ Summary:	transport json module for sipcapture HOMER5
 %description transport-json
 json transport module for a robust, carrier-grade, scalable SIP Capture system and Monitoring Application with HEP/HEP2, IP Proto4 (IPIP) encapsulation & port mirroring/monitoring support right out of the box, ready to process & store insane amounts of signaling with instant search, end-to-end analysis and drill-down capabilities for ITSPs, VoIP Providers and Trunk Suppliers using SIP signaling
 
+%package interface-http
+Requires:	%name = %version
+Summary:	interface http module for sipcapture HOMER5
+
+%description interface-http
+http interface module for a robust, carrier-grade, scalable SIP Capture system and Monitoring Application with HEP/HEP2, IP Proto4 (IPIP) encapsulation & port mirroring/monitoring support right out of the box, ready to process & store insane amounts of signaling with instant search, end-to-end analysis and drill-down capabilities for ITSPs, VoIP Providers and Trunk Suppliers using SIP signaling
+
 ########### module development packages ###########################
 
 %package database-hash-devel
@@ -146,6 +153,15 @@ Summary:	transport json module development package for sipcapture HOMER5
 %description transport-json-devel
 json transport module development package for a robust, carrier-grade, scalable SIP Capture system and Monitoring Application with HEP/HEP2, IP Proto4 (IPIP) encapsulation & port mirroring/monitoring support right out of the box, ready to process & store insane amounts of signaling with instant search, end-to-end analysis and drill-down capabilities for ITSPs, VoIP Providers and Trunk Suppliers using SIP signaling
 
+%package interface-http-devel
+Requires:	%name = %version
+Requires:	interface-http
+
+Summary:	interface http module development package for sipcapture HOMER5
+
+%description interface-http-devel
+http interface module development package for a robust, carrier-grade, scalable SIP Capture system and Monitoring Application with HEP/HEP2, IP Proto4 (IPIP) encapsulation & port mirroring/monitoring support right out of the box, ready to process & store insane amounts of signaling with instant search, end-to-end analysis and drill-down capabilities for ITSPs, VoIP Providers and Trunk Suppliers using SIP signaling
+
 
 %prep
 %setup -b0 -q
@@ -198,6 +214,9 @@ autoreconf -if
 %config(noreplace) %{_sysconfdir}/%name/transport_json.xml
 %{_libdir}/%name/modules/transport_json.so
 
+%files interface-http
+%{_libdir}/%name/modules/interface_http.so
+
 ####################################################
 
 %files database-hash-devel
@@ -231,5 +250,9 @@ autoreconf -if
 %files transport-json-devel
 %{_libdir}/%name/modules/transport_json.la
 %{_libdir}/%name/modules/transport_json.a
+
+%files interface-http-devel
+%{_libdir}/%name/modules/interface_http.la
+%{_libdir}/%name/modules/interface_http.a
 
 ####################################################

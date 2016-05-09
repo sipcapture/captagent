@@ -1,11 +1,25 @@
 AC_PREREQ(2.61)
-AC_INIT(captagent,6.0.1,support@sipcapture.org,,[http://www.sipcapture.org])
+AC_INIT(captagent,6.1.0,support@sipcapture.org,,[http://www.sipcapture.org])
 AC_COPYRIGHT("SIP Capture Solution")
 AC_CONFIG_MACRO_DIR([m4])
 AM_INIT_AUTOMAKE(foreign tar-ustar)
 AC_CONFIG_HEADERS([src/config.h])
 AC_CONFIG_SRCDIR([src/captagent.c])
 AC_MSG_CHECKING([whether to use compression])
+
+AC_PREFIX_DEFAULT(/usr/local/captagent)
+
+if test "$prefix" = "NONE"; then
+   prefix=$ac_default_prefix
+fi
+
+agent_config_dir=$prefix"/etc/captagent/"
+agent_plan_dir=$prefix"/etc/captagent/"
+
+AC_DEFINE_UNQUOTED(AGENT_PREFIX, ["$prefix"], [our system prefix])
+AC_DEFINE_UNQUOTED(AGENT_CONFIG_DIR, ["$agent_config_dir"], [captagent config dir])
+AC_DEFINE_UNQUOTED(AGENT_PLAN_DIR, ["$agent_plan_dir"], [capture plans dir])
+
 enableCompression=no
 AC_ARG_ENABLE(compression,
    [  --enable-compression	Enable compression support)],
@@ -19,7 +33,7 @@ AC_SUBST([ZLIB])
 AC_MSG_CHECKING([whether to use ssl])
 enableSSL=no
 AC_ARG_ENABLE(ssl,
-   [  --enable-ssl	Enable SSL support)],
+   [  --enable-ssl	Enable SSL support],
    [SSL="$enableval"]
    enableSSL=yes,
    [SSL="no"]
@@ -30,7 +44,7 @@ AC_SUBST([SSL])
 useMysql=no
 AC_MSG_CHECKING([whether to use mysql])
 AC_ARG_ENABLE(mysql,
-   [  --enable-mysql    Enable mysql support)],
+   [  --enable-mysql    Enable mysql support],
    [MYSQL="$enableval"]
    useMysql=yes,
    [MYSQL="no"]
@@ -42,7 +56,7 @@ AC_SUBST([MYSQL])
 usePCRE=no
 AC_MSG_CHECKING([whether to use pcre])
 AC_ARG_ENABLE(pcre,
-   [  --enable-pcre    Enable pcre support)],
+   [  --enable-pcre    Enable pcre support],
    [PCRE="$enableval"]
    usePCRE=yes,
    [PCRE="no"]
@@ -53,7 +67,7 @@ AC_SUBST([PCRE])
 useRedis=no
 AC_MSG_CHECKING([whether to use redis])
 AC_ARG_ENABLE(redis,
-   [  --enable-redis    Enable redis support)],
+   [  --enable-redis    Enable redis support],
    [REDIS="$enableval"]
    useRedis=yes,
    [REDIS="no"]
@@ -64,13 +78,23 @@ AC_SUBST([REDIS])
 useLIBUV=no
 AC_MSG_CHECKING([whether to use libuv])
 AC_ARG_ENABLE(libuv,
-   [  --enable-libuv    Enable libuv support)],
+   [  --enable-libuv    Enable libuv support],
    [LIBUV="$enableval"]
    useLIBUV=yes,
    [LIBUV="no"]
 )
 AC_MSG_RESULT([$LIBUV])
 AC_SUBST([LIBUV])
+
+enableExtraModules=no
+AC_ARG_ENABLE(extramodules,
+   [  --enable-extramodules	Enable extra modules],
+   [EXTRAMODULES="$enableval"]
+   enableExtraModules=yes,
+   [EXTRAMODULES="no"]
+)
+AC_MSG_RESULT([$EXTRAMODULES])
+AC_SUBST([EXTRAMODULES])
 
 CONFIG_CFLAGS="${CFLAGS}"
 CONFIG_LDFLAGS="${LDFLAGS}"
@@ -162,6 +186,8 @@ AC_SUBST(DL_LIBS)
 AC_SUBST(EXPAT_LIBS)
 AC_SUBST(PCAP_LIBS)
 AC_SUBST(JSON_LIBS)
+AC_SUBST(PCRE_LIBS)
+AC_SUBST(HIREDIS_LIBS)
 AC_SUBST(FLEX_LIBS)
 
 
@@ -173,7 +199,7 @@ dnl
 if test "$PCRE" = "yes"; then
 	AC_CHECKING([for pcre Library and Header files])
 	AC_CHECK_HEADER([pcre.h], ,AC_MSG_ERROR([Could not find pcre headers !]))
-	AC_CHECK_LIB([pcre], [pcre_compile], [EXTRA_LIBS="${EXTRA_LIBS} -lpcre"], [AC_MSG_ERROR([libpcre required])])
+	AC_CHECK_LIB([pcre], [pcre_compile], [PCRE_LIBS="-lpcre"], [AC_MSG_ERROR([libpcre required])])
 	AC_DEFINE(USE_PCRE, 1, [Use PCRE library])
 	AC_SUBST(PCRE_LIBS)
 fi
@@ -213,9 +239,19 @@ dnl
 if test "$REDIS" = "yes"; then
    AC_CHECKING([for redis Library and Header files])
    AC_CHECK_HEADER(hiredis/hiredis.h,,[AC_MSG_ERROR([hiredis/hiredis.h headers not found.])])
-   AC_CHECK_LIB(hiredis, redisCommand, [ LIBS="${LIBS} -lhiredis" ], [AC_MSG_ERROR([captagent requires but cannot find lhiredis])])
+   AC_CHECK_LIB(hiredis, redisCommand, [ HIREDIS_LIBS="-lhiredis" ], [AC_MSG_ERROR([captagent requires but cannot find lhiredis])])
    AC_DEFINE(USE_REDIS, 1, [Use REDIS library])
    AC_SUBST(HIREDIS_LIBS)
+fi
+
+
+dnl
+dnl check for extra modules
+dnl
+   
+if test "$EXTRAMODULES" = "yes"; then
+   AC_CHECKING([for extra modules files])
+   AC_DEFINE(HAVE_EXTRA_MODULES, 1, [We have extra modules])
 fi
 
 
@@ -226,7 +262,7 @@ dnl
 if test "$LIBUV" = "yes"; then
    AC_CHECKING([for LiBUV and Header files])
    AC_CHECK_HEADER(uv.h,,[AC_MSG_ERROR([uv.h headers not found.])])
-   AC_CHECK_LIB(uv, uv_now, [ LIBS="${LIBS} -luv" ], [AC_MSG_ERROR([captagent requires but cannot find libuv])])
+   AC_CHECK_LIB(uv, uv_now, [ UV_LIBS="-luv" ], [AC_MSG_ERROR([captagent requires but cannot find libuv])])
    AC_DEFINE(USE_LIBUV, 1, [Use lib UV])
    AC_SUBST(UV_LIBS)
 fi
@@ -246,6 +282,12 @@ fi
 
 # Checks for header files.
 AC_CHECK_HEADER(pcap.h,,[AC_MSG_ERROR([captagent cannot find pcap.h])])
+AC_CHECK_HEADERS([json-c/json.h json/json.h json.h])
+# check JSON
+AM_CONDITIONAL([HAVE_JSON_JSON_H],[test "$ac_cv_header_json_json_h" = 'yes'])
+AM_CONDITIONAL([HAVE_JSON_C_JSON_H],[test "$ac_cv_header_json_c_json_h" = 'yes'])
+AM_CONDITIONAL([HAVE_JSON_H],[test "$ac_cv_header_json_h" = 'yes'])
+
 
 
 # Checks for typedefs, structures, and compiler characteristics.
@@ -258,7 +300,7 @@ AC_TYPE_UINT8_T
 
 # Checks for library functions.
 AC_FUNC_FORK
-AC_FUNC_MALLOC
+#AC_FUNC_MALLOC
 AC_CHECK_FUNCS([gettimeofday memset select socket strdup strerror strndup])
 
 AC_CONFIG_FILES([

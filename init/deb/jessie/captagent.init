@@ -1,0 +1,95 @@
+#! /bin/sh
+#
+### BEGIN INIT INFO
+# Provides:          captagent
+# Required-Start:    $syslog $network $local_fs $remote_fs $time
+# Should-Start:      $named slapd mysql postgresql snmpd radiusd
+# Should-Stop:       $named slapd mysql postgresql snmpd radiusd
+# Required-Stop:     $syslog $network $local_fs $remote_fs
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: Start the Captagent
+# Description:       Start the Captagent
+### END INIT INFO
+
+. /lib/lsb/init-functions
+
+PATH=/sbin:/bin:/usr/sbin:/usr/bin
+DAEMON=/usr/local/captagent/bin/captagent
+NAME=`basename "$0"`
+DESC="Captagent"
+HOMEDIR=/var/run/$NAME
+PIDFILE=/var/run/$NAME.pid
+DEFAULTS=/etc/default/$NAME
+CFGFILE=/usr/local/captagent/etc/captagent.xml
+RUN_CAPTAGENT=no
+USER=captagent
+GROUP=captagent
+DUMP_CORE=no
+
+test -f $DAEMON || exit 0
+
+# Load startup options if available
+if [ -f $DEFAULTS ]; then
+   . $DEFAULTS || true
+fi
+
+if [ "$RUN_CAPTAGENT" != "yes" ]; then
+    log_failure_msg "Captagent not yet configured. Edit /etc/default/$NAME first."
+    exit 0
+fi
+
+set -e
+
+if test "$DUMP_CORE" = "yes" ; then
+    # set proper ulimit
+    ulimit -c unlimited
+
+    # directory for the core dump files
+    # COREDIR=/home/corefiles
+    # [ -d $COREDIR ] || mkdir $COREDIR
+    # chmod 777 $COREDIR
+    # echo "$COREDIR/core.%e.sig%s.%p" > /proc/sys/kernel/core_pattern
+fi
+
+# /var/run can be a tmpfs
+if [ ! -d $HOMEDIR ]; then
+    mkdir -p $HOMEDIR
+    chown ${USER}:${GROUP} $HOMEDIR
+fi
+
+OPTIONS="-d -f $CFGFILE"
+
+case "$1" in
+  start|debug)
+
+	log_daemon_msg "Starting $DESC: $NAME"
+	start-stop-daemon --start --quiet --pidfile $PIDFILE \
+		--exec $DAEMON -- $OPTIONS || log_failure_msg " already running"
+	log_end_msg 0
+	;;
+  stop)
+	log_daemon_msg "Stopping $DESC: $NAME"
+	start-stop-daemon --oknodo --stop --quiet --pidfile $PIDFILE \
+		--exec $DAEMON
+	log_end_msg 0
+	;;
+  restart|force-reload)
+
+	$0 stop
+	sleep 1
+	$0 start
+	;;
+  status)
+	log_daemon_msg "Status of $DESC: "
+
+	status_of_proc -p"$PIDFILE" $NAME $NAME
+	;;
+  *)
+	N=/etc/init.d/$NAME
+	echo "Usage: $N {start|stop|restart|force-reload|status|debug}" >&2
+	exit 1
+	;;
+esac
+
+exit 0

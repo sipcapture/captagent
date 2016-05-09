@@ -80,11 +80,7 @@ int bind_api(protocol_module_api_t* api)
 
 int w_parse_rtcp_to_json(msg_t *_m)
 {
-
-	  time_t curtime;
-	  char timebuffer[30];
-	  unsigned char *senddata;
-	  int json_len, len;
+	  int json_len;
 	  char *json_rtcp_buffer;
 
 	  _m->mfree = 0;
@@ -110,7 +106,7 @@ int w_parse_rtcp_to_json(msg_t *_m)
 
 int w_is_rtcp (msg_t *msg) {
 
-         return check_rtcp_version (msg->data, msg->len);
+        return check_rtcp_version (msg->data, msg->len);
 }
 
 
@@ -185,9 +181,8 @@ void free_module_xml_config() {
 /* modules external API */
 
 static int load_module(xml_node *config) {
-	xml_node *params, *profile, *settings, *condition, *action;
+	xml_node *params, *profile, *settings;
 	char *key, *value = NULL;
-	char module_api_name[256];
 
 	LNOTICE("Loaded %s", module_name);
 

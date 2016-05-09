@@ -40,12 +40,14 @@
 #include <fcntl.h>
 #include <unistd.h>
 
-#ifndef DEFAULT_CONFDIR
-#define DEFAULT_CONFDIR "/usr/local/etc/captagent/"
-#endif
+#include "config.h"
 
-#ifndef DEFAULT_CAPTURE_PLANDIR
-#define DEFAULT_CAPTURE_PLANDIR "/usr/local/etc/captagent/scripts"
+#ifndef AGENT_CONFIG_DIR
+#define AGENT_CONFIG_DIR "/usr/local/etc/captagent/"
+#endif //DEF_CONF
+
+#ifndef AGENT_PLAN_DIR
+#define AGENT_PLAN_DIR "/usr/local/etc/captagent/captureplans"
 #endif
 
 
@@ -70,7 +72,7 @@ typedef struct _str {
 struct rc_info {
     uint8_t     ip_family; /* IP family IPv6 IPv4 */
     uint8_t     ip_proto; /* IP protocol ID : tcp/udp */
-    uint8_t     proto_type; /* SIP: 0x001, SDP: 0x03*/
+    uint8_t     proto_type; /* SIP: 0x001, SDP: 0x03*/    
     char        *src_mac;
     char        *dst_mac;
     char        *src_ip;
@@ -80,6 +82,8 @@ struct rc_info {
     uint32_t    time_sec;
     uint32_t    time_usec;
     uint32_t	liid;
+    uint32_t	cval1;
+    uint32_t	cval2;
     uint16_t	sessionid;
     uint8_t	direction;
     char        *uuid;
@@ -148,5 +152,12 @@ typedef struct db_value {
         } val;
 } db_value_t;
 
+
+#define SAFE_FREE(pt) \
+   assert(pt!=NULL); \
+   free(pt); \
+   pt = NULL;
+            
+#define SAFE_PTR(pt) assert(pt!=NULL); pt
 
 #endif /* API_H_ */

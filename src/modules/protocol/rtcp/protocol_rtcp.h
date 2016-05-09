@@ -59,6 +59,7 @@ profile_protocol_t profile_protocol[MAX_PROTOCOLS];
 int w_parse_rtcp_to_json(msg_t *_m);
 int w_set_rtcp_flag(msg_t *msg);
 int w_is_rtcp (msg_t *msg);
+int w_is_rtcp_or_rtp (msg_t *msg);
 
 
 int bind_api(protocol_module_api_t* api);

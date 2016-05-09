@@ -162,8 +162,17 @@ typedef struct _miprtcp {
         int media_port;
         str rtcp_ip;
         int rtcp_port;
+        int prio_codec;
 } miprtcp_t;
 
+struct _codecmap;
+
+typedef struct _codecmap {
+        char name[120];
+        int id;
+        int rate;
+        struct _codecmap* next;
+} codecmap_t;
 
 typedef struct sip_msg {
 
@@ -175,7 +184,9 @@ typedef struct sip_msg {
 	str callId;
 	str reason;
 	bool hasSdp;
+	codecmap_t cdm[MAX_MEDIA_HOSTS];
         miprtcp_t mrp[MAX_MEDIA_HOSTS];
+        int cdm_count;
 	unsigned int mrp_size;
 	unsigned int contentLength;
 	unsigned int len;
@@ -214,6 +225,8 @@ typedef struct sip_msg {
 	str toTag;
 	bool hasToTag;
 
+	str fromTag;
+	bool hasFromTag;
 
 } sip_msg_t;
 
