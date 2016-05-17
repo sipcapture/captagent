@@ -27,8 +27,6 @@
 #ifndef MODULES_H_
 #define MODULES_H_
 
-#define MODULE_DIR "/usr/local/lib/captagent/modules"
-
 char *module_path;
 
 #define VAR_PARAM_NO  -128

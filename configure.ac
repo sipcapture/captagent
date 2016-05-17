@@ -13,12 +13,14 @@ if test "$prefix" = "NONE"; then
    prefix=$ac_default_prefix
 fi
 
-agent_config_dir="$sysconfdir/captagent/"
-agent_plan_dir="$sysconfdir/captagent/"
+AS_AC_EXPAND(agent_config_dir, "$sysconfdir/captagent/")
+AS_AC_EXPAND(agent_plan_dir, "$sysconfdir/captagent/")
+AS_AC_EXPAND(module_dir, "$libdir/captagent/modules")
 
 AC_DEFINE_UNQUOTED(AGENT_PREFIX, ["$prefix"], [our system prefix])
 AC_DEFINE_UNQUOTED(AGENT_CONFIG_DIR, ["$agent_config_dir"], [captagent config dir])
 AC_DEFINE_UNQUOTED(AGENT_PLAN_DIR, ["$agent_plan_dir"], [capture plans dir])
+AC_DEFINE_UNQUOTED(MODULE_DIR, ["$module_dir"], [directory that modules will be installed to])
 
 enableCompression=no
 AC_ARG_ENABLE(compression,
