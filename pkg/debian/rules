@@ -9,7 +9,7 @@ export DH_OPTIONS
 
 build:
 	autoreconf -if
-	./configure --prefix=/usr
+	./configure --prefix=/usr --sysconfdir=/etc
 	make
 
 binary-arch:
