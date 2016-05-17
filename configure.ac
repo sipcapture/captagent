@@ -13,8 +13,8 @@ if test "$prefix" = "NONE"; then
    prefix=$ac_default_prefix
 fi
 
-agent_config_dir=$sysconfdir"/etc/captagent/"
-agent_plan_dir=$sysconfdir"/etc/captagent/"
+agent_config_dir="$sysconfdir/captagent/"
+agent_plan_dir="$sysconfdir/captagent/"
 
 AC_DEFINE_UNQUOTED(AGENT_PREFIX, ["$prefix"], [our system prefix])
 AC_DEFINE_UNQUOTED(AGENT_CONFIG_DIR, ["$agent_config_dir"], [captagent config dir])
