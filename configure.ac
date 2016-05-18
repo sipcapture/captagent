@@ -310,6 +310,7 @@ AC_CONFIG_FILES([
 	captagent.spec
 	include/Makefile
 	src/Makefile
+	conf/captagent.xml
 ])
 
 m4_include([m4/modules_makefiles.m4])
