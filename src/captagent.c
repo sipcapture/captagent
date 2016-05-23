@@ -65,7 +65,7 @@ char *usefile = NULL;
 char *global_license = NULL;
 char *global_chroot = NULL;
 char *global_config_path = NULL;
-char *global_node_name = "default";
+char *global_node_name = NULL;
 char *global_capture_plan_path = NULL;
 char *global_uuid = NULL;
 char *backup_dir;
@@ -493,6 +493,11 @@ int core_config(xml_node *config) {
 		next:
 
 		modules = modules->next;
+	}
+
+	if(!global_node_name) {
+		global_node_name = malloc(8);
+		snprintf(global_node_name, 8, "default");
 	}
 
 	if(!global_config_path)	{

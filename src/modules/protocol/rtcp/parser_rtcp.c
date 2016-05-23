@@ -41,10 +41,10 @@ int check_rtcp_version (char *packet, int len) {
 	}
 	
 	if(rtcp->type >= RTCP_SR && rtcp->type <= RTCP_SDES) {
-		return -3;
+		return 1;
 	}
 
-	return 1;
+	return -3;
 }
 
 
