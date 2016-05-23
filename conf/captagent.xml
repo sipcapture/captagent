@@ -22,14 +22,13 @@
 	
 		<load module="transport_hep" register="local"/>
 		<load module="protocol_sip" register="local"/>
+  		<load module="database_hash" register="local"/>
 		<load module="protocol_rtcp" register="local"/>		                                  
 		<load module="socket_rtcpxr" register="local"/>
 		<load module="socket_pcap" register="local"/>
 		<load module="socket_raw" register="local"/>
 	    <!--
 	    	<load module="transport_json" register="local"/>
-   		<load module="database_hash" register="local"/>
-
 		<load module="protocol_rtcp" register="local"/>
 		<load module="interface_http" register="local"/>
 		<load module="database_redis" register="local"/>
