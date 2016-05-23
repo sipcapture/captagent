@@ -311,6 +311,7 @@ AC_CONFIG_FILES([
 	include/Makefile
 	src/Makefile
 	conf/captagent.xml
+	pkg/debian/captagent.init
 ])
 
 m4_include([m4/modules_makefiles.m4])

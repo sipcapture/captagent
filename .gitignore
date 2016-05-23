@@ -37,10 +37,13 @@ capplan.tab.h
 lex.yy.c
 ylwrap
 captagent.spec
+conf/captagent.xml
 pkg/debian/*.substvars
 pkg/debian/*.debhelper
 pkg/debian/*.debhelper.log
 pkg/debian/files
 pkg/debian/captagent/
+pkg/debian/captagent.init
+src/captagent
 *.dh-orig
 
