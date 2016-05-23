@@ -181,6 +181,7 @@ autoreconf -if
 %attr(755,root,root) %{_bindir}/%name
 
 %files database-hash
+%config(noreplace) %{_sysconfdir}/%name/database_hash.xml
 %{_libdir}/%name/modules/database_hash.so
 
 %files protocol-sip
