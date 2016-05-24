@@ -1,4 +1,4 @@
 #
 # captagent startup options
 #
-CFG_FILE=/usr/local/etc/captagent/captagent.xml
+CFG_FILE=/usr/local/captagent/etc/captagent/captagent.xml
