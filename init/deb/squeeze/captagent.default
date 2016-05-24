@@ -6,7 +6,7 @@
 RUN_CAPTAGENT=yes
 
 # Config file
-CFGFILE=/usr/local/captagent/etc/captagent.xml
+CFGFILE=/usr/local/captagent/etc/captagent/captagent.xml
 
 # Enable the server to leave a core file when it crashes.
 # Set this to 'yes' to enable Captagent to leave a core file when it crashes
