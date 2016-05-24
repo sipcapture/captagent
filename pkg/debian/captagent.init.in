@@ -8,7 +8,7 @@
 # Required-Stop:
 # Short-Description: captagent - the Open Source Homer Capture Agent
 # Description: Homer captagent is an Open Source Capture Programm released
-# 	under GPLv3, able to handle thousands of call setups per second.
+#	under GPLv3, able to handle thousands of call setups per second.
 ### END INIT INFO
 
 cap=/usr/bin/captagent
@@ -20,7 +20,7 @@ RETVAL=0
 start() {
   if [ -e $pidfile ]; then
         echo "[FAILED] Captagent is already running with PID: `cat $pidfile`"
-  else      
+  else
         echo -n "Starting $prog: "
         # there is something at end of this output which is needed to
         # report proper [ OK ] status in CentOS scripts
@@ -44,7 +44,6 @@ stop() {
 		echo
 		[ $RETVAL = 1 ] && rm -f $lockfile $pidfile
 		echo "[FAILED] Captagent is not running"
-                
 	fi
 }
 
@@ -57,14 +56,13 @@ status() {
                         echo "[FAILED] Captagent is not running"
                         RETVAL=1
         fi
-        
 	return $RETVAL
 }
 
 
 
 
-[ -z "$CONFIG" ]  && CONFIG=/usr/local/etc/captagent/captagent.xml
+[ -z "$CONFIG" ]  && CONFIG=@sysconfdir@/captagent/captagent.xml
 
 OPTIONS="-d -f $CONFIG"
 
