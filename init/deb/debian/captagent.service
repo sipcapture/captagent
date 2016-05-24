@@ -4,7 +4,7 @@ After=network.target
 
 [Service]
 Type=forking
-Environment='CFGFILE=/usr/local/captagent/etc/captagent.xml'
+Environment='CFGFILE=/usr/local/captagent/etc/captagent/captagent.xml'
 EnvironmentFile=-/etc/default/captagent
 EnvironmentFile=-/etc/default/captagent.d/*
 # PIDFile requires a full absolute path
