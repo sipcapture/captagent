@@ -26,7 +26,7 @@ PID_FILE=/var/run/$prog.pid
 LOCK_FILE=/var/lock/subsys/$prog
 RETVAL=0
 
-[ -z "$CFG_FILE" ]  && CFG_FILE=/usr/local/etc/captagent/captagent.xml
+[ -z "$CFG_FILE" ]  && CFG_FILE=/usr/local/captagent/etc/captagent/captagent.xml
 
 OPTIONS="-f $CFG_FILE"
 
