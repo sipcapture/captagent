@@ -505,19 +505,19 @@ int init_socket(unsigned int loc_idx) {
 	if(profile_socket[loc_idx].capture_filter)
 	{
 	        if(!strncmp(profile_socket[loc_idx].capture_filter, "rtcp", 4))
-	        {	        
-                        len = snprintf(filter_expr, sizeof(filter_expr), "%s", RTCP_FILTER);        
-                }                
+                {
+                        len = snprintf(filter_expr, sizeof(filter_expr), "%s", RTCP_FILTER);
+                }
                 else if(!strncmp(profile_socket[loc_idx].capture_filter, "rtp", 3))
-	        {
-	                len = snprintf(filter_expr, sizeof(filter_expr), "%s", RTP_FILTER);        
-	        }
-	        
-	        if(profile_socket[loc_idx].filter && strlen(profile_socket[loc_idx].filter) > 0)
-	        {
-        	        len += snprintf(filter_expr+len, sizeof(filter_expr)-len, " and (%s)", profile_socket[loc_idx].filter);        	        
-                }                                
-                
+                {
+                        len = snprintf(filter_expr, sizeof(filter_expr), "%s", RTP_FILTER);
+                }
+
+                if(profile_socket[loc_idx].filter && strlen(profile_socket[loc_idx].filter) > 0)
+                {
+                        len += snprintf(filter_expr+len, sizeof(filter_expr)-len, " and (%s)", profile_socket[loc_idx].filter);
+                }
+
 	        if (pcap_compile(sniffer_proto[loc_idx], &filter, filter_expr, 1, 0) == -1) {
         		LERR("Failed to compile filter \"%s\": %s", filter_expr, pcap_geterr(sniffer_proto[loc_idx]));
         		return -1;
