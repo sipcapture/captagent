@@ -375,7 +375,7 @@ int proceed_delete_request(struct mg_request_info * request_info, struct mg_conn
 	requestUuid = (char *) mg_get_header(conn, "X-Request-UUID");
 	int typeReply = 1;
 
-	if((ret = check_extra_delete(conn, (char*) request_info->uri, jobj_reply, requestUuid)) != 0) 
+	if((ret = check_extra_delete(conn, (char*) request_info->uri, &jobj_reply, requestUuid)) != 0) 
 	{
 
 	        if(ret == 1) send_json_reply(conn, "200 OK", jobj_reply, requestUuid, typeReply);
@@ -614,7 +614,7 @@ int proceed_post_request(struct mg_request_info * request_info, struct mg_connec
 			return 1;
 			
         }
-        else if((ret = check_extra_create(conn, (char *)request_info->uri, jobj_reply, post_data, requestUuid)) != 0) 
+        else if((ret = check_extra_create(conn, (char *)request_info->uri, &jobj_reply, post_data, requestUuid)) != 0) 
         {
                 if(ret == 1) send_json_reply(conn, "200 OK", jobj_reply, requestUuid, typeReply);
                 return 1;
@@ -640,7 +640,7 @@ int proceed_put_request(struct mg_request_info * request_info, struct mg_connect
 	/* get request UUID */
 	requestUuid = mg_get_header(conn, "X-Request-UUID");
 	
-	if((ret = check_extra_update(conn, (char *)request_info->uri, jobj_reply, post_data, requestUuid)) != 0) 
+	if((ret = check_extra_update(conn, (char *)request_info->uri, &jobj_reply, post_data, requestUuid)) != 0) 
         {
                 if(ret == 1) send_json_reply(conn, "200 OK", jobj_reply, requestUuid, typeReply);
                 return 1;
@@ -755,7 +755,7 @@ int proceed_get_request(struct mg_request_info * request_info, struct mg_connect
 		return 1;
 
 	} 	
-	else if((ret = check_extra_get(conn, (char *)request_info->uri, jobj_reply, requestUuid)) != 0) 
+	else if((ret = check_extra_get(conn, (char *)request_info->uri, &jobj_reply, requestUuid)) != 0) 
         {
                 if(ret == 1) send_json_reply(conn, "200 OK", jobj_reply, requestUuid, typeReply);
                 return 1;
