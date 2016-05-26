@@ -28,7 +28,7 @@ RETVAL=0
 
 [ -z "$CFG_FILE" ]  && CFG_FILE=/usr/local/captagent/etc/captagent/captagent.xml
 
-OPTIONS="-f $CFG_FILE"
+OPTIONS="-f $CFG_FILE -d"
 
 
 [ -f /etc/sysconfig/$prog ] && . /etc/sysconfig/$prog
