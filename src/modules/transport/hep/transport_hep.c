@@ -236,14 +236,15 @@ int send_hep (msg_t *msg) {
 
 #ifdef USE_ZLIB
 
-        if(msg->data.mfree == 1) {
-             LDEBUG("LETS FREE IT!");
-             free(msg->data);
-        }
         if(pl_compress && zipData) free(zipData);
 
 #endif /* USE_ZLIB */
 
+        if(msg->mfree == 1) {
+             LDEBUG("LETS FREE IT!");
+             free(msg->data);
+        }
+        
         return ret;
 }
 
