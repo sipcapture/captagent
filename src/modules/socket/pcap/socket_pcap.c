@@ -836,7 +836,8 @@ static int load_module(xml_node *config) {
                                         else if (!strncmp(key, "capture-filter", 14))
 						profile_socket[profile_size].capture_filter = strdup(value);
 					else if(!strncmp(key, "debug", 5) && !strncmp(value, "true", 4))
-                                                debug_socket_pcap_enable = 1;						
+                                                debug_socket_pcap_enable = 1;	
+                                                
 				}
 
 				nextparam: params = params->next;

@@ -396,7 +396,9 @@ int load_module_xml_config() {
 void free_module_xml_config() {
 
 	/* now we are free */
-	if(module_xml_config) xml_free(module_xml_config);
+	if(module_xml_config) {
+	     xml_free(module_xml_config);	     
+        }
 }
 
 /* modules external API */
@@ -481,7 +483,6 @@ static int load_module(xml_node *config) {
 					/* cache */
 					if (!strncmp(key, "timer-timeout", 13) && atoi(value) > 200) timer_timeout = atoi(value);
 					else if (!strncmp(key, "rtcp-timeout", 12) && atoi(value) > 600) rtcp_timeout = atoi(value);
-
 				}
 
 				nextparam: params = params->next;

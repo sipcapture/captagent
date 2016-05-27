@@ -119,8 +119,10 @@ void xml_el_end(void *data, const char *name) {
 void xml_charhndl(void *data, const char *s, int len) {
 	xml_node *node = *((xml_node **) data);
 
-	if (len > 0)
+	if (len > 5)
+	{
 		node->value = strndup(s, len);
+	}
 }
 
 xml_node *xml_parse(const char *filename) {
