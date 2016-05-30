@@ -794,6 +794,8 @@ int init_hepsocket_blocking (unsigned int idx) {
           }
     }
 
+    freeaddrinfo(ai);
+
     return 0;
 }
 

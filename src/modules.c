@@ -145,12 +145,16 @@ int unregister_modules(void) {
 	struct module *m, *ml = NULL;
 	int res = -1;
 	m = module_list;
+	cmd_export_t* ret;
+	
 	while (m) {
 
 		unregister_module(m);
 		module_list = m->next;
 		ml = m;
 		m = m->next;
+		ret = ml->cmds;
+		free(ret);
 		free(ml);
 	}
 

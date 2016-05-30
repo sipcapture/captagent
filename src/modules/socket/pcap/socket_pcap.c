@@ -543,6 +543,8 @@ int init_socket(unsigned int loc_idx) {
 		LERR("Failed to install filter: %s", pcap_geterr(sniffer_proto[loc_idx]));
 		return -1;
 	}
+	
+	pcap_freecode(&filter);
 
 	return 1;
 }
