@@ -303,7 +303,7 @@ int check_ipport(char *name)  {
         HASH_FIND_STR( ipports, name, ipport);
 
         if(ipport) {
-        	if(((unsigned) time(NULL) - ipport->modify_ts) >=  expire_hash_value) {
+        	if(((unsigned) time(NULL) - ipport->modify_ts) >=  rtcp_timeout) {
 
                         HASH_DEL( ipports, ipport);
                         free(ipport);
@@ -482,7 +482,7 @@ static int load_module(xml_node *config) {
 
 					/* cache */
 					if (!strncmp(key, "timer-timeout", 13) && atoi(value) > 200) timer_timeout = atoi(value);
-					else if (!strncmp(key, "rtcp-timeout", 12) && atoi(value) > 600) rtcp_timeout = atoi(value);
+					else if (!strncmp(key, "rtcp-timeout", 12) && atoi(value) > 80) rtcp_timeout = atoi(value);
 				}
 
 				nextparam: params = params->next;

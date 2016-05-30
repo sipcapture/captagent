@@ -32,7 +32,6 @@
 #include "hash_structure.h"
 
 int timer_timeout = 10;
-int rtcp_timeout = 3600;
 int timer_loop_stop = 0;
 
 static int global_session_id = 0;
@@ -47,6 +46,7 @@ profile_database_t profile_database[MAX_DATABASE];
 #define EXPIRE_TIMER_ARRAY 80
 
 int expire_hash_value = EXPIRE_RTCP_HASH;
+int rtcp_timeout = EXPIRE_RTCP_HASH;
 
 typedef struct mediaport {
   char ipportid[400];
