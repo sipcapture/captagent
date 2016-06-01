@@ -139,8 +139,6 @@ int w_check_redis_rtcp_ipport(msg_t *msg)
         int i = 0;
         miprtcp_t *mp = NULL;
 
-        snprintf(callid, sizeof(callid), "%.*s", msg->sip.callId.len, msg->sip.callId.s);
-
         for (i = 0; i < msg->sip.mrp_size; i++) {
                 mp = &msg->sip.mrp[i];
 
