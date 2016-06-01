@@ -17,7 +17,7 @@ autoreconf --force --install
 automake --add-missing
 autoconf
 
-./configure --enable-pcre --enable-redis
+#./configure --enable-pcre --enable-redis
 #FreeBSD has libexpat in /usr/local/lib (ports installation)
 #./configure CFLAGS="-I/usr/local/include" LDFLAGS="-L/usr/local/lib"
 
