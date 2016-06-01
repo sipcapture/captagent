@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<document type="captagent_module/xml">
+    <module name="database_redis" description="Redis Database" serial="2014010402">
+	<profile name="database_redis" description="Redis RTCP" enable="true" serial="2014010402">
+	    <settings>
+		<param name="host" value="127.0.0.1"/>
+	        <param name="port" value="6379"/>
+		<param name="db-num" value="1"/>
+		<!-- <param name="password" value="myredis"/> -->		                                
+		<param name="rtcp-timeout" value="80"/>
+	    </settings>
+	</profile>
+    </module>
+</document>
+
