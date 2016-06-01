@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2007-2013, Troy D. Hanson   http://uthash.sourceforge.net
+Copyright (c) 2007-2014, Troy D. Hanson   http://troydhanson.github.com/uthash/
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -24,11 +24,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef UTLIST_H
 #define UTLIST_H
 
-#define UTLIST_VERSION 1.9.7
+#define UTLIST_VERSION 1.9.9
 
 #include <assert.h>
 
-/* 
+/*
  * This file contains macros to manipulate singly and doubly-linked lists.
  *
  * 1. LL_ macros:  singly-linked lists.
@@ -38,7 +38,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * To use singly-linked lists, your structure must have a "next" pointer.
  * To use doubly-linked lists, your structure must "prev" and "next" pointers.
  * Either way, the pointer to the head of the list must be initialized to NULL.
- * 
+ *
  * ----------------.EXAMPLE -------------------------
  * struct item {
  *      int id;
@@ -70,6 +70,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define NO_DECLTYPE
 #define LDECLTYPE(x) char*
 #endif
+#elif defined(__ICCARM__)
+#define NO_DECLTYPE
+#define LDECLTYPE(x) char*
 #else                      /* GNU, Sun and other compilers */
 #define LDECLTYPE(x) __typeof(x)
 #endif
@@ -85,7 +88,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define _PREVASGN(elt,list,to,prev) { char **_alias = (char**)&((list)->prev); *_alias=(char*)(to); }
 #define _RS(list) { char **_alias = (char**)&(list); *_alias=_tmp; }
 #define _CASTASGN(a,b) { char **_alias = (char**)&(a); *_alias=(char*)(b); }
-#else 
+#else
 #define _SV(elt,list)
 #define _NEXT(elt,list,next) ((elt)->next)
 #define _NEXTASGN(elt,list,to,next) ((elt)->next)=(to)
@@ -108,15 +111,12 @@ do {                                                                            
   LDECLTYPE(list) _ls_q;                                                                       \
   LDECLTYPE(list) _ls_e;                                                                       \
   LDECLTYPE(list) _ls_tail;                                                                    \
-  LDECLTYPE(list) _ls_oldhead;                                                                 \
-  LDECLTYPE(list) _tmp;                                                                        \
   int _ls_insize, _ls_nmerges, _ls_psize, _ls_qsize, _ls_i, _ls_looping;                       \
   if (list) {                                                                                  \
     _ls_insize = 1;                                                                            \
     _ls_looping = 1;                                                                           \
     while (_ls_looping) {                                                                      \
       _CASTASGN(_ls_p,list);                                                                   \
-      _CASTASGN(_ls_oldhead,list);                                                             \
       list = NULL;                                                                             \
       _ls_tail = NULL;                                                                         \
       _ls_nmerges = 0;                                                                         \
@@ -153,13 +153,15 @@ do {                                                                            
         }                                                                                      \
         _ls_p = _ls_q;                                                                         \
       }                                                                                        \
-      _SV(_ls_tail,list); _NEXTASGN(_ls_tail,list,NULL,next); _RS(list);                       \
+      if (_ls_tail) {                                                                          \
+        _SV(_ls_tail,list); _NEXTASGN(_ls_tail,list,NULL,next); _RS(list);                     \
+      }                                                                                        \
       if (_ls_nmerges <= 1) {                                                                  \
         _ls_looping=0;                                                                         \
       }                                                                                        \
       _ls_insize *= 2;                                                                         \
     }                                                                                          \
-  } else _tmp=NULL; /* quiet gcc unused variable warning */                                    \
+  }                                                                                            \
 } while (0)
 
 
@@ -172,15 +174,12 @@ do {                                                                            
   LDECLTYPE(list) _ls_q;                                                                       \
   LDECLTYPE(list) _ls_e;                                                                       \
   LDECLTYPE(list) _ls_tail;                                                                    \
-  LDECLTYPE(list) _ls_oldhead;                                                                 \
-  LDECLTYPE(list) _tmp;                                                                        \
   int _ls_insize, _ls_nmerges, _ls_psize, _ls_qsize, _ls_i, _ls_looping;                       \
   if (list) {                                                                                  \
     _ls_insize = 1;                                                                            \
     _ls_looping = 1;                                                                           \
     while (_ls_looping) {                                                                      \
       _CASTASGN(_ls_p,list);                                                                   \
-      _CASTASGN(_ls_oldhead,list);                                                             \
       list = NULL;                                                                             \
       _ls_tail = NULL;                                                                         \
       _ls_nmerges = 0;                                                                         \
@@ -194,11 +193,11 @@ do {                                                                            
           if (!_ls_q) break;                                                                   \
         }                                                                                      \
         _ls_qsize = _ls_insize;                                                                \
-        while (_ls_psize > 0 || (_ls_qsize > 0 && _ls_q)) {                                    \
+        while ((_ls_psize > 0) || ((_ls_qsize > 0) && _ls_q)) {                                \
           if (_ls_psize == 0) {                                                                \
             _ls_e = _ls_q; _SV(_ls_q,list); _ls_q =                                            \
               _NEXT(_ls_q,list,next); _RS(list); _ls_qsize--;                                  \
-          } else if (_ls_qsize == 0 || !_ls_q) {                                               \
+          } else if ((_ls_qsize == 0) || (!_ls_q)) {                                           \
             _ls_e = _ls_p; _SV(_ls_p,list); _ls_p =                                            \
               _NEXT(_ls_p,list,next); _RS(list); _ls_psize--;                                  \
           } else if (cmp(_ls_p,_ls_q) <= 0) {                                                  \
@@ -225,7 +224,7 @@ do {                                                                            
       }                                                                                        \
       _ls_insize *= 2;                                                                         \
     }                                                                                          \
-  } else _tmp=NULL; /* quiet gcc unused variable warning */                                    \
+  }                                                                                            \
 } while (0)
 
 #define CDL_SORT(list, cmp)                                                                    \
@@ -239,7 +238,6 @@ do {                                                                            
   LDECLTYPE(list) _ls_tail;                                                                    \
   LDECLTYPE(list) _ls_oldhead;                                                                 \
   LDECLTYPE(list) _tmp;                                                                        \
-  LDECLTYPE(list) _tmp2;                                                                       \
   int _ls_insize, _ls_nmerges, _ls_psize, _ls_qsize, _ls_i, _ls_looping;                       \
   if (list) {                                                                                  \
     _ls_insize = 1;                                                                            \
@@ -295,14 +293,14 @@ do {                                                                            
         _ls_p = _ls_q;                                                                         \
       }                                                                                        \
       _CASTASGN(list->prev,_ls_tail);                                                          \
-      _CASTASGN(_tmp2,list);                                                                   \
-      _SV(_ls_tail,list); _NEXTASGN(_ls_tail,list,_tmp2,next); _RS(list);                      \
+      _CASTASGN(_tmp,list);                                                                    \
+      _SV(_ls_tail,list); _NEXTASGN(_ls_tail,list,_tmp,next); _RS(list);                       \
       if (_ls_nmerges <= 1) {                                                                  \
         _ls_looping=0;                                                                         \
       }                                                                                        \
       _ls_insize *= 2;                                                                         \
     }                                                                                          \
-  } else _tmp=NULL; /* quiet gcc unused variable warning */                                    \
+  }                                                                                            \
 } while (0)
 
 /******************************************************************************
@@ -410,13 +408,22 @@ do {                                                                            
 #undef LL_DELETE
 #define LL_DELETE LL_DELETE_VS2008
 #undef LL_DELETE2
-#define LL_DELETE2_VS2008
+#define LL_DELETE2 LL_DELETE2_VS2008
 #undef LL_APPEND2
 #define LL_APPEND2 LL_APPEND2_VS2008
 #undef LL_CONCAT /* no LL_CONCAT_VS2008 */
 #undef DL_CONCAT /* no DL_CONCAT_VS2008 */
 #endif
 /* end VS2008 replacements */
+
+#define LL_COUNT(head,el,counter)                                                              \
+    LL_COUNT2(head,el,counter,next)                                                            \
+
+#define LL_COUNT2(head,el,counter,next)                                                        \
+{                                                                                              \
+    counter = 0;                                                                               \
+    LL_FOREACH2(head,el,next){ ++counter; }                                                    \
+}
 
 #define LL_FOREACH(head,el)                                                                    \
     LL_FOREACH2(head,el,next)
@@ -438,7 +445,7 @@ do {                                                                            
     LL_FOREACH2(head,out,next) {                                                               \
       if ((out)->field == (val)) break;                                                        \
     }                                                                                          \
-} while(0) 
+} while(0)
 
 #define LL_SEARCH(head,out,elt,cmp)                                                            \
     LL_SEARCH2(head,out,elt,cmp,next)
@@ -448,9 +455,9 @@ do {                                                                            
     LL_FOREACH2(head,out,next) {                                                               \
       if ((cmp(out,elt))==0) break;                                                            \
     }                                                                                          \
-} while(0) 
+} while(0)
 
-#define LL_REPLACE_ELEM(head, el, add)                                                         \
+#define LL_REPLACE_ELEM2(head, el, add, next)                                                  \
 do {                                                                                           \
  LDECLTYPE(head) _tmp;                                                                         \
  assert(head != NULL);                                                                         \
@@ -470,26 +477,49 @@ do {                                                                            
  }                                                                                             \
 } while (0)
 
-#define LL_PREPEND_ELEM(head, el, add)                                                         \
+#define LL_REPLACE_ELEM(head, el, add)                                                         \
+    LL_REPLACE_ELEM2(head, el, add, next)
+
+#define LL_PREPEND_ELEM2(head, el, add, next)                                                  \
 do {                                                                                           \
- LDECLTYPE(head) _tmp;                                                                         \
- assert(head != NULL);                                                                         \
- assert(el != NULL);                                                                           \
- assert(add != NULL);                                                                          \
- (add)->next = (el);                                                                           \
- if ((head) == (el)) {                                                                         \
-  (head) = (add);                                                                              \
+ if((el)) {                                                                                    \
+  LDECLTYPE(head) _tmp;                                                                        \
+  assert(head != NULL);                                                                        \
+  assert(add != NULL);                                                                         \
+  (add)->next = (el);                                                                          \
+  if ((head) == (el)) {                                                                        \
+   (head) = (add);                                                                             \
+  } else {                                                                                     \
+   _tmp = head;                                                                                \
+   while (_tmp->next && (_tmp->next != (el))) {                                                \
+    _tmp = _tmp->next;                                                                         \
+   }                                                                                           \
+   if (_tmp->next) {                                                                           \
+     _tmp->next = (add);                                                                       \
+   }                                                                                           \
+  }                                                                                            \
  } else {                                                                                      \
-  _tmp = head;                                                                                 \
-  while (_tmp->next && (_tmp->next != (el))) {                                                 \
-   _tmp = _tmp->next;                                                                          \
-  }                                                                                            \
-  if (_tmp->next) {                                                                            \
-    _tmp->next = (add);                                                                        \
-  }                                                                                            \
+  LL_APPEND2(head, add, next);                                                                 \
  }                                                                                             \
 } while (0)                                                                                    \
 
+#define LL_PREPEND_ELEM(head, el, add)                                                         \
+    LL_PREPEND_ELEM2(head, el, add, next)
+
+#define LL_APPEND_ELEM2(head, el, add, next)                                                   \
+do {                                                                                           \
+ if((el)) {                                                                                    \
+  assert(head != NULL);                                                                        \
+  assert(add != NULL);                                                                         \
+  (add)->next = (el)->next;                                                                    \
+  (el)->next = (add);                                                                          \
+ } else {                                                                                      \
+  LL_PREPEND2(head, add, next);                                                                \
+ }                                                                                             \
+} while (0)                                                                                    \
+
+#define LL_APPEND_ELEM(head, el, add)                                                          \
+    LL_APPEND_ELEM2(head, el, add, next)
 
 /******************************************************************************
  * doubly linked list macros (non-circular)                                   *
@@ -524,7 +554,7 @@ do {                                                                            
       (head)->prev = (head);                                                                   \
       (head)->next = NULL;                                                                     \
   }                                                                                            \
-} while (0) 
+} while (0)
 
 #define DL_CONCAT(head1,head2)                                                                 \
     DL_CONCAT2(head1,head2,prev,next)
@@ -542,7 +572,7 @@ do {                                                                            
         (head1)=(head2);                                                                       \
     }                                                                                          \
   }                                                                                            \
-} while (0) 
+} while (0)
 
 #define DL_DELETE(head,del)                                                                    \
     DL_DELETE2(head,del,prev,next)
@@ -563,8 +593,16 @@ do {                                                                            
           (head)->prev = (del)->prev;                                                          \
       }                                                                                        \
   }                                                                                            \
-} while (0) 
+} while (0)
 
+#define DL_COUNT(head,el,counter)                                                              \
+    DL_COUNT2(head,el,counter,next)                                                            \
+
+#define DL_COUNT2(head,el,counter,next)                                                        \
+{                                                                                              \
+    counter = 0;                                                                               \
+    DL_FOREACH2(head,el,next){ ++counter; }                                                    \
+}
 
 #define DL_FOREACH(head,el)                                                                    \
     DL_FOREACH2(head,el,next)
@@ -585,7 +623,7 @@ do {                                                                            
 #define DL_SEARCH_SCALAR2 LL_SEARCH_SCALAR2
 #define DL_SEARCH2 LL_SEARCH2
 
-#define DL_REPLACE_ELEM(head, el, add)                                                         \
+#define DL_REPLACE_ELEM2(head, el, add, prev, next)                                            \
 do {                                                                                           \
  assert(head != NULL);                                                                         \
  assert(el != NULL);                                                                           \
@@ -611,25 +649,71 @@ do {                                                                            
  }                                                                                             \
 } while (0)
 
-#define DL_PREPEND_ELEM(head, el, add)                                                         \
+#define DL_REPLACE_ELEM(head, el, add)                                                         \
+    DL_REPLACE_ELEM2(head, el, add, prev, next)
+
+#define DL_PREPEND_ELEM2(head, el, add, prev, next)                                            \
 do {                                                                                           \
- assert(head != NULL);                                                                         \
- assert(el != NULL);                                                                           \
- assert(add != NULL);                                                                          \
- (add)->next = (el);                                                                           \
- (add)->prev = (el)->prev;                                                                     \
- (el)->prev = (add);                                                                           \
- if ((head) == (el)) {                                                                         \
-  (head) = (add);                                                                              \
+ if((el)) {                                                                                    \
+  assert(head != NULL);                                                                        \
+  assert(add != NULL);                                                                         \
+  (add)->next = (el);                                                                          \
+  (add)->prev = (el)->prev;                                                                    \
+  (el)->prev = (add);                                                                          \
+  if ((head) == (el)) {                                                                        \
+   (head) = (add);                                                                             \
+  } else {                                                                                     \
+   (add)->prev->next = (add);                                                                  \
+  }                                                                                            \
  } else {                                                                                      \
-  (add)->prev->next = (add);                                                                   \
+  DL_APPEND2(head, add, prev, next);                                                           \
  }                                                                                             \
 } while (0)                                                                                    \
 
+#define DL_PREPEND_ELEM(head, el, add)                                                         \
+    DL_PREPEND_ELEM2(head, el, add, prev, next)
+
+#define DL_APPEND_ELEM2(head, el, add, prev, next)                                             \
+do {                                                                                           \
+ if((el)) {                                                                                    \
+  assert(head != NULL);                                                                        \
+  assert(add != NULL);                                                                         \
+  (add)->next = (el)->next;                                                                    \
+  (add)->prev = (el);                                                                          \
+  (el)->next = (add);                                                                          \
+  if ((add)->next) {                                                                           \
+   (add)->next->prev = (add);                                                                  \
+  } else {                                                                                     \
+   (head)->prev = (add);                                                                       \
+  }                                                                                            \
+ } else {                                                                                      \
+  DL_PREPEND2(head, add, prev, next);                                                          \
+ }                                                                                             \
+} while (0)                                                                                    \
+
+#define DL_APPEND_ELEM(head, el, add)                                                          \
+   DL_APPEND_ELEM2(head, el, add, prev, next)
 
 /******************************************************************************
  * circular doubly linked list macros                                         *
  *****************************************************************************/
+#define CDL_APPEND(head,add)                                                                   \
+    CDL_APPEND2(head,add,prev,next)
+
+#define CDL_APPEND2(head,add,prev,next)                                                        \
+do {                                                                                           \
+ if (head) {                                                                                   \
+   (add)->prev = (head)->prev;                                                                 \
+   (add)->next = (head);                                                                       \
+   (head)->prev = (add);                                                                       \
+   (add)->prev->next = (add);                                                                  \
+ } else {                                                                                      \
+   (add)->prev = (add);                                                                        \
+   (add)->next = (add);                                                                        \
+   (head) = (add);                                                                             \
+ }                                                                                             \
+} while (0)
+
 #define CDL_PREPEND(head,add)                                                                  \
     CDL_PREPEND2(head,add,prev,next)
 
@@ -644,7 +728,7 @@ do {                                                                            
    (add)->prev = (add);                                                                        \
    (add)->next = (add);                                                                        \
  }                                                                                             \
-(head)=(add);                                                                                  \
+ (head) = (add);                                                                               \
 } while (0)
 
 #define CDL_DELETE(head,del)                                                                   \
@@ -653,19 +737,28 @@ do {                                                                            
 #define CDL_DELETE2(head,del,prev,next)                                                        \
 do {                                                                                           \
   if ( ((head)==(del)) && ((head)->next == (head))) {                                          \
-      (head) = 0L;                                                                             \
+      (head) = NULL;                                                                           \
   } else {                                                                                     \
      (del)->next->prev = (del)->prev;                                                          \
      (del)->prev->next = (del)->next;                                                          \
      if ((del) == (head)) (head)=(del)->next;                                                  \
   }                                                                                            \
-} while (0) 
+} while (0)
+
+#define CDL_COUNT(head,el,counter)                                                             \
+    CDL_COUNT2(head,el,counter,next)                                                           \
+
+#define CDL_COUNT2(head, el, counter,next)                                                     \
+{                                                                                              \
+    counter = 0;                                                                               \
+    CDL_FOREACH2(head,el,next){ ++counter; }                                                   \
+}
 
 #define CDL_FOREACH(head,el)                                                                   \
     CDL_FOREACH2(head,el,next)
 
 #define CDL_FOREACH2(head,el,next)                                                             \
-    for(el=head;el;el=((el)->next==head ? 0L : (el)->next)) 
+    for(el=head;el;el=(((el)->next==head) ? 0L : (el)->next))
 
 #define CDL_FOREACH_SAFE(head,el,tmp1,tmp2)                                                    \
     CDL_FOREACH_SAFE2(head,el,tmp1,tmp2,prev,next)
@@ -683,7 +776,7 @@ do {                                                                            
     CDL_FOREACH2(head,out,next) {                                                              \
       if ((out)->field == (val)) break;                                                        \
     }                                                                                          \
-} while(0) 
+} while(0)
 
 #define CDL_SEARCH(head,out,elt,cmp)                                                           \
     CDL_SEARCH2(head,out,elt,cmp,next)
@@ -693,9 +786,9 @@ do {                                                                            
     CDL_FOREACH2(head,out,next) {                                                              \
       if ((cmp(out,elt))==0) break;                                                            \
     }                                                                                          \
-} while(0) 
+} while(0)
 
-#define CDL_REPLACE_ELEM(head, el, add)                                                        \
+#define CDL_REPLACE_ELEM2(head, el, add, prev, next)                                           \
 do {                                                                                           \
  assert(head != NULL);                                                                         \
  assert(el != NULL);                                                                           \
@@ -715,19 +808,46 @@ do {                                                                            
  }                                                                                             \
 } while (0)
 
-#define CDL_PREPEND_ELEM(head, el, add)                                                        \
+#define CDL_REPLACE_ELEM(head, el, add)                                                        \
+    CDL_REPLACE_ELEM2(head, el, add, prev, next)
+
+#define CDL_PREPEND_ELEM2(head, el, add, prev, next)                                           \
 do {                                                                                           \
- assert(head != NULL);                                                                         \
- assert(el != NULL);                                                                           \
- assert(add != NULL);                                                                          \
- (add)->next = (el);                                                                           \
- (add)->prev = (el)->prev;                                                                     \
- (el)->prev = (add);                                                                           \
- (add)->prev->next = (add);                                                                    \
- if ((head) == (el)) {                                                                         \
-  (head) = (add);                                                                              \
+ if((el))                                                                                      \
+ {                                                                                             \
+  assert(head != NULL);                                                                        \
+  assert(add != NULL);                                                                         \
+  (add)->next = (el);                                                                          \
+  (add)->prev = (el)->prev;                                                                    \
+  (el)->prev = (add);                                                                          \
+  (add)->prev->next = (add);                                                                   \
+  if ((head) == (el))                                                                          \
+   (head) = (add);                                                                             \
+ } else {                                                                                      \
+  CDL_APPEND2(head, add, prev, next);                                                          \
  }                                                                                             \
-} while (0)                                                                                    \
+} while (0)
+
+#define CDL_PREPEND_ELEM(head, el, add)                                                        \
+    CDL_PREPEND_ELEM2(head, el, add, prev, next)
+
+#define CDL_APPEND_ELEM2(head, el, add, prev, next)                                            \
+do {                                                                                           \
+ if((el))                                                                                      \
+ {                                                                                             \
+  assert(head != NULL);                                                                        \
+  assert(add != NULL);                                                                         \
+  (add)->next = (el)->next;                                                                    \
+  (add)->prev = (el);                                                                          \
+  (el)->next = (add);                                                                          \
+  (add)->next->prev = (add);                                                                   \
+ } else {                                                                                      \
+  CDL_PREPEND2(head, add, prev, next);                                                         \
+ }                                                                                             \
+} while (0)
+
+#define CDL_APPEND_ELEM(head, el, add)                                                         \
+    CDL_APPEND_ELEM2(head, el, add, prev, next)
 
 #endif /* UTLIST_H */
 

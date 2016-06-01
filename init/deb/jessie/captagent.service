@@ -11,7 +11,7 @@ EnvironmentFile=-/etc/default/captagent.d/*
 PIDFile=/var/run/captagent.pid
 # ExecStart requires a full absolute path
 ExecStart=/usr/local/captagent/bin/captagent -f $CFGFILE -d
-Restart=Always
+Restart=always
 
 [Install]
 WantedBy=multi-user.target
