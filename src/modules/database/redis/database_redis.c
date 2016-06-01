@@ -42,27 +42,20 @@
 #include <time.h>
 #include <pthread.h>
 
-#ifndef __FAVOR_BSD
-#define __FAVOR_BSD
-#endif /* __FAVOR_BSD */
-
-#include <netinet/ip.h>
-#include <netinet/tcp.h>
-#include <netinet/udp.h>
-
-#include "../../../config.h"
-
-#ifdef USE_REDIS
-#include "hiredis/hiredis.h"
-#endif
-
 #include <captagent/api.h>
 #include <captagent/proto_sip.h>
 #include <captagent/structure.h>
 #include <captagent/modules_api.h>
 #include <captagent/modules.h>
-#include "database_redis.h"
 #include <captagent/log.h>
+
+#ifdef USE_REDIS
+#include "hiredis/hiredis.h"
+#endif
+#include <captagent/xmlread.h>
+
+#include "database_redis.h"
+
 
 xml_node *module_xml_config = NULL;
 char *module_name="database_redis";
@@ -92,6 +85,9 @@ unsigned int profile_size = 0;
 
 static cmd_export_t cmds[] = {
         {"database_redis_bind_api",  (cmd_function)bind_redis_api,   1, 0, 0, 0},
+        {"check_redis_rtcp_ipport", (cmd_function) w_check_redis_rtcp_ipport, 0, 0, 0, 0 },                         
+        {"is_redis_rtcp_exist", (cmd_function) w_is_redis_rtcp_exists, 0, 0, 0, 0 },
+                         
         {0, 0, 0, 0, 0, 0}
 };
 
@@ -137,7 +133,72 @@ int reload_config (char *erbuf, int erlen) {
 	return 0;
 }
 
-profile_database_t* get_profile_by_name(char *name) {
+int w_check_redis_rtcp_ipport(msg_t *msg)
+{
+ 
+        int i = 0;
+        miprtcp_t *mp = NULL;
+
+        snprintf(callid, sizeof(callid), "%.*s", msg->sip.callId.len, msg->sip.callId.s);
+
+        for (i = 0; i < msg->sip.mrp_size; i++) {
+                mp = &msg->sip.mrp[i];
+
+                if (mp->rtcp_ip.len > 0 && mp->rtcp_ip.s) 
+                {
+                        insert_and_update(mp->rtcp_ip.len, mp->rtcp_ip.s, mp->rtcp_port, msg->sip.callId.len, msg->sip.callId.s);                        
+                }
+        }
+
+        return 1;
+}
+
+ 
+int insert_and_update(int iplen, char *ip, int port, int callidlen, char *callid)
+{
+
+        int ret = 0;
+        
+#ifdef USE_REDIS
+
+
+
+        char query[1000];
+        snprintf(query, sizeof(query), "SETEX %.*s:%d %d %.*s",  iplen, ip,  port, rtcp_timeout, callidlen, callid);        
+        
+        LDEBUG("QUERY: %s", query);
+	ret = redis_command_free(0, query);
+#endif
+
+        return ret;		
+}
+
+
+int w_is_redis_rtcp_exists(msg_t *msg)
+{
+        LDEBUG("IP PORT: %s:%i", msg->rcinfo.src_ip, msg->rcinfo.src_port);
+
+	if(!get_and_expire(msg->rcinfo.src_ip, msg->rcinfo.src_port, &msg->corrdata))
+	{
+		if(!get_and_expire( msg->rcinfo.dst_ip, msg->rcinfo.dst_port, &msg->corrdata))
+		{
+			return -1;
+		}
+
+		msg->rcinfo.direction = 0;
+        }         
+
+        LDEBUG("SESSION ID: %s", msg->corrdata);
+
+        msg->rcinfo.correlation_id.s = msg->corrdata;
+        msg->rcinfo.correlation_id.len = strlen(msg->corrdata);
+
+        return 1;
+}
+
+
+profile_database_t* get_profile_by_name(char *name) 
+{
 
 	unsigned int i = 0;
 
@@ -145,7 +206,8 @@ profile_database_t* get_profile_by_name(char *name) {
 
 	for (i = 0; i < profile_size; i++) {
 
-		if(!strncmp(profile_database[i].name, name, strlen(profile_database[i].name))) {
+		if(!strncmp(profile_database[i].name, name, strlen(profile_database[i].name))) 
+		{
 			return &profile_database[1];
 		}
 	}
@@ -168,7 +230,8 @@ unsigned int get_profile_index_by_name(char *name) {
 }
 
 /* REDIS CACHE */
-int make_cache_reconnect(unsigned int idx) {
+int make_cache_reconnect(unsigned int idx) 
+{
 
 #ifdef USE_REDIS
 
@@ -221,7 +284,8 @@ int make_cache_reconnect(unsigned int idx) {
 	return 1;
 }
 
-void close_cache_connection(unsigned int idx) {
+void close_cache_connection(unsigned int idx) 
+{
 
 #ifdef USE_REDIS
 
@@ -246,14 +310,70 @@ redisReply *redis_command(unsigned int idx, char *query)
 		}
 	}
 
-	stats.write_packets_total++;
-
 	return reply;
 }
+
+
+int redis_command_free(unsigned int idx, char *query)
+{
+
+	redisReply *reply = NULL;
+
+	if (redisCon[idx] == NULL || !(reply = redisCommand(redisCon[idx], query))) 
+	{
+
+		if(make_cache_reconnect(idx)) reply = redisCommand(redisCon[idx], query);		
+	}
+	
+	if(reply) freeReplyObject(reply);
+
+	return 1;
+}
+
+
 #endif
 
+int get_and_expire(char *ip, int port, char **callid) 
+{
+	unsigned int ret = 0;
+
+#ifdef USE_REDIS
+
+	unsigned int idx = 0;
+	redisReply *reply;
+	char ipptmp[256];
+	char query[MAX_QUERY_SIZE];
+
+	snprintf(ipptmp, sizeof(ipptmp), "%s:%d", ip, port);
+
+	snprintf(query, MAX_QUERY_SIZE, "GET %s", ipptmp);
+	if ((reply = redis_command(idx, query))) {
+
+		if (reply != NULL)
+		{
+		
+			if(reply->type == REDIS_REPLY_STRING) 
+			{	
+			        /* max size of callid should be 256 */
+                                *callid = malloc(256);			                	
+				snprintf(*callid, 256, "%s", reply->str);			
+				ret = 1;	
+				snprintf(query, MAX_QUERY_SIZE, "EXPIRE %s %d", ipptmp, rtcp_timeout);
+				redis_command_free(idx, query);
+			}
+
+			freeReplyObject(reply);
+		}
+	}
+#endif	
+
+	return ret;
+}
+
+
 /* redis cache push  */
-int insert_redis(const db_msg_t *msg, const db_value_t* _v, const int _n) {
+int insert_redis(const db_msg_t *msg, const db_value_t* _v, const int _n) 
+{
 
 	int i = 0;
 
@@ -271,14 +391,16 @@ int insert_redis(const db_msg_t *msg, const db_value_t* _v, const int _n) {
 	redisReply *reply;
 
 
-	if (msg->batch == 0) {
+	if (msg->batch == 0) 
+	{
 		ret = snprintf(query, MAX_QUERY_SIZE, "SET");
 	} else {
 
 		ret = snprintf(query, MAX_QUERY_SIZE, "HMSET %.*s", msg->key_name.len, msg->key_name.s);
 	}
 
-	for (i = 0; i < _n; i++) {
+	for (i = 0; i < _n; i++) 
+	{
 
 		if (_v[i].type == DB_STRING) {
 			ret += snprintf(query + ret, MAX_QUERY_SIZE - ret, " %.*s \"%.*s\"", _v[i].key.len, _v[i].key.s,
@@ -671,6 +793,7 @@ static int load_module(xml_node *config) {
 					else if(!strncmp(key, "password", 8)) profile_database[profile_size].password = strdup(value);
 					else if(!strncmp(key, "user", 4)) profile_database[profile_size].user = strdup(value);
 					else if(!strncmp(key, "db-num", 6)) profile_database[profile_size].db_name = strdup(value);
+                                        else if (!strncmp(key, "rtcp-timeout", 12) && atoi(value) > 80) rtcp_timeout = atoi(value);					                                        
 				}
 
 				nextparam:

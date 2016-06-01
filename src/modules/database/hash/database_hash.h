@@ -70,7 +70,7 @@ struct ipport_items *find_ipport_key(char *key);
 void add_ipport(char *key, char *callid);
 int delete_ipport(char *ip, int port);
 int clear_ipport(struct ipport_items *ipport);
-int find_and_update(char *callid, const char *srcip, int srcport, const char *dstip, int dstport);
+int find_and_update(char *key, char *callid);
 void clear_ipports();
 void print_ipports();
 int check_ipport(char *name);

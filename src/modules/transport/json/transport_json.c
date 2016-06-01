@@ -289,8 +289,12 @@ int send_json (msg_t *msg) {
 
 	json_object_put(jobj_reply);
 	
-	if(msg->mfree == 1) free(&msg->data);
-
+	if(msg->mfree == 1) free(msg->data);
+	if(msg->corrdata) {
+	   free(msg->corrdata);
+           msg->corrdata = NULL;
+        }      
+        
         return 1;
 }
 

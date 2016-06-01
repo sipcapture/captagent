@@ -26,11 +26,7 @@
 #ifndef _database_redis_H_
 #define _database_redis_H_
 
-#include <captagent/xmlread.h>
-
 #define FILTER_LEN 4080
-
-
 
 /* SYNC this list: http://hep.sipcapture.org */
 #define PROTO_SIP    0x01
@@ -52,6 +48,10 @@ typedef struct database_redis_stats {
 	uint64_t write_packets_total;
 } database_redis_stats_t;
 
+
+#define EXPIRE_RTCP_REDIS 80
+int rtcp_timeout = EXPIRE_RTCP_REDIS;
+
 #define MAX_DATABASE 10
 #define MAX_QUERY_SIZE 3000
 profile_database_t profile_database[MAX_DATABASE];
@@ -70,9 +70,14 @@ int count_redis(char* query, const db_msg_t *msg);
 bool isCharsDigit(char *numArray);
 void free_module_xml_config();
 int reload_config (char *erbuf, int erlen);
+int w_check_redis_rtcp_ipport(msg_t *msg);
+int w_is_redis_rtcp_exists(msg_t *msg);
+int insert_and_update(int iplen, char *ip, int port, int callidlen, char *callid);
+int get_and_expire(char *ip, int port, char **callid);
 
 #ifdef USE_REDIS
 redisReply *redis_command(unsigned int idx, char *query);
+int redis_command_free(unsigned int idx, char *query);
 #endif /* if USE REDIS */
 
 int make_cache_reconnect(unsigned int idx);

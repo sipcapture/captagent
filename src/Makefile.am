@@ -10,6 +10,7 @@ SUBDIRS = \
 	modules/transport/hep \
 	modules/transport/json \
 	modules/database/hash \
+	modules/database/redis \
 	modules/interface/http
 
 bin_PROGRAMS = captagent

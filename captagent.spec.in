@@ -23,6 +23,13 @@ Summary:	database hash module for sipcapture HOMER5
 %description database-hash
 hash database module for a robust, carrier-grade, scalable SIP Capture system and Monitoring Application with HEP/HEP2, IP Proto4 (IPIP) encapsulation & port mirroring/monitoring support right out of the box, ready to process & store insane amounts of signaling with instant search, end-to-end analysis and drill-down capabilities for ITSPs, VoIP Providers and Trunk Suppliers using SIP signaling
 
+%package database-redis
+Requires:	%name = %version
+Summary:	database redis module for sipcapture HOMER5
+
+%description database-redis
+redis database module for a robust, carrier-grade, scalable SIP Capture system and Monitoring Application with HEP/HEP2, IP Proto4 (IPIP) encapsulation & port mirroring/monitoring support right out of the box, ready to process & store insane amounts of signaling with instant search, end-to-end analysis and drill-down capabilities for ITSPs, VoIP Providers and Trunk Suppliers using SIP signaling
+
 %package protocol-sip
 Requires:	%name = %version
 Summary:	protocol sip module for sipcapture HOMER5
@@ -89,6 +96,16 @@ Summary:	database hash module development package for sipcapture HOMER5
 
 %description database-hash-devel
 hash database module development package for a robust, carrier-grade, scalable SIP Capture system and Monitoring Application with HEP/HEP2, IP Proto4 (IPIP) encapsulation & port mirroring/monitoring support right out of the box, ready to process & store insane amounts of signaling with instant search, end-to-end analysis and drill-down capabilities for ITSPs, VoIP Providers and Trunk Suppliers using SIP signaling
+
+%package database-redis-devel
+Requires:	%name = %version
+Requires:	database-redis
+
+Summary:	database redis module development package for sipcapture HOMER5
+
+%description database-redis-devel
+redis database module development package for a robust, carrier-grade, scalable SIP Capture system and Monitoring Application with HEP/HEP2, IP Proto4 (IPIP) encapsulation & port mirroring/monitoring support right out of the box, ready to process & store insane amounts of signaling with instant search, end-to-end analysis and drill-down capabilities for ITSPs, VoIP Providers and Trunk Suppliers using SIP signaling
+
 
 %package protocol-sip-devel
 Requires:	%name = %version
@@ -183,6 +200,10 @@ autoreconf -if
 %files database-hash
 %config(noreplace) %{_sysconfdir}/%name/database_hash.xml
 %{_libdir}/%name/modules/database_hash.so
+
+%files database-redis
+%config(noreplace) %{_sysconfdir}/%name/database_redis.xml
+%{_libdir}/%name/modules/database_redis.so
 
 %files protocol-sip
 %config(noreplace) %{_sysconfdir}/%name/protocol_sip.xml

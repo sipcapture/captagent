@@ -42,6 +42,7 @@ typedef struct msg {
         void *cap_packet;
         void *cap_header;
         void *var;
+        char *corrdata;
         uint8_t mfree;
         int flag[10];
 } msg_t;

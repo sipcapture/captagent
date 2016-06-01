@@ -112,8 +112,11 @@ int w_check_rtcp_ipport(msg_t *msg)
 			LDEBUG("RTCP IP PORT: %s", ipptmp);
 
 			/* one pair = one timer */
-			if(find_ipport_key(ipptmp) != NULL) add_timer(ipptmp);			
-                        add_ipport(ipptmp, callid);
+			if(!find_and_update(ipptmp, callid))			
+			{
+			       add_timer(ipptmp);			
+                               add_ipport(ipptmp, callid);
+                        }
 		}
 	}
 
@@ -168,28 +171,44 @@ void add_ipport(char *key, char *callid) {
 
 }
 
-int find_and_update(char *callid, const char *srcip, int srcport, const char *dstip, int dstport) {
+/* ADD IPPPORT  */
+void update_ipport(char *key, char *callid) {
 
-        ipport_items_t *ipport;
+        struct ipport_items *ipport;
+
+        ipport = (struct ipport_items*)malloc(sizeof(struct ipport_items));
+
+        snprintf(ipport->name, sizeof(ipport->name), "%s",  key);
+        snprintf(ipport->sessionid, sizeof(ipport->sessionid), "%s", callid);
+
+        ipport->modify_ts = (unsigned)time(NULL);
+
+        if (pthread_rwlock_wrlock(&ipport_lock) != 0) {
+                fprintf(stderr,"can't acquire write lock");
+                exit(-1);
+        }
+
+        HASH_ADD_STR(ipports, name, ipport);
+
+        pthread_rwlock_unlock(&ipport_lock);
+
+}
+
+int find_and_update(char *key, char *callid)
+{
+
+        struct ipport_items *ipport = NULL;
         int ret = 0;
-        char name[300];
-
-        snprintf(name, sizeof(name), "%s:%d",  srcip, srcport);
 
         if (pthread_rwlock_rdlock(&ipport_lock) != 0) {
                 fprintf(stderr,"can't acquire write lock");
                 exit(-1);
         }
 
-        HASH_FIND_STR( ipports, name, ipport);
-
-        if(!ipport) {
-             snprintf(name, sizeof(name), "%s:%d",  dstip, dstport);
-             HASH_FIND_STR( ipports, name, ipport);
-        }
+        HASH_FIND_STR( ipports, key, ipport);
 
         if(ipport) {
-                snprintf(callid, sizeof(ipport->sessionid), "%s", ipport->sessionid);
+                snprintf(ipport->sessionid, sizeof(ipport->sessionid), "%s", callid);                        
                 ipport->modify_ts = (unsigned)time(NULL);
                 ret = 1;
         }
@@ -202,7 +221,8 @@ int find_and_update(char *callid, const char *srcip, int srcport, const char *ds
 
 struct ipport_items *find_ipport_key(char *key) {
 
-	struct ipport_items *ipport = NULL;
+    struct ipport_items *ipport = NULL;
+    int ret = 0;
 
     if (pthread_rwlock_rdlock(&ipport_lock) != 0) {
              LERR("can't acquire write lock");
@@ -210,7 +230,7 @@ struct ipport_items *find_ipport_key(char *key) {
     }
 
     HASH_FIND_STR( ipports, key, ipport);
-
+    
     pthread_rwlock_unlock(&ipport_lock);
 
     return ipport;

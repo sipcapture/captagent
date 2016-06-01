@@ -244,6 +244,11 @@ int send_hep (msg_t *msg) {
              LDEBUG("LETS FREE IT!");
              free(msg->data);
         }
+        if(msg->corrdata)  
+        {
+             free(msg->corrdata);
+             msg->corrdata = NULL;
+        }                                                                                     
         
         return ret;
 }

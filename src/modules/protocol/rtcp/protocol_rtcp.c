@@ -96,6 +96,11 @@ int w_parse_rtcp_to_json(msg_t *_m)
 	  else {
 	    	LDEBUG("GOODBYE or APP MESSAGE. Ignore!\n");
 	    	if(json_rtcp_buffer) free(json_rtcp_buffer);
+	    	if(_m->corrdata) 
+	    	{
+	    	      free(_m->corrdata);
+	    	      _m->corrdata = NULL;
+                }
 	      	return -1;
 	  }
 
