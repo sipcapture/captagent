@@ -8,6 +8,7 @@
 		<param name="proto" value="udp"/>
 		<param name="method-publish" value="true"/>
 		<param name="short-report" value="true"/>
+		<param name="reply" value="true"/>
 		<param name="capture-plan" value="rtcpxr_capture_plan.cfg"/>
 	    </settings>
 	</profile>

@@ -178,6 +178,7 @@ typedef struct sip_msg {
 
 	unsigned int responseCode;
 	bool isRequest;
+	bool validMessage;
 	method_t methodType;
 	str methodString;
 	int method_len;

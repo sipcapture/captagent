@@ -28,6 +28,8 @@
 
 #include <captagent/xmlread.h>
 
+#include <uv.h>
+
 #define FILTER_LEN 4080
 
 #define PROTO_SIP    0x01
@@ -56,6 +58,26 @@ int bind_api(socket_module_api_t* api);
 int reload_config (char *erbuf, int erlen);
 void free_module_xml_config();
 int load_module_xml_config();
+
+void _run_uv_loop(void *arg);
+int close_socket(unsigned int loc_idx);
+void on_send(uv_udp_send_t* req, int status);
+int send_sip_rtcpxr_reply(msg_t *_m, int code, char *description);
+int w_send_rtcpxr_reply_p(msg_t *_m, char *param1, char *param2);
+int w_send_rtcpxr_reply(msg_t *_m);
+
+#if UV_VERSION_MAJOR == 0                          
+uv_buf_t on_alloc(uv_handle_t* client, size_t suggested);
+void on_recv(uv_udp_t* handle, ssize_t nread, uv_buf_t* rcvbuf, struct sockaddr* addr, unsigned flags);
+void _async_callback(uv_async_t *async, int status);
+#else 
+void on_alloc(uv_handle_t* client, size_t suggested, uv_buf_t* buf);
+void on_recv(uv_udp_t* handle, ssize_t nread, const uv_buf_t* rcvbuf, const struct sockaddr* addr, unsigned flags);
+void _async_callback(uv_async_t *async);
+#endif
+
+                                                     
+
 
 
 #endif /* _socket_rtcpxr_H_ */

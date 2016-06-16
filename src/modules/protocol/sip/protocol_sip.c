@@ -64,8 +64,9 @@ static cmd_export_t cmds[] = {
         {"sip_has_sdp", (cmd_function) w_sip_has_sdp, 0, 0, 0, 0 },
         {"is_flag_set", (cmd_function) w_is_flag_set, 2, 0, 0, 0 },
         {"send_reply", (cmd_function) w_send_reply_p, 2, 0, 0, 0 },
-        {"send_reply", (cmd_function) w_send_reply, 0, 0, 0, 0 },          
-
+        {"send_reply", (cmd_function) w_send_reply, 0, 0, 0, 0 },  
+        {"send_rtcpxr_reply", (cmd_function) w_send_reply_p, 2, 0, 0, 0 },
+        {"send_rtcpxr_reply", (cmd_function) w_send_reply, 0, 0, 0, 0 },          
         {0, 0, 0, 0, 0, 0}
 };
 
@@ -331,6 +332,7 @@ int parse_sip(msg_t *msg, unsigned int type) {
 	msg->sip.hasFrom = FALSE;
 	msg->sip.hasRuri = FALSE;
 	msg->sip.hasToTag = FALSE;
+	msg->sip.validMessage = FALSE;
 
 	/* check if this is real SIP */
 	if (!isalpha(((char * )msg->data)[0])) {
@@ -343,6 +345,7 @@ int parse_sip(msg_t *msg, unsigned int type) {
 	if (parse_packet(msg, &msg->sip, type)) {
 
 		ret = 1;
+		msg->sip.validMessage = TRUE;		        
 		stats.parsed_packets++;
 
 	} else {

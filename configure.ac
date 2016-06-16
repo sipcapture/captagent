@@ -1,5 +1,5 @@
 AC_PREREQ(2.61)
-AC_INIT(captagent,6.1.0.20,support@sipcapture.org,,[http://www.sipcapture.org])
+AC_INIT(captagent,6.2.0.1,support@sipcapture.org,,[http://www.sipcapture.org])
 AC_COPYRIGHT("SIP Capture Solution")
 AC_CONFIG_MACRO_DIR([m4])
 AM_INIT_AUTOMAKE(foreign tar-ustar)
@@ -77,14 +77,8 @@ AC_ARG_ENABLE(redis,
 AC_MSG_RESULT([$REDIS])
 AC_SUBST([REDIS])
 
-useLIBUV=no
-AC_MSG_CHECKING([whether to use libuv])
-AC_ARG_ENABLE(libuv,
-   [  --enable-libuv    Enable libuv support],
-   [LIBUV="$enableval"]
-   useLIBUV=yes,
-   [LIBUV="no"]
-)
+useLIBUV=yes
+
 AC_MSG_RESULT([$LIBUV])
 AC_SUBST([LIBUV])
 
@@ -261,13 +255,11 @@ dnl
 dnl check for libuv library
 dnl
    
-if test "$LIBUV" = "yes"; then
-   AC_CHECKING([for LiBUV and Header files])
-   AC_CHECK_HEADER(uv.h,,[AC_MSG_ERROR([uv.h headers not found.])])
-   AC_CHECK_LIB(uv, uv_now, [ UV_LIBS="-luv" ], [AC_MSG_ERROR([captagent requires but cannot find libuv])])
-   AC_DEFINE(USE_LIBUV, 1, [Use lib UV])
-   AC_SUBST(UV_LIBS)
-fi
+AC_CHECKING([for LiBUV and Header files])
+AC_CHECK_HEADER(uv.h,,[AC_MSG_ERROR([uv.h headers not found.])])
+AC_CHECK_LIB(uv, uv_now, [ UV_LIBS="-luv" ], [AC_MSG_ERROR([captagent requires but cannot find libuv])])
+AC_DEFINE(USE_LIBUV, 1, [Use lib UV])
+AC_SUBST(UV_LIBS)
 
 
 

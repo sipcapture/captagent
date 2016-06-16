@@ -53,7 +53,6 @@
 #include <netinet/ip6.h>
 #endif /* USE_IPV6 */
 
-
 #include <captagent/capture.h>
 #include <captagent/globals.h>
 #include <captagent/api.h>
@@ -63,6 +62,7 @@
 #include "socket_rtcpxr.h"
 #include <captagent/modules.h>
 #include <captagent/log.h>
+#include <captagent/action.h>
 
 profile_socket_t profile_socket[MAX_SOCKETS];
 
@@ -74,6 +74,11 @@ char *module_name="socket_rtcpxr";
 uint64_t module_serial = 0;
 char *module_description;
 
+uv_loop_t *loop;
+uv_thread_t runthread;
+uv_async_t async_handle;
+static uv_udp_t  udp_servers[MAX_SOCKETS];
+int reply_to_rtcpxr = 1;
 static socket_rtcpxr_stats_t stats;
 
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -90,10 +95,11 @@ static int free_profile(unsigned int idx);
 unsigned int profile_size = 0;
 
 bind_protocol_module_api_t proto_bind_api;
-//osip_message_t *sip;
 
 static cmd_export_t cmds[] = {
 	{"socket_rtcpxr_bind_api", (cmd_function) bind_api, 1, 0, 0, 0 },
+	{"send_rtcpxr_reply", (cmd_function) w_send_rtcpxr_reply_p, 2, 0, 0, 0 },
+	{"send_rtcpxr_reply", (cmd_function) w_send_rtcpxr_reply, 0, 0, 0, 0 },	                
 	{ 0, 0, 0, 0, 0, 0 }
 };
 
@@ -132,153 +138,203 @@ int reload_config (char *erbuf, int erlen) {
 	return 0;
 }
 
-ssize_t read_line(int sockd, void *vptr, size_t maxlen) {
-    ssize_t n, rc;
-    char    c, *buffer;
 
-    buffer = vptr;
-
-    for ( n = 1; n < maxlen; n++ ) {
-
-        if ( (rc = read(sockd, &c, 1)) == 1 ) {
-            *buffer++ = c;
-            if ( c == '\n' )
-                break;
-        }
-        else if ( rc == 0 ) {
-            if ( n == 1 )
-                return 0;
-            else
-                break;
-        }
-        else {
-            if ( errno == EINTR )
-                continue;
-            return -1;
-        }
-    }
-
-    *buffer = 0;
-    return n;
-}
-
-
-ssize_t write_line(int sockd, const void *vptr, size_t n) {
-    size_t      nleft;
-    ssize_t     nwritten;
-    const char *buffer;
-
-    buffer = vptr;
-    nleft  = n;
-
-    while ( nleft > 0 ) {
-        if ( (nwritten = write(sockd, buffer, nleft)) <= 0 ) {
-            if ( errno == EINTR )
-                nwritten = 0;
-            else
-                return -1;
-        }
-        nleft  -= nwritten;
-        buffer += nwritten;
-    }
-
-    return n;
-}
-
-void* proto_collect(void *arg) {
-
-	unsigned int loc_idx = (int *) arg;
-	int n = 0;
-    char data[3000];
-    socklen_t len;
-    struct sockaddr_in cliaddr;
-	msg_t _msg;
-	struct timeval  tv;
-	int action_idx = 0;
-
-	uint8_t loc_index = (uint8_t *) arg;
-
-	/* free arg */
-	free(arg);
-
-	while(1) {
-
-		memset(&_msg, 0, sizeof(msg_t));
-
-		len = sizeof(cliaddr);
-		n = recvfrom(profile_socket[loc_idx].socket ,data, 3000, 0, (struct sockaddr *)&cliaddr, &len);
-
-		data[n] = 0;
-		LDEBUG("Received the following:\n");
-		LDEBUG("%s",data);
-
-		gettimeofday(&tv, NULL);
-
-		_msg.data = &data;
-		_msg.len = n;
-
-		_msg.rcinfo.dst_port = ntohs(cliaddr.sin_port);
-		_msg.rcinfo.dst_ip = inet_ntoa(cliaddr.sin_addr);
-		_msg.rcinfo.liid = loc_idx;
-
-		_msg.rcinfo.src_port = atoi(profile_socket[loc_idx].port);
-		_msg.rcinfo.src_ip = profile_socket[loc_idx].host;
-
-		_msg.rcinfo.ip_family = cliaddr.sin_family = 4 ? AF_INET : AF_INET6;
-		_msg.rcinfo.ip_proto = IPPROTO_UDP;
-		
-		_msg.rcinfo.proto_type = profile_socket[loc_index].protocol;
-		_msg.rcinfo.time_sec = tv.tv_sec;
-		_msg.rcinfo.time_usec = tv.tv_usec;
-		_msg.tcpflag = 0;
-		_msg.parse_it = 0;
-		_msg.rcinfo.socket = &profile_socket[loc_idx].socket;
-
-		action_idx = profile_socket[loc_index].action;
-		run_actions(main_ct.clist[action_idx], &_msg);
-
+void on_send(uv_udp_send_t* req, int status) 
+{
+	if (status == 0 && req) {
+		free(req->data);
+		free(req); 
+		req = NULL;
 	}
-
-	return NULL;
+}
+   
+ 
+int send_sip_rtcpxr_reply(msg_t *_m, int code, char *description)
+{
+        int n = 0;
+        char *message = NULL;
+        uv_udp_send_t* send_req;
+        int idx = 0;
+        uv_udp_t *handle = NULL;
+ 
+ 	message = malloc(1500);  
+ 	idx = _m->flag[5];
+ 	handle = &udp_servers[idx];
+ 	     
+        n = snprintf(message, 1500, "SIP/2.0 %d %s\r\nVia: %.*s\r\nFrom: %.*s\r\nTo: %.*s;tag=%s\r\nContact: %.*s\r\nCall-ID: %.*s\r\nCseq: %.*s\r\n"
+                                                          "User-Agent: Captagent\r\nContent-Length: 0\r\n\r\n",
+                                                          code, description,
+                                                          _m->sip.via.len, _m->sip.via.s,
+                                                          _m->sip.fromURI.len, _m->sip.fromURI.s,
+                                                          _m->sip.toURI.len, _m->sip.toURI.s,
+                                                          "Fg2Uy0r7geBQF",
+                                                          _m->sip.contactURI.len, _m->sip.contactURI.s,
+                                                          _m->sip.callId.len, _m->sip.callId.s,
+                                                          _m->sip.cSeq.len, _m->sip.cSeq.s
+        );
+          	           
+        uv_buf_t reply_msg =  uv_buf_init(message, n);         
+        send_req = malloc(sizeof(uv_udp_send_t));
+        send_req->data = message;
+        
+#if UV_VERSION_MAJOR == 0                         
+	uv_udp_send(send_req, handle, &reply_msg, 1, (const struct sockaddr_in *) _m->var, on_send);
+#else
+	uv_udp_send(send_req, handle, &reply_msg, 1, (const struct sockaddr *) _m->var, on_send);
+#endif
+        return 1;
 }
 
+
+int w_send_rtcpxr_reply_p(msg_t *_m, char *param1, char *param2)
+{
+   return send_sip_rtcpxr_reply(_m, atoi(param1), param2);
+}
+  
+int w_send_rtcpxr_reply(msg_t *_m)
+{
+   return send_sip_rtcpxr_reply(_m, 200, "OK");
+}
+
+
+#if UV_VERSION_MAJOR == 0                         
+void on_recv(uv_udp_t* handle, ssize_t nread, uv_buf_t* rcvbuf, struct sockaddr* addr, unsigned flags)
+#else
+void on_recv(uv_udp_t* handle, ssize_t nread, const uv_buf_t* rcvbuf, const struct sockaddr* addr, unsigned flags) 
+#endif    
+{
+       
+    msg_t _msg;
+    struct timeval  tv;
+    int action_idx = 0;
+    struct run_act_ctx ctx;
+    struct sockaddr_in *cliaddr;
+    uint8_t loc_idx = 0;
+
+    if (nread == 0 || nread < 0) 
+    {
+    	free(rcvbuf->base);
+    	return;
+    }
+
+    if(addr == NULL) {
+    	free(rcvbuf->base); 
+    	return;
+    }
+    
+    loc_idx = (int) handle->data;
+    
+    gettimeofday(&tv, NULL);
+
+    cliaddr = (struct sockaddr_in*)addr;
+
+    memset(&_msg, 0, sizeof(msg_t));
+    memset(&ctx, 0, sizeof(struct run_act_ctx));
+    
+    _msg.data = rcvbuf->base;
+    _msg.len = nread;
+    
+    _msg.rcinfo.dst_port = ntohs(cliaddr->sin_port);
+    _msg.rcinfo.dst_ip = inet_ntoa(cliaddr->sin_addr);
+    _msg.rcinfo.liid = loc_idx;
+
+    _msg.rcinfo.src_port = atoi(profile_socket[loc_idx].port);
+    _msg.rcinfo.src_ip = profile_socket[loc_idx].host;
+
+    _msg.rcinfo.ip_family = addr->sa_family;
+    _msg.rcinfo.ip_proto = IPPROTO_UDP;
+		
+    _msg.rcinfo.proto_type = profile_socket[loc_idx].protocol;
+    _msg.rcinfo.time_sec = tv.tv_sec;
+    _msg.rcinfo.time_usec = tv.tv_usec;
+    _msg.tcpflag = 0;
+    _msg.parse_it = 0;
+    _msg.rcinfo.socket = &profile_socket[loc_idx].socket;
+
+    _msg.var = (void *) addr;
+    _msg.flag[5] = loc_idx;
+
+    action_idx = profile_socket[loc_idx].action;
+    run_actions(&ctx, main_ct.clist[action_idx], &_msg);		                        
+    
+    if(reply_to_rtcpxr && _msg.sip.validMessage == TRUE)
+    {
+    	send_sip_rtcpxr_reply(&_msg, 200, "OK");
+    }
+
+    free(rcvbuf->base);
+}
+ 
+#if UV_VERSION_MAJOR == 0                         
+uv_buf_t on_alloc(uv_handle_t* client, size_t suggested) {
+	char *chunk = malloc(suggested);
+	memset(chunk, 0, suggested);
+	return uv_buf_init(chunk, suggested);     	        
+}
+
+#else 
+void on_alloc(uv_handle_t* client, size_t suggested, uv_buf_t* buf) {
+    
+	char *chunk = malloc(suggested);
+	memset(chunk, 0, suggested);
+	*buf = uv_buf_init(chunk, suggested);	      
+}
+#endif
+
+#if UV_VERSION_MAJOR == 0
+  void _async_callback(uv_async_t *async, int status)
+#else
+  void _async_callback(uv_async_t *async)
+#endif
+{
+    LDEBUG("In async callback socket rtcp-xr exit");
+}
+
+
+void _run_uv_loop(void *arg)
+{
+     uv_loop_t * myloop = (uv_loop_t *)arg;
+     uv_run(myloop, UV_RUN_DEFAULT);
+}
+                 
+int close_socket(unsigned int loc_idx) {         
+	
+	uv_udp_recv_stop(&udp_servers[loc_idx]);	  
+	uv_close((uv_handle_t*)&udp_servers[loc_idx], NULL);	  
+	return 0;
+}
+         
 int init_socket(unsigned int loc_idx) {
 
-	int s;
-    struct addrinfo *ai;
-    struct addrinfo hints[1] = {{ 0 }};
-    unsigned int on = 1;
+	struct sockaddr_in v4addr;
+	const struct sockaddr *addr;		  
+	int status;
 
-	hints->ai_flags = AI_NUMERICSERV;
-	hints->ai_family = AF_INET;
-	hints->ai_socktype = SOCK_DGRAM;
-	hints->ai_protocol = IPPROTO_UDP;
+	status = uv_udp_init(loop,&udp_servers[loc_idx]);
 
-	if(profile_socket[loc_idx].socket) close(profile_socket[loc_idx].socket);
+#if UV_VERSION_MAJOR == 0                         
+	v4addr = uv_ip4_addr(profile_socket[loc_idx].host, atoi(profile_socket[loc_idx].port));
 
-	if ((s = getaddrinfo(profile_socket[loc_idx].host, profile_socket[loc_idx].port, hints, &ai)) != 0) {
-	         LERR( "capture: getaddrinfo: %s", gai_strerror(s));
-	            return 2;
-	}
-
-	if((profile_socket[loc_idx].socket = socket(ai->ai_family, ai->ai_socktype, ai->ai_protocol)) < 0) {
-	         LERR("Sender socket creation failed: %s", strerror(errno));
-	         return 1;
-	}
-
-	if (setsockopt(profile_socket[loc_idx].socket, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on)) < 0)
+#else    
+      	status = uv_ip4_addr(profile_socket[loc_idx].host, atoi(profile_socket[loc_idx].port), &v4addr);
+#endif
+      
+#if UV_VERSION_MAJOR == 0                         
+	status = uv_udp_bind(&udp_servers[loc_idx], (const struct sockaddr*)&addr,0);
+#else    
+	addr =  (struct sockaddr*)&v4addr;	      
+	status = uv_udp_bind(&udp_servers[loc_idx], addr, UV_UDP_REUSEADDR);
+	      
+#endif
+	if(status < 0) 
 	{
-		LERR("setsockopt(SO_REUSEADDR) failed");
-        return 3;
-
+		LERR( "capture: bind error");
+	        return 2;
 	}
 
-	if (bind(profile_socket[loc_idx].socket, ai->ai_addr, (socklen_t)(ai->ai_addrlen)) < 0) {
-	     if (errno != EINPROGRESS) {
-	    	 LERR("BIND socket creation failed: %s\n", strerror(errno));
-	         return 1;
-	     }
-    }
+	udp_servers[loc_idx].data = (void *) loc_idx;
+
+	status = uv_udp_recv_start(&udp_servers[loc_idx], on_alloc, on_recv);
 
 	return 0;
 }
@@ -336,12 +392,12 @@ static uint64_t serial_module(void)
 
 static int load_module(xml_node *config) {
 
-	xml_node *params, *profile=NULL, *settings, *condition, *action;
+	xml_node *params, *profile=NULL, *settings;
 	char *key, *value = NULL;
 	unsigned int i = 0;
-	char module_api_name[256];
+	//char module_api_name[256];
 	char loadplan[1024];
-    FILE* cfg_stream;
+	FILE* cfg_stream;
 
 	LNOTICE("Loaded %s", module_name);
 
@@ -416,6 +472,8 @@ static int load_module(xml_node *config) {
 						profile_socket[profile_size].host = strdup(value);
 					else if (!strncmp(key, "port", 4))
 						profile_socket[profile_size].port = strdup(value);
+					else if (!strncmp(key, "reply", 5) && !strncmp (value, "false", 5))
+						reply_to_rtcpxr = 0;
 					else if (!strncmp(key, "protocol-type", 13))
 						profile_socket[profile_size].protocol = atoi(value);						
 					else if (!strncmp(key, "capture-plan", 12))
@@ -432,14 +490,18 @@ static int load_module(xml_node *config) {
 		nextprofile: profile = profile->next;
 	}
 
-	/* free */
+	/* free */		
+		
 	free_module_xml_config();
 
+#if UV_VERSION_MAJOR == 0
+    loop = uv_loop_new();
+#else               
+    loop = malloc(sizeof *loop);
+    uv_loop_init(loop);
+#endif
+
 	for (i = 0; i < profile_size; i++) {
-
-		int *arg = malloc(sizeof(*arg));
-
-		arg = i;
 
 		if(profile_socket[i].capture_plan != NULL)
 		{
@@ -465,9 +527,12 @@ static int load_module(xml_node *config) {
 			return -1;
 		}
 
-		pthread_create(&call_thread, NULL, proto_collect, arg);
+		//pthread_create(&call_thread, NULL, proto_collect, arg);
 
 	}
+	
+	uv_async_init(loop, &async_handle, _async_callback);
+	uv_thread_create(&runthread, _run_uv_loop, loop);
 
 	return 0;
 }
@@ -479,11 +544,24 @@ static int unload_module(void) {
 
 	for (i = 0; i < profile_size; i++) {
 
-		if (profile_socket[i].socket)
-				close(profile_socket[i].socket);
-
+		close_socket(i);
 		free_profile(i);
 	}
+	
+	                 
+#if UV_VERSION_MAJOR == 0
+	uv_async_send(&async_handle);
+	uv_loop_delete(loop);
+#else
+
+	if (uv_loop_alive(loop)) {
+        	uv_async_send(&async_handle);
+	}
+   
+	uv_stop(loop);
+	uv_loop_close(loop);
+	free(loop);
+#endif
 	/* Close socket */
 	return 0;
 }

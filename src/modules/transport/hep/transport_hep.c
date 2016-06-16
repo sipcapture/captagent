@@ -688,6 +688,8 @@ int init_hepsocket (unsigned int idx) {
 
     if(profile_transport[idx].socket) close(profile_transport[idx].socket);
 
+
+
     if ((s = getaddrinfo(profile_transport[idx].capt_host, profile_transport[idx].capt_port, hints, &ai)) != 0) {
             LERR("capture: getaddrinfo: %s", gai_strerror(s));
             return 2;
@@ -778,6 +780,8 @@ int init_hepsocket_blocking (unsigned int idx) {
                hints->ai_protocol = IPPROTO_TCP;
     }
 
+
+
     if(profile_transport[idx].socket) close(profile_transport[idx].socket);
 
     if ((s = getaddrinfo(profile_transport[idx].capt_host, profile_transport[idx].capt_port, hints, &ai)) != 0) {
@@ -789,7 +793,6 @@ int init_hepsocket_blocking (unsigned int idx) {
              LERR("Sender socket creation failed: %s", strerror(errno));
              return 1;
     }
-
     if ((ret = connect(profile_transport[idx].socket, ai->ai_addr, (socklen_t)(ai->ai_addrlen))) == -1) {
 
          //select(profile_transport[idx].socket + 1 , NULL, &myset, NULL, &tv);
