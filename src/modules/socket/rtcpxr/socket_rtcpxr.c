@@ -177,8 +177,8 @@ int send_sip_rtcpxr_reply(msg_t *_m, int code, char *description)
         send_req = malloc(sizeof(uv_udp_send_t));
         send_req->data = message;
         
-#if UV_VERSION_MAJOR == 0                         
-	uv_udp_send(send_req, handle, &reply_msg, 1, (const struct sockaddr_in *) _m->var, on_send);
+#if UV_VERSION_MAJOR == 0       
+	uv_udp_send(send_req, handle, &reply_msg, 1, *(struct sockaddr_in *) _m->var, on_send);
 #else
 	uv_udp_send(send_req, handle, &reply_msg, 1, (const struct sockaddr *) _m->var, on_send);
 #endif
@@ -198,7 +198,7 @@ int w_send_rtcpxr_reply(msg_t *_m)
 
 
 #if UV_VERSION_MAJOR == 0                         
-void on_recv(uv_udp_t* handle, ssize_t nread, uv_buf_t* rcvbuf, struct sockaddr* addr, unsigned flags)
+void on_recv(uv_udp_t* handle, ssize_t nread, uv_buf_t rcvbuf, struct sockaddr* addr, unsigned flags)
 #else
 void on_recv(uv_udp_t* handle, ssize_t nread, const uv_buf_t* rcvbuf, const struct sockaddr* addr, unsigned flags) 
 #endif    
@@ -211,17 +211,16 @@ void on_recv(uv_udp_t* handle, ssize_t nread, const uv_buf_t* rcvbuf, const stru
     struct sockaddr_in *cliaddr;
     uint8_t loc_idx = 0;
 
-    if (nread == 0 || nread < 0) 
+    if (nread <= 0 || addr == NULL) 
     {
-    	free(rcvbuf->base);
+#if UV_VERSION_MAJOR == 0                            
+    	free(rcvbuf.base);
+#else
+        free(rcvbuf->base);
+#endif       	
     	return;
     }
 
-    if(addr == NULL) {
-    	free(rcvbuf->base); 
-    	return;
-    }
-    
     loc_idx = (int) handle->data;
     
     gettimeofday(&tv, NULL);
@@ -230,8 +229,13 @@ void on_recv(uv_udp_t* handle, ssize_t nread, const uv_buf_t* rcvbuf, const stru
 
     memset(&_msg, 0, sizeof(msg_t));
     memset(&ctx, 0, sizeof(struct run_act_ctx));
-    
+
+#if UV_VERSION_MAJOR == 0                             
+    _msg.data = rcvbuf.base;
+#else
     _msg.data = rcvbuf->base;
+#endif    
+
     _msg.len = nread;
     
     _msg.rcinfo.dst_port = ntohs(cliaddr->sin_port);
@@ -262,7 +266,11 @@ void on_recv(uv_udp_t* handle, ssize_t nread, const uv_buf_t* rcvbuf, const stru
     	send_sip_rtcpxr_reply(&_msg, 200, "OK");
     }
 
-    free(rcvbuf->base);
+#if UV_VERSION_MAJOR == 0                            
+    	free(rcvbuf.base);
+#else
+        free(rcvbuf->base);
+#endif       	
 }
  
 #if UV_VERSION_MAJOR == 0                         
@@ -307,7 +315,6 @@ int close_socket(unsigned int loc_idx) {
 int init_socket(unsigned int loc_idx) {
 
 	struct sockaddr_in v4addr;
-	const struct sockaddr *addr;		  
 	int status;
 
 	status = uv_udp_init(loop,&udp_servers[loc_idx]);
@@ -320,10 +327,9 @@ int init_socket(unsigned int loc_idx) {
 #endif
       
 #if UV_VERSION_MAJOR == 0                         
-	status = uv_udp_bind(&udp_servers[loc_idx], (const struct sockaddr*)&addr,0);
+	status = uv_udp_bind(&udp_servers[loc_idx], v4addr,0);
 #else    
-	addr =  (struct sockaddr*)&v4addr;	      
-	status = uv_udp_bind(&udp_servers[loc_idx], addr, UV_UDP_REUSEADDR);
+	status = uv_udp_bind(&udp_servers[loc_idx], (struct sockaddr*)&v4addr, UV_UDP_REUSEADDR);
 	      
 #endif
 	if(status < 0) 

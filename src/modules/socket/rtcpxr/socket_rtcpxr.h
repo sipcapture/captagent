@@ -68,7 +68,7 @@ int w_send_rtcpxr_reply(msg_t *_m);
 
 #if UV_VERSION_MAJOR == 0                          
 uv_buf_t on_alloc(uv_handle_t* client, size_t suggested);
-void on_recv(uv_udp_t* handle, ssize_t nread, uv_buf_t* rcvbuf, struct sockaddr* addr, unsigned flags);
+void on_recv(uv_udp_t* handle, ssize_t nread, uv_buf_t rcvbuf, struct sockaddr* addr, unsigned flags);
 void _async_callback(uv_async_t *async, int status);
 #else 
 void on_alloc(uv_handle_t* client, size_t suggested, uv_buf_t* buf);
