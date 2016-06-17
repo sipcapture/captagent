@@ -47,5 +47,6 @@ void data_log(int priority, const char * fmt, ...);
 #define LNOTICE(fmt, args...) data_log(LOG_NOTICE, "[NOTICE] " fmt, ## args)
 #define LINFO(fmt, args...) data_log(LOG_INFO, "[INFO] %s:%d " fmt, __FILE__, __LINE__, ## args)
 #define LDEBUG(fmt, args...) data_log(LOG_DEBUG, "[DEBUG] %s:%d " fmt, __FILE__, __LINE__, ## args)
+#define LMESSAGE(fmt, args...) data_log(LOG_ERR, "[MESSAGE] " fmt, ## args)
 
 #endif /* LOG_H_ */
