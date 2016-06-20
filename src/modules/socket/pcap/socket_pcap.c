@@ -545,7 +545,8 @@ int init_socket(unsigned int loc_idx) {
 		return -1;
 	}
 	
-	pcap_freecode(&filter);
+	//disabled temporaly
+	//pcap_freecode(&filter);
 
 	return 1;
 }
