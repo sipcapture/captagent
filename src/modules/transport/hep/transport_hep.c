@@ -714,7 +714,7 @@ int _handle_send_udp_request(hep_connection_t *conn, unsigned char *message, siz
   send_req->data = message;
  
 #if UV_VERSION_MAJOR == 0       
-        uv_udp_send(send_req, &conn->udp_handle, &buf, 1, con->send_addr, on_send_udp_request);
+        uv_udp_send(send_req, &conn->udp_handle, &buf, 1, conn->send_addr, on_send_udp_request);
 #else
         uv_udp_send(send_req, &conn->udp_handle, &buf, 1, (const struct sockaddr*) &conn->send_addr, on_send_udp_request);
 #endif
@@ -911,7 +911,7 @@ int init_udp_socket(hep_connection_t *conn, char *host, int port) {
 
      
 #if UV_VERSION_MAJOR == 0                         
-        conn->send_addr = uv_ip4_addr(host, port));
+        conn->send_addr = uv_ip4_addr(host, port);
 
 #else    
         status = uv_ip4_addr(host, port, &conn->send_addr);
@@ -944,7 +944,7 @@ int init_tcp_socket(hep_connection_t *conn, char *host, int port) {
 	uv_tcp_keepalive(&conn->tcp_handle, 1, 60);
 
 #if UV_VERSION_MAJOR == 0                         
-        v4addr = uv_ip4_addr(host, port));
+        v4addr = uv_ip4_addr(host, port);
 
 #else    
         status = uv_ip4_addr(host, port, &v4addr);
