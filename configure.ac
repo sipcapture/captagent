@@ -1,5 +1,5 @@
 AC_PREREQ(2.61)
-AC_INIT(captagent,6.2.0.1,support@sipcapture.org,,[http://www.sipcapture.org])
+AC_INIT(captagent,6.2.0.2,support@sipcapture.org,,[http://www.sipcapture.org])
 AC_COPYRIGHT("SIP Capture Solution")
 AC_CONFIG_MACRO_DIR([m4])
 AM_INIT_AUTOMAKE(foreign tar-ustar)
@@ -7,18 +7,19 @@ AC_CONFIG_HEADERS([src/config.h])
 AC_CONFIG_SRCDIR([src/captagent.c])
 AC_MSG_CHECKING([whether to use compression])
 
-AC_PREFIX_DEFAULT(/usr/local/captagent)
+AC_PREFIX_DEFAULT(/usr/local/$PACKAGE_NAME)
 
 if test "$prefix" = "NONE"; then
    prefix=$ac_default_prefix
 fi
 
-AS_AC_EXPAND(agent_config_dir, "$sysconfdir/captagent/")
-AS_AC_EXPAND(agent_plan_dir, "$sysconfdir/captagent/")
-AS_AC_EXPAND(module_dir, "$libdir/captagent/modules")
+AM_CONDITIONAL([RTPAGENT], [test "$PACKAGE_NAME" = rtpagent])
+AS_AC_EXPAND(agent_config_dir, "$sysconfdir/$PACKAGE_NAME/")
+AS_AC_EXPAND(agent_plan_dir, "$sysconfdir/$PACKAGE_NAME/")
+AS_AC_EXPAND(module_dir, "$libdir/$PACKAGE_NAME/modules")
 
 AC_DEFINE_UNQUOTED(AGENT_PREFIX, ["$prefix"], [our system prefix])
-AC_DEFINE_UNQUOTED(AGENT_CONFIG_DIR, ["$agent_config_dir"], [captagent config dir])
+AC_DEFINE_UNQUOTED(AGENT_CONFIG_DIR, ["$agent_config_dir"], [$PACKAGE_NAME config dir])
 AC_DEFINE_UNQUOTED(AGENT_PLAN_DIR, ["$agent_plan_dir"], [capture plans dir])
 AC_DEFINE_UNQUOTED(MODULE_DIR, ["$module_dir"], [directory that modules will be installed to])
 
@@ -159,13 +160,13 @@ fi
 
 
 # Checks for libraries.
-AC_CHECK_LIB(pthread, pthread_create, , [AC_MSG_ERROR([captagent requires but cannot find pthread])])
+AC_CHECK_LIB(pthread, pthread_create, , [AC_MSG_ERROR([$PACKAGE_NAME requires but cannot find pthread])])
 if test "$OS_LINUX" = 1 ; then
-  AC_CHECK_LIB(dl, dlopen, , [AC_MSG_ERROR([captagent requires but cannot find libdl])])
+  AC_CHECK_LIB(dl, dlopen, , [AC_MSG_ERROR([$PACKAGE_NAME requires but cannot find libdl])])
 fi
 
-AC_CHECK_LIB(expat, XML_ParserCreate, , [AC_MSG_ERROR([captagent requires but cannot find libexpat])])
-AC_CHECK_LIB(pcap, pcap_open_live, ,[AC_CHECK_LIB(wpcap, pcap_open_live, ,[AC_MSG_ERROR([captagent requires but cannot find libpcap])])])
+AC_CHECK_LIB(expat, XML_ParserCreate, , [AC_MSG_ERROR([$PACKAGE_NAME requires but cannot find libexpat])])
+AC_CHECK_LIB(pcap, pcap_open_live, ,[AC_CHECK_LIB(wpcap, pcap_open_live, ,[AC_MSG_ERROR([$PACKAGE_NAME requires but cannot find libpcap])])])
 
 AC_CHECK_LIB(json, json_object_get,[ JSON_LIBS="-ljson" ],[
 AC_CHECK_LIB(json-c, json_object_get,[ JSON_LIBS="-ljson-c" ],[
@@ -175,7 +176,7 @@ echo "        If it is in a different directory, try using";
 echo "        the LDFLAGS to set its proper path.";
 AC_MSG_ERROR([Fatal:  libjson not found.])])])
 
-AC_CHECK_LIB(fl, yywrap, [ FLEX_LIBS="-lfl" ] , [AC_MSG_ERROR([captagent requires but cannot find libfl])])
+AC_CHECK_LIB(fl, yywrap, [ FLEX_LIBS="-lfl" ] , [AC_MSG_ERROR([$PACKAGE_NAME requires but cannot find libfl])])
 
 AC_SUBST(PTHREAD_LIBS)
 AC_SUBST(DL_LIBS)
@@ -207,7 +208,7 @@ dnl
 if test "$ZLIB" = "yes"; then
    AC_CHECKING([for zip Library and Header files])
    AC_CHECK_HEADER(zlib.h,,[AC_MSG_ERROR([zlib.h headers not found.])])
-   AC_CHECK_LIB(z, inflate, [ LIBS="${LIBS} -lz" ], [AC_MSG_ERROR([captagent requires but cannot find lz])])
+   AC_CHECK_LIB(z, inflate, [ LIBS="${LIBS} -lz" ], [AC_MSG_ERROR([$PACKAGE_NAME requires but cannot find lz])])
    AC_DEFINE(USE_ZLIB, 1, [Use ZIP library])
 fi
 
@@ -222,7 +223,7 @@ dnl
 if test "$MYSQL" = "yes"; then
     AC_CHECKING([for MYSQL Library and Header files])
     AC_CHECK_HEADER([mysql/mysql.h], ,AC_MSG_ERROR([Could not find mysql headers !]))
-    AC_CHECK_LIB(mysqlclient, mysql_init, [ MYSQL_LIBS="-lmysqlclient" ], [AC_MSG_ERROR([captagent requires but cannot find mysqlclient])])
+    AC_CHECK_LIB(mysqlclient, mysql_init, [ MYSQL_LIBS="-lmysqlclient" ], [AC_MSG_ERROR([$PACKAGE_NAME requires but cannot find mysqlclient])])
     AC_DEFINE(USE_MYSQL, 1, [Use MYSQL library])
     AC_SUBST(MYSQL_LIBS)
 fi
@@ -235,7 +236,7 @@ dnl
 if test "$REDIS" = "yes"; then
    AC_CHECKING([for redis Library and Header files])
    AC_CHECK_HEADER(hiredis/hiredis.h,,[AC_MSG_ERROR([hiredis/hiredis.h headers not found.])])
-   AC_CHECK_LIB(hiredis, redisCommand, [ HIREDIS_LIBS="-lhiredis" ], [AC_MSG_ERROR([captagent requires but cannot find lhiredis])])
+   AC_CHECK_LIB(hiredis, redisCommand, [ HIREDIS_LIBS="-lhiredis" ], [AC_MSG_ERROR([$PACKAGE_NAME requires but cannot find lhiredis])])
    AC_DEFINE(USE_REDIS, 1, [Use REDIS library])
    AC_SUBST(HIREDIS_LIBS)
 fi
@@ -257,7 +258,7 @@ dnl
    
 AC_CHECKING([for LiBUV and Header files])
 AC_CHECK_HEADER(uv.h,,[AC_MSG_ERROR([uv.h headers not found.])])
-AC_CHECK_LIB(uv, uv_now, [ UV_LIBS="-luv" ], [AC_MSG_ERROR([captagent requires but cannot find libuv])])
+AC_CHECK_LIB(uv, uv_now, [ UV_LIBS="-luv" ], [AC_MSG_ERROR([$PACKAGE_NAME requires but cannot find libuv])])
 AC_DEFINE(USE_LIBUV, 1, [Use lib UV])
 AC_SUBST(UV_LIBS)
 
@@ -270,12 +271,12 @@ dnl
 if test "$SSL" = "yes"; then
    AC_CHECKING([for OpenSSL SSL Library and Header files])
    AC_CHECK_HEADER(openssl/ssl.h,, [AC_MSG_ERROR([OpenSSL SSL headers not found.])])	
-   AC_CHECK_LIB(ssl, SSL_accept, [ LIBS="${LIBS} -lssl" ], [AC_MSG_ERROR([captagent requires but cannot find ssl])])
+   AC_CHECK_LIB(ssl, SSL_accept, [ LIBS="${LIBS} -lssl" ], [AC_MSG_ERROR([$PACKAGE_NAME requires but cannot find ssl])])
    AC_DEFINE(USE_SSL, 1, [Use OpenSSL SSL library])
 fi
 
 # Checks for header files.
-AC_CHECK_HEADER(pcap.h,,[AC_MSG_ERROR([captagent cannot find pcap.h])])
+AC_CHECK_HEADER(pcap.h,,[AC_MSG_ERROR([$PACKAGE_NAME cannot find pcap.h])])
 AC_CHECK_HEADERS([json-c/json.h json/json.h json.h])
 # check JSON
 AM_CONDITIONAL([HAVE_JSON_JSON_H],[test "$ac_cv_header_json_json_h" = 'yes'])
@@ -299,11 +300,11 @@ AC_CHECK_FUNCS([gettimeofday memset select socket strdup strerror strndup])
 
 AC_CONFIG_FILES([
 	Makefile
-	captagent.spec
+	$PACKAGE_NAME.spec
 	include/Makefile
 	src/Makefile
-	conf/captagent.xml
-	pkg/debian/captagent.init
+	conf/$PACKAGE_NAME.xml
+	pkg/debian/$PACKAGE_NAME.init
 ])
 
 m4_include([m4/modules_makefiles.m4])
