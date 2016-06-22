@@ -95,11 +95,14 @@ struct module_exports exports = {
         serial_module
 };
 
+hep_connection_t hep_connection_s[MAX_TRANPORTS];
+//hep_connection_t *hep_conn;
+
 int bind_usrloc(transport_module_api_t *api)
 {
-		api->send_f = send_hep;
-		api->reload_f = reload_config;
-		api->module_name = module_name;
+	api->send_f = send_hep;
+	api->reload_f = reload_config;
+	api->module_name = module_name;
 
         return 0;
 }
@@ -269,8 +272,6 @@ int send_hepv3 (rc_info_t *rcinfo, unsigned char *data, unsigned int len, unsign
     hep_chunk_uint16_t cval1;
     hep_chunk_uint16_t cval2;
             
-    static int errors = 0;
-
     hg = malloc(sizeof(struct hep_generic));
     memset(hg, 0, sizeof(struct hep_generic));
 
@@ -484,37 +485,10 @@ int send_hepv3 (rc_info_t *rcinfo, unsigned char *data, unsigned int len, unsign
     memcpy((void*) buffer+buflen, data, len);
     buflen+=len;
 
-    /* make sleep after 100 errors */
-     if(errors > 50) {
-        LERR( "HEP server is down... retrying after sleep...");
-        if(!profile_transport[idx].usessl) {
-             sleep(2);
-             if(init_hepsocket_blocking(idx)) {
-            	 profile_transport[idx].initfails++;
-             }
-
-             errors=0;
-        }
-#ifdef USE_SSL
-        else {
-                sleep(2);
-
-                if(initSSL(idx)) profile_transport[idx].initfails++;
-
-                errors=0;
-         }
-#endif /* USE SSL */
-
-     }
-
     /* send this packet out of our socket */
-    if(send_data(buffer, buflen, idx)) {
-        errors++;
-        stats.errors_total++;
-    }
+    send_data(buffer, buflen, idx);
+       
 
-    /* FREE */
-    if(buffer) free(buffer);
     if(hg) free(hg);
 
     return 1;
@@ -528,7 +502,7 @@ int send_hepv2 (rc_info_t *rcinfo, unsigned char *data, unsigned int len, unsign
     struct hep_timehdr hep_time;
     struct hep_iphdr hep_ipheader;
     unsigned int totlen=0, buflen=0;
-    static int errors=0;
+
 #ifdef USE_IPV6
     struct hep_ip6hdr hep_ip6header;
 #endif /* USE IPV6 */
@@ -612,32 +586,8 @@ int send_hepv2 (rc_info_t *rcinfo, unsigned char *data, unsigned int len, unsign
      memcpy((void *)(buffer + buflen) , (void*)(data), len);
      buflen +=len;
 
-     /* make sleep after 100 errors*/
-     if(errors > 50) {
-    	 LERR("HEP server is down... retrying after sleep...");
-        if(!profile_transport[idx].usessl) {
-             sleep(2);
-             if(init_hepsocket_blocking(idx)) profile_transport[idx].initfails++;
-             errors=0;
-        }
-#ifdef USE_SSL
-        else {
-            sleep(2);
-            if(initSSL(idx)) profile_transport[idx].initfails++;
-            errors=0;
-        }
-#endif /* USE SSL */
-
-     }
-
      /* send this packet out of our socket */
-     if(send_data(buffer, buflen, idx)) {
-             errors++;
-             stats.errors_total++;
-     }
-
-     /* FREE */
-     if(buffer) free(buffer);
+     send_data(buffer, buflen, idx);
 
      return 1;
 
@@ -646,27 +596,45 @@ error:
      return 0;
 }
 
+#if UV_VERSION_MAJOR == 0                         
+uv_buf_t  _buffer_alloc_callback(uv_handle_t *handle, size_t suggested)
+{
+        char *chunk = malloc(suggested);
+        printf("in allocate, allocating %lu bytes into pointer %p\n", (unsigned long)suggested, chunk);
+        memset(chunk, 0, suggested);
+        return uv_buf_init(chunk, suggested);
+        
+}
+#else
+void _buffer_alloc_callback(uv_handle_t *handle, size_t suggested, uv_buf_t *dst) {
+      char *chunk = malloc(suggested);
+      printf("in allocate, allocating %lu bytes into pointer %p\n", (unsigned long)suggested, chunk);
+      memset(chunk, 0, suggested);
+      *dst = uv_buf_init(chunk, suggested);
+}
+
+#endif    
+
+#if UV_VERSION_MAJOR == 0                         
+void _udp_recv_callback(uv_udp_t *handle, ssize_t nread, uv_buf_t *buf, struct sockaddr *addr, unsigned int flags)
+#else
+void _udp_recv_callback(uv_udp_t *handle, ssize_t nread, const uv_buf_t *buf, const struct sockaddr *addr, unsigned int flags)
+#endif    
+{
+  printf("DATA RECV BACK\n");
+  if(buf && buf->base) {
+      free(buf->base);
+  }
+
+  return;
+}
+
+
 int send_data (void *buf, unsigned int len, unsigned int idx) {
 
         /* send this packet out of our socket */
-        void * p = buf;
-        int sentbytes = 0;
-
-        if(!profile_transport[idx].usessl) {
-                size_t sendlen = send(profile_transport[idx].socket, p, len, 0);
-                if(sendlen == -1) {
-                	LERR("HEP send error.");
-                    return -1;
-                }
-        }
-#ifdef USE_SSL
-        else {
-            if(SSL_write(profile_transport[idx].ssl, buf, len) < 0) {
-            	LERR("capture: couldn't re-init ssl socket");
-                return -1;
-            }
-        }
-#endif
+        
+	send_message(&hep_connection_s[idx], (unsigned char *)buf, len, hep_connection_s[idx].type == 1 ? SEND_UDP_REQUEST : SEND_TCP_REQUEST);
 
         stats.send_packets_total++;
 
@@ -674,229 +642,338 @@ int send_data (void *buf, unsigned int len, unsigned int idx) {
         return 0;
 }
 
+/****** LIBUV *********************/
 
+int send_message(hep_connection_t *conn, unsigned char *message, size_t len, hep_request_type_t type)
+{
 
-int init_hepsocket (unsigned int idx) {
+  hep_request_t *req = malloc(sizeof(hep_request_t));
+  
+  req->message = message;
+  req->len = len;
+  req->request_type = type;
+  req->conn = conn;
+   
+  uv_mutex_lock(&conn->mutex);
 
-    struct timeval tv;
-    socklen_t lon;
-    long arg;
-    fd_set myset;
-    int valopt, res, ret = 0, s;
-    struct addrinfo *ai;
-    struct addrinfo hints[1] = {{ 0 }};
+  conn->async_handle.data = req;
+  
+  uv_async_send(&conn->async_handle);
 
-    if(profile_transport[idx].socket) close(profile_transport[idx].socket);
-
-
-
-    if ((s = getaddrinfo(profile_transport[idx].capt_host, profile_transport[idx].capt_port, hints, &ai)) != 0) {
-            LERR("capture: getaddrinfo: %s", gai_strerror(s));
-            return 2;
-    }
-
-    if((profile_transport[idx].socket = socket(ai->ai_family, ai->ai_socktype, ai->ai_protocol)) < 0) {
-             LERR("Sender socket creation failed: %s", strerror(errno));
-             return 1;
-    }
-
-    // Set non-blocking
-    if((arg = fcntl(profile_transport[idx].socket, F_GETFL, NULL)) < 0) {
-        LERR( "Error fcntl(..., F_GETFL) (%s)", strerror(errno));
-        close(profile_transport[idx].socket);
-        return 1;
-    }
-    arg |= O_NONBLOCK;
-    if( fcntl(profile_transport[idx].socket, F_SETFL, arg) < 0) {
-        LERR( "Error fcntl(..., F_SETFL) (%s)", strerror(errno));
-        close(profile_transport[idx].socket);
-        return 1;
-    }
-
-    if((res = connect(profile_transport[idx].socket, ai->ai_addr, (socklen_t)(ai->ai_addrlen))) < 0) {
-        if (errno == EINPROGRESS) {
-                do {
-                   tv.tv_sec = 5;
-                   tv.tv_usec = 0;
-                   FD_ZERO(&myset);
-                   FD_SET(profile_transport[idx].socket, &myset);
-
-                   res = select(profile_transport[idx].socket + 1 , NULL, &myset, NULL, &tv);
-
-                   if (res < 0 && errno != EINTR) {
-                      LERR( "Error connecting %d - %s", errno, strerror(errno));
-                      close(profile_transport[idx].socket);
-                      ret = 1;
-                      break;
-                   }
-                   else if (res > 0) {
-                      // Socket selected for write
-
-                      lon = sizeof(int);
-                      if (getsockopt(profile_transport[idx].socket, SOL_SOCKET, SO_ERROR, (void*)(&valopt), &lon) < 0) {
-                         close(profile_transport[idx].socket);
-                         LERR( "Error in getsockopt() %d - %s", errno, strerror(errno));
-                         ret = 2;
-                      }
-                      // Check the value returned...
-                      if (valopt) {
-                         close(profile_transport[idx].socket);
-                         LERR( "Error in delayed connection() %d - %s", valopt, strerror(valopt));
-                         ret = 3;
-                      }
-                      break;
-                   }
-                   else {
-                      close(profile_transport[idx].socket);
-                      LERR( "Timeout in select() - Cancelling!");
-                      ret = 4;
-                      break;
-                   }
-                } while (1);
-        }
-    }
-
-    return ret;
+  uv_sem_wait(&conn->sem);
+  
+  uv_mutex_unlock(&conn->mutex);
+  
+  
+  return 0;
 }
 
-int init_hepsocket_blocking (unsigned int idx) {
+#if UV_VERSION_MAJOR == 0                         
+uv_buf_t on_alloc(uv_handle_t* client, size_t suggested) {
+        char *chunk = malloc(suggested);
+        memset(chunk, 0, suggested);
+        return uv_buf_init(chunk, suggested);   
+}
 
-    int s, ret = 0;
-    struct timeval tv;
-    struct addrinfo *ai;
-    struct addrinfo hints[1] = {{ 0 }};
+#else 
+void on_alloc(uv_handle_t* client, size_t suggested, uv_buf_t* buf) {
+    
+        char *chunk = malloc(suggested);
+        memset(chunk, 0, suggested);
+        *buf = uv_buf_init(chunk, suggested);
+}
+#endif
 
-    stats.reconnect_total++;
+void on_send_udp_request(uv_udp_send_t* req, int status) 
+{
+        if (status == 0 && req) {
+                free(req->data);
+                free(req); 
+                req = NULL;
+        }        
+}       
 
-    hints->ai_flags = AI_NUMERICSERV;
-    hints->ai_family = AF_UNSPEC;
+void on_send_tcp_request(uv_write_t* req, int status) 
+{
+        if (status == 0 && req) {
+                free(req->data);
+                free(req); 
+                req = NULL;
+        }
+}       
+   
+int _handle_send_udp_request(hep_connection_t *conn, unsigned char *message, size_t len)
+{
 
-    if(!strncmp(profile_transport[idx].capt_proto, "udp", 3)) {
-               hints->ai_socktype = SOCK_DGRAM;
-               hints->ai_protocol = IPPROTO_UDP;
-    }
-    else if(!strncmp(profile_transport[idx].capt_proto, "tcp", 3) || !strncmp(profile_transport[idx].capt_proto, "ssl", 3)) {
-               hints->ai_socktype = SOCK_STREAM;
-               hints->ai_protocol = IPPROTO_TCP;
-    }
+  uv_buf_t buf;
+  uv_udp_send_t *send_req;
 
+  buf.base = (char *)message;
+  buf.len = len;
+  send_req = malloc(sizeof(uv_udp_send_t));
+  send_req->data = message;
+ 
+#if UV_VERSION_MAJOR == 0       
+        uv_udp_send(send_req, &conn->udp_handle, &buf, 1, con->send_addr, on_send_udp_request);
+#else
+        uv_udp_send(send_req, &conn->udp_handle, &buf, 1, (const struct sockaddr*) &conn->send_addr, on_send_udp_request);
+#endif
 
+  return 0;
+}
 
-    if(profile_transport[idx].socket) close(profile_transport[idx].socket);
+int _handle_send_tcp_request(hep_connection_t *conn, unsigned char *message, size_t len)
+{
 
-    if ((s = getaddrinfo(profile_transport[idx].capt_host, profile_transport[idx].capt_port, hints, &ai)) != 0) {
-            LERR( "capture: getaddrinfo: %s", gai_strerror(s));
-            return 2;
-    }
+  uv_buf_t buf;
+  uv_write_t *write_req;
 
-    if((profile_transport[idx].socket = socket(ai->ai_family, ai->ai_socktype, ai->ai_protocol)) < 0) {
-             LERR("Sender socket creation failed: %s", strerror(errno));
-             return 1;
-    }
-    if ((ret = connect(profile_transport[idx].socket, ai->ai_addr, (socklen_t)(ai->ai_addrlen))) == -1) {
+  buf.base = (char *)message;
+  buf.len = len;
 
-         //select(profile_transport[idx].socket + 1 , NULL, &myset, NULL, &tv);
-         if (errno != EINPROGRESS) {
-             LERR("Sender socket creation failed: %s", strerror(errno));
-             return 1;
-          }
-    }
+  write_req = malloc(sizeof(uv_write_t));
+  write_req->data = message;
 
-    freeaddrinfo(ai);
+  uv_write(write_req, conn->connect.handle, &buf, 1, on_send_tcp_request);
 
-    return 0;
+  return 0;
 }
 
 
-#ifdef USE_SSL
-SSL_CTX* initCTX(void) {
-        SSL_METHOD *method;
-        SSL_CTX *ctx;
+#if UV_VERSION_MAJOR == 0                            
+  void _async_callback(uv_async_t *async, int status)
+#else
+  void _async_callback(uv_async_t *async)
+#endif
+{
+  hep_connection_t *conn;
+  hep_request_t *request;
+  int result = 0;
 
-        OpenSSL_add_all_algorithms();  /* Load cryptos, et.al. */
-        SSL_load_error_strings();   /* Bring in and register error messages */
+  request = (struct hep_request *)async->data;
 
-        /* we use SSLv3 */
-        method = SSLv3_client_method();  /* Create new client-method instance */
+  if(!request) return;
 
-        ctx = SSL_CTX_new(method);   /* Create new context */
-        if ( ctx == NULL ) {
-                ERR_print_errors_fp(stderr);
-                abort();
-        }
-        return ctx;
+  conn = request->conn;
+
+  switch (request->request_type) {
+    case SEND_UDP_REQUEST:
+        result = _handle_send_udp_request(conn, request->message, request->len);
+        break;
+    case SEND_TCP_REQUEST:
+        result = _handle_send_tcp_request(conn, request->message, request->len);
+        break;
+    case QUIT_REQUEST:
+        result = _handle_quit(conn);
+        break;
+  }
+   
+  uv_sem_post(&conn->sem);
+
+  if (result != 0) {
+    LDEBUG("Request %p, of type %d, failed with error code %d\n", (void *)request, (int)request->request_type, result);
+  }
+   
+  if(request) {    
+    free(request); 
+    request = NULL;
+  }       
+}         
+
+int homer_close(hep_connection_t *conn)
+{  
+  hep_request_t *request = calloc(1, sizeof(hep_request_t));
+
+  LDEBUG("closing connection\n");
+
+  request->conn = conn;
+  request->request_type = QUIT_REQUEST;
+
+  uv_mutex_lock(&conn->mutex);
+
+  conn->async_handle.data = request; 
+  
+  uv_async_send(&conn->async_handle);
+
+  uv_sem_wait(&conn->sem);
+  uv_mutex_unlock(&conn->mutex);
+   
+  uv_thread_join(conn->thread);
+
+  return 0;
 }
 
 
-void showCerts(SSL* ssl) {
+void homer_free(hep_connection_t *conn)
+{
 
-        X509 *cert;
-        char *line;
+  int closed;
 
-        cert = SSL_get_peer_certificate(ssl); /* get the server's certificate */
-        if ( cert != NULL ) {
-                LDEBUG("Server certificates:");
-                line = X509_NAME_oneline(X509_get_subject_name(cert), 0, 0);
-                LDEBUG("Subject: %s", line);
-                free(line);       /* free the malloc'ed string */
-                line = X509_NAME_oneline(X509_get_issuer_name(cert), 0, 0);
-                LDEBUG("Issuer: %s", line);
-                free(line);       /* free the malloc'ed string */
-                X509_free(cert);     /* free the malloc'ed certificate copy */
-        }
-        else
-                LERR("No certificates.");
+  LDEBUG("freeing connection\n");
+
+  if (conn == NULL) {
+    return;
+  }
+
+#if UV_VERSION_MAJOR == 0
+
+	homer_close(conn);	
+        uv_loop_delete(conn->loop);  
+
+#else
+
+	if (uv_loop_alive(conn->loop)) {
+		homer_close(conn);
+	}
+
+	uv_stop(conn->loop);
+	closed = uv_loop_close(conn->loop);
+
+	while(closed == UV_EBUSY) {
+		closed = uv_loop_close(conn->loop);
+	}
+
+#endif
+   
+	uv_sem_destroy(&conn->sem);
+	uv_mutex_destroy(&conn->mutex);
+	free(conn->loop);  
+	free(conn->thread);
 }
 
-int initSSL(unsigned int idx) {
+int _handle_quit(hep_connection_t *conn)
+{
+   if(conn->type == 1)  {
+	  uv_udp_recv_stop(&conn->udp_handle);
+	  /* close all the handles */
+	  uv_close((uv_handle_t*)&conn->udp_handle, NULL);
+   }
+   else {
+   	  uv_close((uv_handle_t*)&conn->tcp_handle, NULL);
+   }
 
-        long ctx_options;
+   uv_close((uv_handle_t*)&conn->async_handle, NULL);
 
-        /* if(ssl) SSL_free(ssl);
-        if(ctx) SSL_CTX_free(ctx);
-        */
+   return 0;
+}
 
-        if(init_hepsocket_blocking(idx)) {
-                LERR("capture: couldn't init hep socket");
-                return 1;
+void _run_uv_loop(void *arg)
+{
+      hep_connection_t *conn = (hep_connection_t *)arg;
+      uv_run(conn->loop, UV_RUN_DEFAULT);   
+}
+
+/*ASYNC*/
+
+int homer_alloc(hep_connection_t *conn)
+{
+
+      //conn = malloc(sizeof(hep_connection_t));      
+      
+      memset(conn, 0, sizeof(hep_connection_t));      
+                
+#if UV_VERSION_MAJOR == 0
+      conn->loop = uv_loop_new();
+#else               
+      conn->loop = malloc(sizeof(uv_loop_t));
+      uv_loop_init(conn->loop);            
+#endif
+
+      uv_sem_init(&conn->sem, 0);
+      uv_mutex_init(&conn->mutex);
+      conn->thread = malloc(sizeof(uv_thread_t));  
+            
+  return 1;   
+}
+
+int init_udp_socket(hep_connection_t *conn, char *host, int port) {
+
+        struct sockaddr_in v4addr;
+        int status = 0;
+        
+        uv_async_init(conn->loop, &conn->async_handle, _async_callback);
+        uv_udp_init(conn->loop, &conn->udp_handle);  
+
+        
+#if UV_VERSION_MAJOR == 0                         
+        v4addr = uv_ip4_addr("0.0.0.0", 0);
+#else    
+        status = uv_ip4_addr("0.0.0.0", 0, &v4addr);
+#endif
+            
+#if UV_VERSION_MAJOR == 0                         
+        status = uv_udp_bind(&conn->udp_handle, v4addr,0);
+#else    
+        status = uv_udp_bind(&conn->udp_handle, (struct sockaddr*)&v4addr, UV_UDP_REUSEADDR);
+              
+#endif        
+        uv_udp_set_broadcast(&conn->udp_handle, 1);
+
+     
+#if UV_VERSION_MAJOR == 0                         
+        conn->send_addr = uv_ip4_addr(host, port));
+
+#else    
+        status = uv_ip4_addr(host, port, &conn->send_addr);
+#endif
+
+        conn->udp_handle.data = conn;
+      
+        conn->type = 1;
+
+	status = uv_thread_create(conn->thread, _run_uv_loop, conn);
+	
+        return status;
+}
+
+void on_tcp_connect(uv_connect_t* connection, int status)
+{
+        LDEBUG("connected [%d]\n", status);
+}
+
+int init_tcp_socket(hep_connection_t *conn, char *host, int port) {
+
+        struct sockaddr_in v4addr;
+        int status;
+	int err;
+
+        uv_async_init(conn->loop, &conn->async_handle, _async_callback);
+	err = uv_tcp_init(conn->loop, &conn->tcp_handle);
+	if (err) return err;  
+   
+	uv_tcp_keepalive(&conn->tcp_handle, 1, 60);
+
+#if UV_VERSION_MAJOR == 0                         
+        v4addr = uv_ip4_addr(host, port));
+
+#else    
+        status = uv_ip4_addr(host, port, &v4addr);
+#endif
+      
+#if UV_VERSION_MAJOR == 0                         
+        status = uv_tcp_connect(&conn->connect, &conn->tcp_handle, v4addr, on_tcp_connect);
+#else    
+        status = uv_tcp_connect(&conn->connect, &conn->tcp_handle, (struct sockaddr*)&v4addr, on_tcp_connect);                
+#endif
+
+        if(status < 0)
+        {
+                LERR( "capture: bind error");
+                return 2;
         }
+        
+        conn->type = 2;
 
-        profile_transport[idx].ctx = initCTX();
-
-        /* workaround bug openssl */
-        ctx_options = SSL_OP_ALL;
-        ctx_options |= SSL_OP_NO_SSLv2;
-        SSL_CTX_set_options(profile_transport[idx].ctx, ctx_options);
-
-        /*extra*/
-        SSL_CTX_ctrl(profile_transport[idx].ctx, BIO_C_SET_NBIO, 1, NULL);
-
-        /* create new SSL connection state */
-        profile_transport[idx].ssl = SSL_new(profile_transport[idx].ctx);
-
-        SSL_set_connect_state(profile_transport[idx].ssl);
-
-        /* attach socket */
-        SSL_set_fd(profile_transport[idx].ssl, profile_transport[index].socket);    /* attach the socket descriptor */
-
-        /* perform the connection */
-        if ( SSL_connect(profile_transport[idx].ssl) == -1 )  {
-              ERR_print_errors_fp(stderr);
-              return 1;
-        }
-
-        showCerts(profile_transport[idx].ssl);
+	err = uv_thread_create(conn->thread, _run_uv_loop, conn);
 
         return 0;
 }
 
-#endif /* use SSL */
 
+void handlerPipe(int signum)
+{
 
-int handlerPipe(void) {
-
-        LERR("SIGPIPE... trying to reconnect...");
-        return 1;
+        LERR("SIGPIPE... trying to reconnect...[%d]", signum);
 }
 
 
@@ -1108,6 +1185,7 @@ static int load_module(xml_node *config) {
 	/* free it */
 	free_module_xml_config();
 
+
 	for (i = 0; i < profile_size; i++) {
 
 #ifndef USE_ZLIB
@@ -1116,42 +1194,18 @@ static int load_module(xml_node *config) {
 				LERR("The captagent has not compiled with zlib. Please reconfigure with --enable-compression");
 			}
 #endif /* USE_ZLIB */
-
-			/*TLS || SSL*/
-			if(!strncmp(profile_transport[i].capt_proto, "ssl", 3)) {
-
-#ifdef USE_SSL
-				profile_transport[i].usessl = 1;
-				/* init SSL library */
-				if(sslInit == 0) {
-					SSL_library_init();
-					sslInit = 1;
-				}
-#else
-				printf("The captagent has not compiled with ssl support. Please reconfigure with --enable-ssl\n");
-				LERR("The captagent has not compiled with ssl support. Please reconfigure with --enable-ssl");
-
-#endif /* end USE_SSL */
+			homer_alloc(&hep_connection_s[i]);
+			
+			if(!strncmp(profile_transport[i].capt_proto, "udp", 3))
+			{
+				init_udp_socket(&hep_connection_s[i], profile_transport[i].capt_host, atoi(profile_transport[i].capt_port));
 			}
-
-			if(!profile_transport[i].usessl) {
-				if(init_hepsocket_blocking(i)) {
-					LERR("capture: couldn't init socket");
-				}
+			else 
+{				init_tcp_socket(&hep_connection_s[i], profile_transport[i].capt_host, atoi(profile_transport[i].capt_port));
 			}
-
-#ifdef USE_SSL
-			else {
-				if(initSSL(i)) {
-					LERR("capture: couldn't init SSL socket");
-				}
-			}
-#endif /* use SSL */
 
 			if(profile_transport[i].statistic_pipe) {
 				snprintf(module_api_name, 256, "%s_bind_api", profile_transport[i].statistic_pipe);
-				//stats_bind_api = (bind_statistic_module_api_t) find_export(module_api_name, 1, 0);
-				//stats_bind_api(&profile_transport[i].stats_api);
 			}
 	}
 

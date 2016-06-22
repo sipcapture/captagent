@@ -106,19 +106,6 @@ void handler(int value) {
 	exit(0);
 }
 
-int send_message(rc_info_t *rcinfo, unsigned char *data, unsigned int len) {
-
-	int res;
-	if (hepmod->send_hep_basic) {
-		if (!(res = hepmod->send_hep_basic(rcinfo, data, len))) {
-			LERR("not send, returning %d", res);
-			return -1;
-		}
-	}
-
-	return 1;
-}
-
 int get_basestat(char *module, char *buf, size_t len) {
 
 	char *res;

@@ -114,7 +114,6 @@ typedef struct stats_object {
 extern struct stats_object stats_obj;
 
 struct hep_module *hepmod;
-extern int send_message (rc_info_t *rcinfo, unsigned char *data, unsigned int len);
 extern int get_basestat(char *module, char *stats, size_t len);
 struct module *module_list;
 

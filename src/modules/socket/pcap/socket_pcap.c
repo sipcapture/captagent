@@ -293,11 +293,12 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
 		stats.recieved_tcp_packets++;
 
 #if USE_IPv6
-		if (ip_ver == 6)
+		/* if (ip_ver == 6)
 		{
         		len -= ntohs(ip6_pkt->ip6_plen);
         		_msg.hdr_len += ntohs(ip6_pkt->ip6_plen);
                 }
+                */
 #endif
 
 		if ((int32_t) len < 0) len = 0;
@@ -398,10 +399,11 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
 		len -= link_offset + ip_hl + udphdr_offset;
 
 #if USE_IPv6
-		if (ip_ver == 6) {
+		/*if (ip_ver == 6) {
         		len -= ntohs(ip6_pkt->ip6_plen);
         		_msg.hdr_len += ntohs(ip6_pkt->ip6_plen);
-                }		
+                }
+                */		
 #endif
 
 		/* stats */
@@ -872,7 +874,7 @@ static int load_module(xml_node *config) {
 				exit(-1);
 			}
 		}
-
+		
 		// start thread
 		if (!init_socket(i)) {
 			LERR("couldn't init pcap");

@@ -33,6 +33,8 @@
 #include <netinet/udp.h>
 #include <pthread.h>
 
+#include <uv.h>
+
 #ifdef USE_IPV6
 #include <netinet/ip6.h>
 #endif /* USE_IPV6 */
@@ -59,6 +61,35 @@ typedef struct transport_hep_stats {
 	uint64_t errors_total;
 } transport_hep_stats_t;
 
+typedef enum {
+  SEND_UDP_REQUEST = 0,
+  SEND_TCP_REQUEST = 1,
+  QUIT_REQUEST
+} hep_request_type_t;
+
+typedef struct hep_connection {
+  bool type;
+  uv_loop_t *loop;
+  uv_thread_t *thread;
+  struct sockaddr_in send_addr;
+  uv_async_t async_handle;
+  uv_sem_t sem;
+  uv_mutex_t mutex;
+  
+  uv_connect_t connect;
+  uv_udp_t udp_handle; 
+  uv_tcp_t tcp_handle; 
+  
+  void *context;
+} hep_connection_t;
+
+typedef struct hep_request {
+  hep_request_type_t request_type;
+  hep_connection_t *conn;
+  unsigned char *message;
+  int len;
+} hep_request_t;
+
 
 #ifdef USE_SSL
 SSL_CTX* initCTX(void);
@@ -73,8 +104,6 @@ extern char *global_config_path;
 int send_hepv3 (rc_info_t *rcinfo, unsigned char *data, unsigned int len, unsigned int sendzip, unsigned int idx);
 int send_hepv2 (rc_info_t *rcinfo, unsigned char *data, unsigned int len, unsigned int idx);
 int send_data (void *buf, unsigned int len, unsigned int idx);
-int init_hepsocket_blocking (unsigned int idx);
-int init_hepsocket (unsigned int idx);
 int sigPipe(void);
 profile_transport_t* get_profile_by_name(char *name);
 unsigned int get_profile_index_by_name(char *name);
@@ -87,6 +116,37 @@ int check_module_xml_config();
 /*API*/
 int w_send_hep_api(msg_t *_m, char *param1);
 int w_send_hep_proto(msg_t *_m, char *param1, char *param2);
+
+/*LIBUV*/
+
+int send_message(hep_connection_t *conn, unsigned char *message, size_t len, hep_request_type_t type);
+
+#if UV_VERSION_MAJOR == 0                         
+uv_buf_t on_alloc(uv_handle_t* client, size_t suggested);
+void _async_callback(uv_async_t *async, int status);
+void _udp_recv_callback(uv_udp_t *handle, ssize_t nread, uv_buf_t *buf, struct sockaddr *addr, unsigned int flags);
+uv_buf_t  _buffer_alloc_callback(uv_handle_t *handle, size_t suggested);
+#else     
+void on_alloc(uv_handle_t* client, size_t suggested, uv_buf_t* buf);
+void _buffer_alloc_callback(uv_handle_t *handle, size_t suggested, uv_buf_t *dst);
+void _udp_recv_callback(uv_udp_t *handle, ssize_t nread, const uv_buf_t *buf, const struct sockaddr *addr, unsigned int flags);
+void _async_callback(uv_async_t *async);
+#endif
+
+void _send_callback(uv_udp_send_t *req, int status);
+void on_send_udp_request(uv_udp_send_t* req, int status);
+void on_send_tcp_request(uv_write_t* req, int status);
+int _handle_send_udp_request(hep_connection_t *conn, unsigned char *message, size_t len);
+int _handle_send_tcp_request(hep_connection_t *conn, unsigned char *message, size_t len);
+int homer_close(hep_connection_t *conn);
+void homer_free(hep_connection_t *conn);
+int _handle_quit(hep_connection_t *conn);
+void _run_uv_loop(void *arg);
+int homer_alloc(hep_connection_t *conn);
+int init_udp_socket(hep_connection_t *conn, char *host, int port);
+void on_tcp_connect(uv_connect_t* connection, int status);
+int init_tcp_socket(hep_connection_t *conn, char *host, int port);
+     
 
 /* HEPv3 types */
 
