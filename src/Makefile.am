@@ -31,6 +31,6 @@ BUILT_SOURCES = capplan.tab.h
 noinst_HEADERS = md5.h captagent.h conf_function.h
 captagent_SOURCES = captagent.c conf_function.c log.c md5.c modules.c xmlread.c capplan.l capplan.tab.y
 captagent_LDADD = ${PTHREAD_LIBS} ${EXPAT_LIBS} ${DL_LIBS} ${FLEX_LIBS}
-captagentconfdir = $(sysconfdir)
+captagentconfdir = $(sysconfdir)/$(bin_PROGRAMS)
 captagentconf_DATA = $(top_srcdir)/conf/$(bin_PROGRAMS).xml
 endif
