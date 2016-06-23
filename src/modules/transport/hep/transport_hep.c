@@ -263,7 +263,7 @@ int send_hepv3 (rc_info_t *rcinfo, unsigned char *data, unsigned int len, unsign
     void* buffer;
     unsigned int buflen=0, iplen=0,tlen=0;
     hep_chunk_ip4_t src_ip4, dst_ip4;
-#ifdef USE_IPV6
+#ifdef USE_IPv6
     hep_chunk_ip6_t src_ip6, dst_ip6;
 #endif
     hep_chunk_t payload_chunk;
@@ -307,7 +307,7 @@ int send_hepv3 (rc_info_t *rcinfo, unsigned char *data, unsigned int len, unsign
 
         iplen = sizeof(dst_ip4) + sizeof(src_ip4);
     }
-#ifdef USE_IPV6
+#ifdef USE_IPv6
       /* IPv6 */
     else if(rcinfo->ip_family == AF_INET6) {
         /* SRC IPv6 */
@@ -414,7 +414,6 @@ int send_hepv3 (rc_info_t *rcinfo, unsigned char *data, unsigned int len, unsign
 
     buffer = (void*)malloc(tlen);
     if (buffer==0){
-        LERR("ERROR: out of memory");
         free(hg);
         return 1;
     }
@@ -431,7 +430,7 @@ int send_hepv3 (rc_info_t *rcinfo, unsigned char *data, unsigned int len, unsign
         memcpy((void*) buffer+buflen, &dst_ip4, sizeof(struct hep_chunk_ip4));
         buflen += sizeof(struct hep_chunk_ip4);
     }
-#ifdef USE_IPV6
+#ifdef USE_IPv6
       /* IPv6 */
     else if(rcinfo->ip_family == AF_INET6) {
         /* SRC IPv6 */
@@ -503,7 +502,7 @@ int send_hepv2 (rc_info_t *rcinfo, unsigned char *data, unsigned int len, unsign
     struct hep_iphdr hep_ipheader;
     unsigned int totlen=0, buflen=0;
 
-#ifdef USE_IPV6
+#ifdef USE_IPv6
     struct hep_ip6hdr hep_ip6header;
 #endif /* USE IPV6 */
 
@@ -519,7 +518,7 @@ int send_hepv2 (rc_info_t *rcinfo, unsigned char *data, unsigned int len, unsign
                 case AF_INET:
                     totlen  = sizeof(struct hep_iphdr);
                     break;
-#ifdef USE_IPV6
+#ifdef USE_IPv6
                 case AF_INET6:
                     totlen = sizeof(struct hep_ip6hdr);
                     break;
@@ -563,7 +562,7 @@ int send_hepv2 (rc_info_t *rcinfo, unsigned char *data, unsigned int len, unsign
                 buflen += sizeof(struct hep_iphdr);
 
                 break;
-#ifdef USE_IPV6
+#ifdef USE_IPv6
         case AF_INET6:
 
                 inet_pton(AF_INET6, rcinfo->src_ip, &hep_ip6header.hp6_src);
@@ -573,7 +572,7 @@ int send_hepv2 (rc_info_t *rcinfo, unsigned char *data, unsigned int len, unsign
                 memcpy((void*)buffer + buflen, &hep_ip6header, sizeof(struct hep_ip6hdr));
                 buflen += sizeof(struct hep_ip6hdr);
                 break;
-#endif /* USE_IPV6 */
+#endif /* USE_IPv6 */
      }
 
      /* Version 2 has timestamp, captnode ID */

@@ -344,7 +344,7 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
 			_msg.rcinfo.dst_ip = ip_dst;
 			_msg.rcinfo.src_mac = mac_src;
 			_msg.rcinfo.dst_mac = mac_dst;
-			_msg.rcinfo.ip_family = ip_ver = 4 ? AF_INET : AF_INET6;
+			_msg.rcinfo.ip_family = ip_ver == 4 ? AF_INET : AF_INET6;
 			_msg.rcinfo.ip_proto = ip_proto;
 			_msg.rcinfo.time_sec = pkthdr->ts.tv_sec;
 			_msg.rcinfo.time_usec = pkthdr->ts.tv_usec;
@@ -374,7 +374,7 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
 			_msg.rcinfo.dst_ip = ip_dst;
 			_msg.rcinfo.src_mac = mac_src;
 			_msg.rcinfo.dst_mac = mac_dst;
-			_msg.rcinfo.ip_family = ip_ver = 4 ? AF_INET : AF_INET6;
+			_msg.rcinfo.ip_family = ip_ver == 4 ? AF_INET : AF_INET6;
 			_msg.rcinfo.ip_proto = ip_proto;
 			_msg.rcinfo.time_sec = pkthdr->ts.tv_sec;
 			_msg.rcinfo.time_usec = pkthdr->ts.tv_usec;
@@ -432,7 +432,7 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
 		_msg.rcinfo.dst_ip = ip_dst;
 		_msg.rcinfo.src_mac = mac_src;
 		_msg.rcinfo.dst_mac = mac_dst;
-		_msg.rcinfo.ip_family = ip_ver = 4 ? AF_INET : AF_INET6;
+		_msg.rcinfo.ip_family = ip_ver == 4 ? AF_INET : AF_INET6;
 		_msg.rcinfo.ip_proto = ip_proto;
 		_msg.rcinfo.time_sec = pkthdr->ts.tv_sec;
 		_msg.rcinfo.time_usec = pkthdr->ts.tv_usec;
@@ -440,8 +440,6 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
 		_msg.parse_it = 1;
 
 
-
-		
 		action_idx = profile_socket[loc_index].action;
 		run_actions(&ctx, main_ct.clist[action_idx], &_msg);
 
