@@ -278,6 +278,26 @@ if test "$SSL" = "yes"; then
    AC_DEFINE(USE_SSL, 1, [Use OpenSSL SSL library])
 fi
 
+
+dnl
+dnl IPv6 (and ICMPv6) support
+dnl
+
+AC_ARG_ENABLE(ipv6,
+[  --enable-ipv6                enable IPv6 (and ICMPv6) support],
+[
+  use_ipv6="$enableval"
+],
+[
+  use_ipv6="no"
+])
+
+if test $use_ipv6 = yes; then
+   AC_DEFINE(USE_IPv6, [1], [IPv6 (and ICMPv6) support])
+   AC_SUBST(USE_IPv6, yes)
+fi
+
+
 # Checks for header files.
 AC_CHECK_HEADER(pcap.h,,[AC_MSG_ERROR([$PACKAGE_NAME cannot find pcap.h])])
 AC_CHECK_HEADERS([json-c/json.h json/json.h json.h])
@@ -321,6 +341,7 @@ echo
 echo Build directory............. : $captagent_builddir
 echo Installation prefix......... : $prefix
 echo HEP Compression............. : $enableCompression
+echo IPv6 support.................: $use_ipv6
 echo HEP SSL/TLS................. : $enableSSL
 echo Flex........................ : ${LEX:-NONE}
 echo Bison....................... : ${YACC:-NONE}

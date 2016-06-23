@@ -50,10 +50,6 @@
 #include <netinet/tcp.h>
 #include <netinet/udp.h>
 
-#ifdef USE_IPV6
-#include <netinet/ip6.h>
-#endif /* USE_IPV6 */
-
 #include <pcap.h>
 
 #include <captagent/capture.h>
@@ -69,6 +65,12 @@
 #include "ipreasm.h"
 #include "tcpreasm.h"
 #include "localapi.h"
+
+#if USE_IPv6
+#include <netinet/ip6.h>
+#include <netinet/icmp6.h>
+#endif
+
 
 
 xml_node *module_xml_config = NULL;
@@ -197,7 +199,6 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
 	uint32_t len = pkthdr->caplen;
 	uint8_t  psh = 0;
 	        
-
 	/* stats */
 	stats.recieved_packets_total++;
 
@@ -301,6 +302,8 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
                 */
 #endif
 
+
+
 		if ((int32_t) len < 0) len = 0;
 
 		if(tcpreasm[loc_index] != NULL &&  (len > 0) && (tcp_pkt->th_flags & TH_ACK)) {
@@ -397,7 +400,8 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
 		_msg.hdr_len = link_offset + ip_hl + udphdr_offset;
 		
 		len -= link_offset + ip_hl + udphdr_offset;
-
+		
+		
 #if USE_IPv6
 		/*if (ip_ver == 6) {
         		len -= ntohs(ip6_pkt->ip6_plen);
@@ -420,7 +424,8 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
 		        _msg.data = (packet + link_offset);
 		        
                 }		                                                                                                                                                  		
-		
+
+	
 		_msg.rcinfo.src_port = ntohs(udp_pkt->uh_sport);
 		_msg.rcinfo.dst_port = ntohs(udp_pkt->uh_dport);
 		_msg.rcinfo.src_ip = ip_src;
@@ -434,6 +439,9 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
 		_msg.tcpflag = 0;
 		_msg.parse_it = 1;
 
+
+
+		
 		action_idx = profile_socket[loc_index].action;
 		run_actions(&ctx, main_ct.clist[action_idx], &_msg);
 
