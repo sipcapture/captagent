@@ -17,7 +17,7 @@ AM_CONDITIONAL([RTPAGENT], [test "$PACKAGE_NAME" = rtpagent])
 AS_AC_EXPAND(agent_config_dir, "$sysconfdir/$PACKAGE_NAME/")
 AS_AC_EXPAND(agent_plan_dir, "$sysconfdir/$PACKAGE_NAME/")
 AS_AC_EXPAND(agent_backup, "$sysconfdir/$PACKAGE_NAME/backup")
-AS_AC_EXPAND(agent_capture_plan, "$sysconfdir/$PACKAGE_NAME/captureplan")
+AS_AC_EXPAND(agent_capture_plan, "$sysconfdir/$PACKAGE_NAME/captureplans")
 AS_AC_EXPAND(agent_chroot, "$sysconfdir/$PACKAGE_NAME")
 AS_AC_EXPAND(module_dir, "$libdir/$PACKAGE_NAME/modules")
 
