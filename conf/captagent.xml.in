@@ -11,10 +11,10 @@
 		<param name="pid_file" value="/var/run/captagent.pid"/>
 		<!-- Configure using installation path if different from default -->
 		<param name="module_path" value="@module_dir@"/>
-		<param name="config_path" value="@sysconfdir@/captagent"/>
-		<param name="capture_plans_path" value="@sysconfdir@/captagent/captureplans"/>
-		<param name="backup" value="@sysconfdir@/captagent/backup"/>
-		<param name="chroot" value="/usr/local/captagent"/>
+		<param name="config_path" value="@agent_config_dir@"/>
+		<param name="capture_plans_path" value="@agent_capture_plan@"/>
+		<param name="backup" value="@agent_backup@"/>
+		<param name="chroot" value="@agent_chroot@"/>
 	    </settings>
 	</configuration>
 	<configuration name="modules.conf" description="Modules">
