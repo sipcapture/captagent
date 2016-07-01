@@ -15,6 +15,7 @@ cap=/usr/bin/captagent
 prog=captagent
 pidfile=/var/run/$prog.pid
 lockfile=/var/lock/$prog
+DEFAULTS=/etc/default/$prog
 RETVAL=0
 
 start() {
@@ -60,6 +61,15 @@ status() {
 }
 
 
+# Load startup options if available
+if [ -f $DEFAULTS ]; then
+	. $DEFAULTS || true
+fi
+
+if [ "$RUN_CAPTAGENT" != "yes" ]; then
+	echo "Captagent not yet configured. Edit /etc/default/$prog first."
+	exit 0
+fi
 
 
 [ -z "$CONFIG" ]  && CONFIG=@sysconfdir@/captagent/captagent.xml
