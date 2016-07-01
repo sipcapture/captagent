@@ -2,9 +2,5 @@
 # sourced by /etc/init.d/captagent
 # installed at /etc/default/captagent by the maintainer scripts
 
-#
-# This is a POSIX shell fragment
-#
+RUN_CAPTAGENT=no
 
-# Additional options that are passed to the Daemon.
-DAEMON_OPTS=""
