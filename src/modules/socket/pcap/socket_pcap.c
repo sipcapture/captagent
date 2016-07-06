@@ -502,11 +502,13 @@ int init_socket(unsigned int loc_idx) {
 		LDEBUG("Activated device: [%s]\n", profile_socket[loc_idx].device);
 						
 	} else {
-		LERR("File : %s", usefile);;
+
 		if ((sniffer_proto[loc_idx] = pcap_open_offline(usefile, errbuf)) == NULL) {
 			LERR("%s: Failed to open packet sniffer on %s: pcap_open_offline(): %s", module_name, usefile, errbuf);
 			return -1;
 		}
+		
+		LNOTICE("Sending file: %s", usefile);
 	}
 
 	/* create filter string */
