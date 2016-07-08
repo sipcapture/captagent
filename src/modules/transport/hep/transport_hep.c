@@ -197,7 +197,7 @@ int send_hep (msg_t *msg) {
         int status = 0;
         unsigned long dlen;
 
-        if(pl_compress && hep_version == 3) {
+        if(profile_transport[idx].compression && profile_transport[idx].version == 3) {
                 //dlen = len/1000+len*len+13;
 
                 dlen = compressBound(len);
@@ -239,7 +239,7 @@ int send_hep (msg_t *msg) {
 
 #ifdef USE_ZLIB
 
-        if(pl_compress && zipData) free(zipData);
+        if(profile_transport[idx].compression && zipData) free(zipData);
 
 #endif /* USE_ZLIB */
 
