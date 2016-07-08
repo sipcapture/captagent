@@ -200,12 +200,12 @@ int send_hep (msg_t *msg) {
         if(profile_transport[idx].compression && profile_transport[idx].version == 3) {
                 //dlen = len/1000+len*len+13;
 
-                dlen = compressBound(len);
+                dlen = compressBound(msg->len);
 
                 zipData  = malloc(dlen); /* give a little bit memmory */
 
                 /* do compress */
-                status = compress( zipData, &dlen, data, len );
+                status = compress( zipData, &dlen, msg->data, msg->len );
                 if( status != Z_OK ){
                 	  LERR("data couldn't be compressed");
                       sendzip = 0;
@@ -213,7 +213,7 @@ int send_hep (msg_t *msg) {
                 }
                 else {
                         sendzip = 1;
-                        len = dlen;
+                        msg->len = dlen;
                 }
 
                 stats.compressed_total++;
