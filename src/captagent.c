@@ -453,12 +453,12 @@ int core_config(xml_node *config) {
 				debug_level = atoi(value);
 			else if (!strncmp(key, "serial", 6))
 						serial = atoi(value);
-			else if (!strncmp(key, "daemon", 6) && !strncmp(value, "true", 5)
+			else if (!strncmp(key, "daemon", 6) && !strncmp(value, "true", 4)
 					&& nofork == 1)
 				nofork = 0;
 			else if (!strncmp(key, "module_path", 11))
 				module_path = strdup(value);
-			else if (!strncmp(key, "syslog", 6) && !strncmp(value, "true", 5))
+			else if (!strncmp(key, "syslog", 6) && !strncmp(value, "true", 4))
 				_use_syslog = 1;
 			else if (!strncmp(key, "pid_file", 8))
 				pid_file = strdup(value);
@@ -495,14 +495,10 @@ int core_config(xml_node *config) {
 		global_capture_plan_path = strdup(AGENT_PLAN_DIR);		
 	}	
 
+	/* reinit syslog */
+	destroy_log();
 	set_log_level(debug_level);
-
-	if (_use_syslog == 0) {
-
-		destroy_log();
-		init_log("captagent", 0);
-	}
-
+	init_log("captagent", _use_syslog);
 
 	return 1;
 }
