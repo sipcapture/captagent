@@ -179,7 +179,7 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
         
         struct ip      *ip4_pkt = (struct ip *)    (packet + link_offset + hdr_offset);
 #if USE_IPv6
-        struct ip6_hdr *ip6_pkt = (struct ip6_hdr*)(packet + link_offset + ((ntohs((uint16_t)*(packet + 12)) == 0x8100)? 4: 0) );
+        struct ip6_hdr *ip6_pkt = (struct ip6_hdr*)(packet + link_offset + hdr_offset + ((ntohs((uint16_t)*(packet + 12)) == 0x8100)? 4: 0) );
 #endif
 
 	uint8_t loc_index = (uint8_t *) useless;
@@ -205,15 +205,15 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
 	if (profile_socket[loc_index].reasm == 1 && reasm[loc_index] != NULL) {
 		unsigned new_len;
 
-		u_char *new_p = malloc(len - link_offset - ((ntohs((uint16_t) *(packet + 12)) == 0x8100) ? 4 : 0));
-		memcpy(new_p, ip4_pkt, len - link_offset - ((ntohs((uint16_t) *(packet + 12)) == 0x8100) ? 4 : 0));
+		u_char *new_p = malloc(len - link_offset - hdr_offset - ((ntohs((uint16_t) *(packet + 12)) == 0x8100) ? 4 : 0));
+		memcpy(new_p, ip4_pkt, len - link_offset - hdr_offset - ((ntohs((uint16_t) *(packet + 12)) == 0x8100) ? 4 : 0));
 
-		pack = reasm_ip_next(reasm[loc_index], new_p, len - link_offset - ((ntohs((uint16_t)*(packet + 12)) == 0x8100)? 4:0),
+		pack = reasm_ip_next(reasm[loc_index], new_p, len - link_offset - hdr_offset - ((ntohs((uint16_t)*(packet + 12)) == 0x8100)? 4:0),
 				(reasm_time_t) 1000000UL * pkthdr->ts.tv_sec + pkthdr->ts.tv_usec, &new_len);
 
 		if (pack == NULL) return;
 
-		len = new_len + link_offset + ((ntohs((uint16_t) *(packet + 12)) == 0x8100) ? 4 : 0);
+		len = new_len + link_offset + hdr_offset + ((ntohs((uint16_t) *(packet + 12)) == 0x8100) ? 4 : 0);
 		pkthdr->len = new_len;
 		pkthdr->caplen = new_len;
 
@@ -287,9 +287,9 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
 
 		data = (char *) (tcp_pkt) + tcphdr_offset;
 		
-		_msg.hdr_len = link_offset + ip_hl + tcphdr_offset;
+		_msg.hdr_len = link_offset + hdr_offset + ip_hl + tcphdr_offset;
 		
-		len -= link_offset + ip_hl + tcphdr_offset;
+		len -= link_offset + hdr_offset + ip_hl + tcphdr_offset;
 
 		stats.recieved_tcp_packets++;
 
@@ -364,8 +364,8 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
         			_msg.len = len;
         	        }
 			else {
-			        _msg.len = pkthdr->caplen - link_offset;
-			        _msg.data = (packet + link_offset);
+			        _msg.len = pkthdr->caplen - link_offset - hdr_offset;
+			        _msg.data = (packet + link_offset + hdr_offset);
         	        }
 
 			_msg.rcinfo.src_port = ntohs(tcp_pkt->th_sport);
@@ -397,9 +397,9 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
 
 		data = (char *) (udp_pkt) + udphdr_offset;
 		
-		_msg.hdr_len = link_offset + ip_hl + udphdr_offset;
+		_msg.hdr_len = link_offset + ip_hl + hdr_offset + udphdr_offset;
 		
-		len -= link_offset + ip_hl + udphdr_offset;
+		len -= link_offset + ip_hl + udphdr_offset + hdr_offset;
 		
 		
 #if USE_IPv6
@@ -420,8 +420,8 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
         		_msg.len = len;
                 }
 		else {
-		        _msg.len = pkthdr->caplen - link_offset;
-		        _msg.data = (packet + link_offset);
+		        _msg.len = pkthdr->caplen - link_offset - hdr_offset;
+		        _msg.data = (packet + link_offset + hdr_offset);
 		        
                 }		                                                                                                                                                  		
 
