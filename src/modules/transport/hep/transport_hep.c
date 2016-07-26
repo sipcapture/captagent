@@ -434,7 +434,7 @@ int send_hepv3 (rc_info_t *rcinfo, unsigned char *data, unsigned int len, unsign
       /* IPv6 */
     else if(rcinfo->ip_family == AF_INET6) {
         /* SRC IPv6 */
-        memcpy((void*) buffer+buflen, &src_ip4, sizeof(struct hep_chunk_ip6));
+        memcpy((void*) buffer+buflen, &src_ip6, sizeof(struct hep_chunk_ip6));
         buflen += sizeof(struct hep_chunk_ip6);
 
         memcpy((void*) buffer+buflen, &dst_ip6, sizeof(struct hep_chunk_ip6));
