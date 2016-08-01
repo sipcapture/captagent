@@ -99,7 +99,7 @@ typedef struct _report_block
 
 #define report_block_get_ssrc(rb) ntohl((rb)->ssrc)
 #define report_block_get_fraction_lost(rb) (((uint32_t)ntohl((rb)->fl_cnpl))>>24)
-static inline int32_t report_block_get_cum_packet_lost(const report_block_t * rb)
+static inline int32_t report_block_get_cum_packet_loss(const report_block_t * rb)
 {
         int cum_loss = ntohl(rb->fl_cnpl);
         if (((cum_loss>>23)&1)==0) return 0x00FFFFFF & cum_loss;
