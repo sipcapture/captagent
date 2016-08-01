@@ -99,7 +99,14 @@ typedef struct _report_block
 
 #define report_block_get_ssrc(rb) ntohl((rb)->ssrc)
 #define report_block_get_fraction_lost(rb) (((uint32_t)ntohl((rb)->fl_cnpl))>>24)
-#define report_block_get_cum_packet_loss(rb) (((uint32_t)ntohl((rb)->fl_cnpl)) & 0xFFFFFF)
+static inline int32_t report_block_get_cum_packet_lost(const report_block_t * rb)
+{
+        int cum_loss = ntohl(rb->fl_cnpl);
+        if (((cum_loss>>23)&1)==0) return 0x00FFFFFF & cum_loss;
+        else return 0xFF000000 | (cum_loss-0xFFFFFF-1);
+}
+/* bug */
+/* #define report_block_get_cum_packet_loss(rb) (((uint32_t)ntohl((rb)->fl_cnpl)) & 0xFFFFFF) */
 #define report_block_get_high_ext_seq(rb) ntohl(((report_block_t*)(rb))->ext_high_seq_num_rec)
 #define report_block_get_interarrival_jitter(rb) ntohl(((report_block_t*)(rb))->interarrival_jitter)
 #define report_block_get_last_SR_time(rb) ntohl(((report_block_t*)(rb))->lsr)
