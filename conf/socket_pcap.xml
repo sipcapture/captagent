@@ -25,7 +25,7 @@
 		<param name="capture-filter" value="rtcp"/>
 		<param name="capture-plan" value="rtcp_capture_plan.cfg"/>
 		<param name="filter">
-		    <value>portrange 5060-50000</value>
+		    <value>portrange 5060-50000 and len >=100 </value>
 		</param>
 	    </settings>
 	</profile>
