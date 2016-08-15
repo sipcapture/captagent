@@ -34,6 +34,9 @@ extern int handler(int value);
 extern char *global_config_path;
 extern char *global_scripts_path;
 
+int ipv4fragments=0;
+int ipv6fragments=0;
+
 /* header offsets */
 #define ETHHDR_SIZE 14
 #define TOKENRING_SIZE 22
@@ -74,5 +77,11 @@ pcap_t* get_pcap_handler(unsigned int loc_idx);
 
 int dump_proto_packet(struct pcap_pkthdr *, u_char *, uint8_t, char *, uint32_t, char *,
             char *, uint16_t, uint16_t, uint8_t,uint16_t, uint8_t, uint16_t, uint32_t, uint32_t);
+
+
+/*IPv4 filter*/
+#define BPF_DEFRAGMENTION_FILTER_IPV4 "(ip[6:2] & 0x3fff != 0)"
+/*IPv6 filter*/
+#define BPF_DEFRAGMENTION_FILTER_IPV6 "(ip6[6]=44 and (ip6[42:2] & 0xfff8 != 0))"
 
 #endif /* _SOCKET_PCAP_H_ */

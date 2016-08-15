@@ -529,6 +529,11 @@ int init_socket(unsigned int loc_idx) {
                         len += snprintf(filter_expr+len, sizeof(filter_expr), "%s %s", len ? "and" : "", RTP_FILTER);
                 }
 	
+                if(ipv4fragments || ipv6fragments)
+                {
+                        len += snprintf(filter_expr+len, sizeof(filter_expr), " or %s", ipv4fragments ? BPF_DEFRAGMENTION_FILTER_IPV4 : BPF_DEFRAGMENTION_FILTER_IPV6);                
+                }
+
 	        if (pcap_compile(sniffer_proto[loc_idx], &filter, filter_expr, 1, 0) == -1) {
         		LERR("Failed to compile filter \"%s\": %s", filter_expr, pcap_geterr(sniffer_proto[loc_idx]));
         		return -1;
@@ -833,6 +838,10 @@ static int load_module(xml_node *config) {
 						profile_socket[profile_size].device = strdup(value);
 					else if (!strncmp(key, "reasm", 5) && !strncmp(value, "true", 4))
 						profile_socket[profile_size].reasm = +1;
+                                        else if (!strncmp(key, "ipv4fragments", 13) && !strncmp(value, "true", 4))
+						ipv4fragments = 1;		
+                                        else if (!strncmp(key, "ipv6fragments", 13) && !strncmp(value, "true", 4))
+						ipv6fragments = 1;																																
                                         else if(!strncmp(key, "tcpdefrag", 9) && !strncmp(value, "true", 4))
                                                 profile_socket[profile_size].reasm +=2;                                                    						
 					else if (!strncmp(key, "ring-buffer", 11))					        
