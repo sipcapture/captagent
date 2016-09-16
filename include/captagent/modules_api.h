@@ -27,6 +27,12 @@
 #ifndef MODULES_API_H_
 #define MODULES_API_H_
 
+#ifdef USE_SSL
+#include <openssl/ssl.h>
+#include <openssl/err.h>
+#endif /* USE_SSL */
+
+
 typedef  struct module_exports* (*module_register)(void);
 typedef  int (*cmd_function)(msg_t*, char* param1, char* param2);
 typedef int (*fixup_function)(void** param, int param_no);

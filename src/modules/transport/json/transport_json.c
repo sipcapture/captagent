@@ -526,7 +526,7 @@ int initSSL(unsigned int idx) {
         SSL_set_connect_state(profile_transport[idx].ssl);
 
         /* attach socket */
-        SSL_set_fd(profile_transport[idx].ssl, profile_transport[index].socket);    /* attach the socket descriptor */
+        SSL_set_fd(profile_transport[idx].ssl, profile_transport[idx].socket);    /* attach the socket descriptor */
 
         /* perform the connection */
         if ( SSL_connect(profile_transport[idx].ssl) == -1 )  {
