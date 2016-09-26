@@ -36,7 +36,7 @@
 /**
  *
  */
-int hepapi_send_hep(rc_info_t *rcinfo, char *data, unsigned int len, char *profile)
+int hepapi_send_hep(rc_info_t *rcinfo, unsigned char *data, unsigned int len, char *profile)
 {
     //set_raw_filter(index, filter);
     unsigned int idx = 0;

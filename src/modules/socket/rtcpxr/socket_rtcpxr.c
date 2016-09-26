@@ -40,6 +40,7 @@
 #include <signal.h>
 #include <time.h>
 #include <pthread.h>
+#include <sys/time.h>
 
 #ifndef __FAVOR_BSD
 #define __FAVOR_BSD
@@ -209,7 +210,7 @@ void on_recv(uv_udp_t* handle, ssize_t nread, const uv_buf_t* rcvbuf, const stru
     int action_idx = 0;
     struct run_act_ctx ctx;
     struct sockaddr_in *cliaddr;
-    uint8_t loc_idx = 0;
+    uint8_t loc_idx;
 
     if (nread <= 0 || addr == NULL) 
     {
@@ -221,7 +222,7 @@ void on_recv(uv_udp_t* handle, ssize_t nread, const uv_buf_t* rcvbuf, const stru
     	return;
     }
 
-    loc_idx = (int) handle->data;
+    loc_idx = *((uint8_t *) handle->data);
     
     gettimeofday(&tv, NULL);
 
@@ -338,7 +339,7 @@ int init_socket(unsigned int loc_idx) {
 	        return 2;
 	}
 
-	udp_servers[loc_idx].data = (void *) loc_idx;
+	udp_servers[loc_idx].data = (void *) &loc_idx;
 
 	status = uv_udp_recv_start(&udp_servers[loc_idx], on_alloc, on_recv);
 

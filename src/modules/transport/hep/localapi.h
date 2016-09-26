@@ -30,8 +30,11 @@
 #include <captagent/export_function.h>
 
 
-typedef int (*hepapi_send_hep_f)(rc_info_t *rcinfo, char *data, unsigned int len, char *profile);
-int hepapi_set_filter(rc_info_t *rcinfo, char *data, unsigned int len, char *profile);
+extern int send_hepv3 (rc_info_t *rcinfo, unsigned char *data, unsigned int len, unsigned int sendzip, unsigned int idx);
+extern unsigned int get_profile_index_by_name(char *name);
+
+typedef int (*hepapi_send_hep_f)(rc_info_t *rcinfo, unsigned char *data, unsigned int len, char *profile);
+int hepapi_set_filter(rc_info_t *rcinfo, unsigned char *data, unsigned int len, char *profile);
 
 typedef struct transport_hep_api {
 	hepapi_send_hep_f    sendhep;

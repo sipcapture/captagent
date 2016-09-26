@@ -806,8 +806,6 @@ int homer_close(hep_connection_t *conn)
 void homer_free(hep_connection_t *conn)
 {
 
-  int closed;
-
   LDEBUG("freeing connection\n");
 
   if (conn == NULL) {
@@ -826,7 +824,7 @@ void homer_free(hep_connection_t *conn)
 	}
 
 	uv_stop(conn->loop);
-	closed = uv_loop_close(conn->loop);
+	int closed = uv_loop_close(conn->loop);
 
 	while(closed == UV_EBUSY) {
 		closed = uv_loop_close(conn->loop);

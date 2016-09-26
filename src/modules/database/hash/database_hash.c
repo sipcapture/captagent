@@ -222,7 +222,6 @@ int find_and_update(char *key, char *callid)
 struct ipport_items *find_ipport_key(char *key) {
 
     struct ipport_items *ipport = NULL;
-    int ret = 0;
 
     if (pthread_rwlock_rdlock(&ipport_lock) != 0) {
              LERR("can't acquire write lock");
@@ -360,7 +359,7 @@ void print_ipports() {
 int reload_config (char *erbuf, int erlen) {
 
 	char module_config_name[500];
-	xml_node *config;
+	xml_node *config = NULL;
 
 	LNOTICE("reloading config for [%s]", module_name);
 

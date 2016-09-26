@@ -125,7 +125,7 @@ int capt_parse_rtcp(char *packet, int len, char *json_buffer, int buffer_len) {
 
 				rtcp_sdes_t *sdes = (rtcp_sdes_t*)rtcp;
 
-				rptr = rtcp+2;
+				rptr = (char *)rtcp+2;
 				int sdes_report_count = 0;
 
 				char *end=(char*) rptr+(4*(rtcp_header_get_length(&sdes->header)+1)-15);

@@ -182,7 +182,7 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
         struct ip6_hdr *ip6_pkt = (struct ip6_hdr*)(packet + link_offset + hdr_offset + ((ntohs((uint16_t)*(packet + 12)) == 0x8100)? 4: 0) );
 #endif
 
-	uint8_t loc_index = (uint8_t *) useless;
+	uint8_t loc_index = (uint8_t) *useless;
 	msg_t _msg;
 	uint32_t ip_ver;
 	uint8_t ip_proto = 0;
@@ -190,7 +190,7 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
 	uint32_t ip_off = 0;
 	uint8_t fragmented = 0;
 	uint16_t frag_offset = 0;
-	uint32_t frag_id = 0;
+	//uint32_t frag_id = 0;
 	char ip_src[INET6_ADDRSTRLEN + 1], ip_dst[INET6_ADDRSTRLEN + 1];
 	char mac_src[20], mac_dst[20];
 	u_char *pack = NULL;
@@ -248,7 +248,7 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
 
 		fragmented = ip_off & (IP_MF | IP_OFFMASK);
 		frag_offset = (fragmented) ? (ip_off & IP_OFFMASK) * 8 : 0;
-		frag_id = ntohs(ip4_pkt->ip_id);
+		//frag_id = ntohs(ip4_pkt->ip_id);
 
 		inet_ntop(AF_INET, (const void *) &ip4_pkt->ip_src, ip_src, sizeof(ip_src));
 		inet_ntop(AF_INET, (const void *) &ip4_pkt->ip_dst, ip_dst, sizeof(ip_dst));
@@ -269,7 +269,7 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
 
 				fragmented = 1;
 				frag_offset = ntohs(ip6_fraghdr->ip6f_offlg & IP6F_OFF_MASK);
-				frag_id = ntohl(ip6_fraghdr->ip6f_ident);
+				//frag_id = ntohl(ip6_fraghdr->ip6f_ident);
 			}
 
 			inet_ntop(AF_INET6, (const void *)&ip6_pkt->ip6_src, ip_src, sizeof(ip_src));
@@ -285,7 +285,7 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
 		//uint16_t tcphdr_offset = (frag_offset) ? 0 : (tcp_pkt->th_off * 4);
 		uint16_t tcphdr_offset = frag_offset ? 0 : (uint16_t) (tcp_pkt->th_off * 4);
 
-		data = (char *) (tcp_pkt) + tcphdr_offset;
+		data = (unsigned char *) tcp_pkt + tcphdr_offset;
 		
 		_msg.hdr_len = link_offset + hdr_offset + ip_hl + tcphdr_offset;
 		
@@ -395,7 +395,7 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
 		struct udphdr *udp_pkt = (struct udphdr *) ((unsigned char *) (ip4_pkt) + ip_hl);
 		uint16_t udphdr_offset = (frag_offset) ? 0 : sizeof(*udp_pkt);
 
-		data = (char *) (udp_pkt) + udphdr_offset;
+		data = (unsigned char *) (udp_pkt) + udphdr_offset;
 		
 		_msg.hdr_len = link_offset + ip_hl + hdr_offset + udphdr_offset;
 		
@@ -609,7 +609,7 @@ int set_raw_filter(unsigned int loc_idx, char *filter) {
 
 void* proto_collect(void *arg) {
 
-	unsigned int loc_idx = (int *) arg;
+	unsigned int loc_idx = *((int *)arg);
 	int ret = 0, dl = 0;
 
 	dl = pcap_datalink(sniffer_proto[loc_idx]);
@@ -660,7 +660,7 @@ void* proto_collect(void *arg) {
 	LDEBUG("Link offset interface type [%u] [%d] [%d]", dl, dl, link_offset);
 
 	while(1) {
-		ret = pcap_loop(sniffer_proto[loc_idx], 0, (pcap_handler) callback_proto, (u_char*) loc_idx);
+		ret = pcap_loop(sniffer_proto[loc_idx], 0, (pcap_handler) callback_proto, (u_char *) &loc_idx);
 		if (ret == -2)
 		{
 			LDEBUG("loop stopped by breakloop");
@@ -880,10 +880,10 @@ static int load_module(xml_node *config) {
 
 	for (i = 0; i < profile_size; i++) {
 
-		int *arg = malloc(sizeof(*arg));
+		unsigned int *arg = malloc(sizeof(arg));		
 
-		arg = i;
-
+		*arg = i;
+		
 		/* DEV || FILE */
 		if (!usefile) {
 			if (!profile_socket[i].device)

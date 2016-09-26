@@ -270,7 +270,7 @@ int send_json (msg_t *msg) {
 	if(errors > 30) { sleep (2); errors = 0; }
 
 	/* send this packet out of our socket */
-	if(send_data(message, strlen(message), idx) < 0) {
+	if(send_data((void *)message, strlen(message), idx) < 0) {
 		     stats.errors_total++;
 		     LERR( "JSON server is down...");
    		     if(!profile_transport[idx].usessl) {
@@ -542,10 +542,11 @@ int initSSL(unsigned int idx) {
 #endif /* use SSL */
 
 
-int handlerPipe(void) {
+void handlerPipe(int signum)
+{
 
-        LERR("SIGPIPE... trying to reconnect...");
-        return 1;
+        LERR("SIGPIPE JSON... trying to reconnect...[%d]", signum);
+        return;
 }
 
 

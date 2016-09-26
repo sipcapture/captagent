@@ -136,7 +136,9 @@ static bool add_fragment_tcp (struct tcpreasm_ip_entry *entry, struct tcpreasm_f
 /*
  * Is the entry complete, ready for reassembly?
  */
+/*
 static bool is_complete (struct tcpreasm_ip_entry *entry);
+*/
 
 static unsigned char *assemble_tcp (struct tcpreasm_ip_entry *entry, unsigned *output_len);
 
@@ -398,13 +400,13 @@ tcpreasm_ip_free (struct tcpreasm_ip *tcpreasm)
 	free (tcpreasm);
 }
 
-
+/*
 static bool
 is_complete (struct tcpreasm_ip_entry *entry)
 {
 	return entry->holes == 0;
 }
-
+*/
 
 static unsigned char *
 assemble_tcp (struct tcpreasm_ip_entry *entry, unsigned *output_len)

@@ -29,6 +29,10 @@
 #include <captagent/log.h>
 #include <captagent/export_function.h>
 
+extern int set_raw_filter(unsigned int loc_idx, char *filter);
+extern pcap_t* get_pcap_handler(unsigned int loc_idx);
+
+
 typedef int (*rawapi_set_filter_f)(unsigned int index, char *filter);
 int rawapi_set_filter(unsigned int index, char *filter);
 

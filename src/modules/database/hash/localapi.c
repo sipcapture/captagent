@@ -33,8 +33,9 @@
 
 char* hashapi_lookup(char *ip, int port)
 {
-	LERR("LOOKUP IP: [%s], PORT: [%d]", ip, port);
-    return find_ipport(ip, port);
+    //LERR("LOOKUP IP: [%s], PORT: [%d]", ip, port);
+    //return find_ipport(ip, port);
+    return NULL;
 }
 
 int bind_database_hash(database_hash_api_t* api)

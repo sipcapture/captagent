@@ -125,6 +125,7 @@
 #define T64 /* 0xeb86d391 */ (T_MASK ^ 0x14792c6e)
 
 #include "md5.h"
+#include <string.h>
 
 static void
 md5_process(md5_state_t *pms, const md5_byte_t *data /*[64]*/)

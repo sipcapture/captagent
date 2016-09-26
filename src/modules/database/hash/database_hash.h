@@ -34,7 +34,7 @@
 int timer_timeout = 10;
 int timer_loop_stop = 0;
 
-static int global_session_id = 0;
+//static int global_session_id = 0;
 
 int cin_min = 100;
 int cin_max = 800;

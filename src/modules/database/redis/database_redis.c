@@ -118,7 +118,7 @@ int bind_redis_api(database_module_api_t* api)
 int reload_config (char *erbuf, int erlen) {
 
 	char module_config_name[500];
-	xml_node *config;
+	xml_node *config = NULL;
 
 	LNOTICE("reloading config for [%s]", module_name);
 

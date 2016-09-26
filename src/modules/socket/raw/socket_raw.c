@@ -33,6 +33,7 @@
 #include <inttypes.h>
 #include <ctype.h>
 #include <sys/socket.h>
+#include <sys/ioctl.h> 
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <fcntl.h>
@@ -73,6 +74,7 @@
 #include <captagent/modules.h>
 #include "socket_raw.h"
 #include <captagent/log.h>
+#include <captagent/action.h>
 #include "localapi.h"
 
 
@@ -140,7 +142,7 @@ int apply_filter (filter_msg_t *filter) {
 int reload_config (char *erbuf, int erlen) {
 
 	char module_config_name[500];
-	xml_node *config;
+	xml_node *config = NULL;
 
 	LNOTICE("reloading config for [%s]", module_name);
 
@@ -157,15 +159,12 @@ int reload_config (char *erbuf, int erlen) {
 
 int init_socket(unsigned int loc_idx) {
 
-	struct bpf_program filter;
 	char errbuf[PCAP_ERRBUF_SIZE];
-	uint16_t snaplen = 65535, timeout = 100;
 	char short_ifname[sizeof(int)];
 	char filter_expr[FILTER_LEN];
 	int ifname_len;
 	char* ifname;
 	int err, len = 0;
-	struct ifreq ifr;
 	int arptype = 0;
 	        
 	ifname_len = strlen(profile_socket[loc_idx].device);
@@ -176,7 +175,7 @@ int init_socket(unsigned int loc_idx) {
 	//rtp_raw_sock = socket(PF_PACKET, SOCK_RAW, htons(0x0800));
 	socket_desc[loc_idx] = socket(PF_PACKET, SOCK_RAW, htons(0x0003));
 
-	LDEBUG("ZZ: SCIO: [%d] [%d]\n", loc_idx, socket_desc[loc_idx]);
+	//LDEBUG("ZZ: SCIO: [%d] [%d]\n", loc_idx, socket_desc[loc_idx]);
 
 	if (socket_desc[loc_idx] == -1)
 		goto error;
@@ -314,8 +313,8 @@ int convert_arp_to_dl(unsigned int loc_idx, int arptype) {
 
 void* proto_collect(void *arg) {
 
-	unsigned int loc_idx = (int *) arg;
-
+	unsigned int loc_idx = *((int *)arg);  
+	        
 	raw_capture_rcv_loop(loc_idx);
 
 	if(socket_desc[loc_idx]) close(socket_desc[loc_idx]);
@@ -329,9 +328,7 @@ void* proto_collect(void *arg) {
 int set_raw_filter(unsigned int loc_idx, char *filter) {
 
         struct bpf_program raw_filter;
-        uint16_t snaplen = 65535;
-        struct bpf_insn *insn;
-        int i, n, linktype;
+        int linktype;
 
         //return 1;
         linktype  = profile_socket[loc_idx].link_type ? profile_socket[loc_idx].link_type : DEFAULT_DATALINK;
@@ -374,13 +371,10 @@ int raw_capture_rcv_loop(unsigned int loc_idx) {
 	msg_t _msg;
 	uint32_t ip_ver;
 	uint8_t ip_proto = 0;
-	uint32_t ip_hl = 0;
-	uint32_t ip_off = 0;
-	uint8_t fragmented = 0;
-	uint16_t frag_offset = 0;
 	int action_idx = 0;
 	char mac_src[20], mac_dst[20];	        
 	struct ethhdr *eth = NULL;
+	struct run_act_ctx ctx;  
 	        
 
 	for (;;) {
@@ -493,9 +487,10 @@ int raw_capture_rcv_loop(unsigned int loc_idx) {
 		_msg.parse_it = 1;
 
 		//LERR("PACKET LEN: [%d], D: [%.*s]", _msg.len, _msg.len, buf);
-
+		memset(&ctx, 0, sizeof(struct run_act_ctx));
+		
 		action_idx = profile_socket[loc_idx].action;
-		run_actions(action_idx, main_ct.clist[action_idx], &_msg);
+		run_actions(&ctx, main_ct.clist[action_idx], &_msg);
 
 		stats.send_packets++;
 
@@ -622,11 +617,10 @@ static uint64_t serial_module(void)  {
 static int load_module(xml_node *config) {
 
 	char errbuf[PCAP_ERRBUF_SIZE];
-	xml_node *params, *profile=NULL, *settings, *condition, *action;
+	xml_node *params, *profile=NULL, *settings;
 	char *key, *value = NULL;
 	unsigned int i = 0;
-	char module_api_name[256], loadplan[1024];
-	int status;
+	char loadplan[1024];
 	FILE* cfg_stream;
 
 	LNOTICE("Loaded %s", module_name);
@@ -746,9 +740,9 @@ static int load_module(xml_node *config) {
 
 	for (i = 0; i < profile_size; i++) {
 
-		int *arg = malloc(sizeof(*arg));
+		unsigned int *arg = malloc(sizeof(*arg));
 
-		arg = i;
+		*arg = i;
 
 		/* DEV || FILE */
 		if (!usefile) {
