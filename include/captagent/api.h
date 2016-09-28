@@ -39,6 +39,7 @@
 #include <netdb.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <stdbool.h>
 
 #include "config.h"
 
@@ -116,8 +117,6 @@ extern struct stats_object stats_obj;
 struct hep_module *hepmod;
 extern int get_basestat(char *module, char *stats, size_t len);
 struct module *module_list;
-
-typedef unsigned int bool;
 
 #ifndef TRUE
 #define TRUE  1

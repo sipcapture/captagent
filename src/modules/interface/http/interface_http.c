@@ -170,7 +170,7 @@ void send_reply(struct mg_connection *conn, char *code, char *message, const cha
 
 	mg_printf(conn, "HTTP/1.1 %s\r\n"
 			"Content-Type: %s\r\n"
-			"Content-Length: %lu\r\n"
+			"Content-Length: %zu\r\n"
 			"X-Response-UUID: %s\r\n"
 			"\r\n"
 			"%s", code, "text/plain", strlen(message), uuid ? uuid : "0", message);
@@ -185,7 +185,7 @@ void send_json_reply(struct mg_connection *conn, char *code, json_object *jobj, 
 
 	mg_printf(conn, "HTTP/1.1 %s\r\n"
 			"Content-Type: %s\r\n"
-			"Content-Length: %lu\r\n"
+			"Content-Length: %zu\r\n"
 			"X-Response-UUID: %s\r\n"
 			"X-Type-Event: %s\r\n"
 			"\r\n"

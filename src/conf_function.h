@@ -38,6 +38,8 @@ enum { METHOD_O=1, DEFAULT_O, ACTION_O, NUMBER_O};
 enum { FORWARD_T=1, SEND_T, DROP_T, IF_T, MODULE_T};
 enum { NOSUBTYPE=0, STRING_ST, NET_ST, ACTIONS_ST, CMDF_ST, EXPR_ST, NUMBER_ST };
 
+struct run_act_ctx;
+
 
 struct expr{
         int type; /* exp, exp_elem */
