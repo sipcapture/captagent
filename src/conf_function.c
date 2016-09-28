@@ -280,8 +280,11 @@ void push(struct action* a, struct action** head)
                 *head=a;
                 return;
         }
-        for (t=*head; t->next;t=t->next);
-                t->next=a;
+
+        /* go to the end of the list, then append */
+        for (t=*head; t->next;t=t->next)
+                ;
+        t->next=a;
 }
 
 /* searches the module list and returns a pointer to the "name" function or
