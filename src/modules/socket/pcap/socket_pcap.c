@@ -661,7 +661,12 @@ void* proto_collect(void *arg) {
 
 	while(1) {
 		ret = pcap_loop(sniffer_proto[loc_idx], 0, (pcap_handler) callback_proto, (u_char *) &loc_idx);
-		if (ret == -2)
+		if (ret == 0)
+		{
+			LDEBUG("loop stopped by EOF");
+			pcap_close(sniffer_proto[loc_idx]);
+			break;
+		} else if (ret == -2)
 		{
 			LDEBUG("loop stopped by breakloop");
 			pcap_close(sniffer_proto[loc_idx]);	
