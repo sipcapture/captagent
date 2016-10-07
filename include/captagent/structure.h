@@ -35,6 +35,7 @@ typedef struct msg {
         uint32_t len;
         uint16_t hdr_len;
         uint8_t tcpflag;
+        uint32_t sctp_ppid;
         rc_info_t rcinfo;
         uint8_t parse_it;
         void *parsed_data;
