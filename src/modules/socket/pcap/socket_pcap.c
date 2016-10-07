@@ -158,16 +158,16 @@ int reload_config (char *erbuf, int erlen) {
 void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet) {
 
 	uint8_t hdr_offset = 0;
-	
-	unsigned char* ethaddr = NULL;
-	unsigned char* mplsaddr = NULL;
+
+	uint16_t ethaddr;
+	uint16_t mplsaddr;
 
 	/* Pat Callahan's patch for MPLS */
 	memcpy(&ethaddr, (packet + 12), 2);
         memcpy(&mplsaddr, (packet + 16), 2);
 
-        if (ntohs((uint16_t)*(&ethaddr)) == 0x8100) {
-          if (ntohs((uint16_t)*(&mplsaddr)) == 0x8847) {
+        if (ntohs(ethaddr) == 0x8100) {
+          if (ntohs(mplsaddr) == 0x8847) {
              hdr_offset = 8;
           } else {
              hdr_offset = 4;
