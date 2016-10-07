@@ -39,7 +39,7 @@
 
 /* sender socket */
 int sock;
-char* pid_file = DEFAULT_PIDFILE;
+extern char* pid_file;
 xml_node *get_core_config( const char *mod_name, xml_node *mytree);
 xml_node *get_module_config( const char *mod_name, xml_node *mytree);
 int load_xml_config();
