@@ -64,7 +64,10 @@ int sctp_parse_chunk(msg_t *_msg, const uint8_t *data, size_t len, bool *send_da
 	/* check for additional data */
 	if (len < sizeof(*dhdr))
 		return -4;
-	*send_data = true;
+
+	/* Only handle non-fragmented SCTP data chunks */
+	if (dhdr->beginning && dhdr->ending)
+		*send_data = true;
 	_msg->sctp_ppid = ntohl(dhdr->ppid);
 	return chunk_len;
 }
