@@ -65,6 +65,7 @@
 #include "ipreasm.h"
 #include "tcpreasm.h"
 #include "localapi.h"
+#include "sctp_support.h"
 
 #if USE_IPv6
 #include <netinet/ip6.h>
@@ -449,10 +450,79 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
 	}
 		break;
 
+	case IPPROTO_SCTP: {
+		struct sctp_common_hdr *sctp_hdr;
+		uint8_t *chunk_data;
+		int plen;
+		uint32_t chunk_read = 0;
+
+		/* attempt at input validation */
+		if (len <= link_offset + ip_hl + hdr_offset)
+			goto error;
+
+		len -= link_offset + ip_hl + hdr_offset;
+		sctp_hdr = (struct sctp_common_hdr *) ((uint8_t *)(ip4_pkt) + ip_hl);
+		plen = sctp_parse_common(&_msg, (uint8_t *)sctp_hdr, len);
+
+		if (plen < 0)
+			goto error;
+		len -= plen;
+
+		/* stats */
+		stats.recieved_sctp_packets++;
+
+		/* I don't understand the fragment_offset in other protos */
+
+		/* same for the entire package */
+		_msg.hdr_len = link_offset + hdr_offset + ip_hl + sizeof(struct sctp_common_hdr);
+		_msg.rcinfo.src_ip = ip_src;
+		_msg.rcinfo.dst_ip = ip_dst;
+		_msg.rcinfo.src_mac = mac_src;
+		_msg.rcinfo.dst_mac = mac_dst;
+		_msg.rcinfo.ip_family = ip_ver == 4 ? AF_INET : AF_INET6;
+		_msg.rcinfo.ip_proto = ip_proto;
+		_msg.rcinfo.time_sec = pkthdr->ts.tv_sec;
+		_msg.rcinfo.time_usec = pkthdr->ts.tv_usec;
+		_msg.tcpflag = 0;
+		_msg.parse_it = 1;
+
+
+		/* default the full packet */
+	        _msg.len = pkthdr->caplen - link_offset - hdr_offset;
+	        _msg.data = (packet + link_offset + hdr_offset);
+
+		chunk_data = &sctp_hdr->data[0];
+
+		while (chunk_read < len) {
+			bool send_data;
+			plen = sctp_parse_chunk(&_msg, chunk_data, len - chunk_read, &send_data);
+			if (plen < 0)
+				goto error;
+			/* a chunk but no data chunk */
+			if (!send_data)
+				goto next;
+
+			if (!profile_socket[profile_size].full_packet) {
+				_msg.len = plen - 16;
+				_msg.data = chunk_data + 16;
+			}
+			action_idx = profile_socket[loc_index].action;
+			run_actions(&ctx, main_ct.clist[action_idx], &_msg);
+
+next:
+			chunk_read += plen;
+			chunk_data += plen;
+		}
+
+		stats.send_packets++;
+	}
+		break;
+
 	default:
 		break;
 	}
 
+error:
 	if(pack != NULL) free(pack);
 }
 
