@@ -158,16 +158,16 @@ int reload_config (char *erbuf, int erlen) {
 void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet) {
 
 	uint8_t hdr_offset = 0;
-	
-	unsigned char* ethaddr = NULL;
-	unsigned char* mplsaddr = NULL;
+
+	uint16_t ethaddr;
+	uint16_t mplsaddr;
 
 	/* Pat Callahan's patch for MPLS */
 	memcpy(&ethaddr, (packet + 12), 2);
         memcpy(&mplsaddr, (packet + 16), 2);
 
-        if (ntohs((uint16_t)*(&ethaddr)) == 0x8100) {
-          if (ntohs((uint16_t)*(&mplsaddr)) == 0x8847) {
+        if (ntohs(ethaddr) == 0x8100) {
+          if (ntohs(mplsaddr) == 0x8847) {
              hdr_offset = 8;
           } else {
              hdr_offset = 4;
@@ -661,7 +661,12 @@ void* proto_collect(void *arg) {
 
 	while(1) {
 		ret = pcap_loop(sniffer_proto[loc_idx], 0, (pcap_handler) callback_proto, (u_char *) &loc_idx);
-		if (ret == -2)
+		if (ret == 0)
+		{
+			LDEBUG("loop stopped by EOF");
+			pcap_close(sniffer_proto[loc_idx]);
+			break;
+		} else if (ret == -2)
 		{
 			LDEBUG("loop stopped by breakloop");
 			pcap_close(sniffer_proto[loc_idx]);	

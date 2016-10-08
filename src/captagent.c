@@ -69,6 +69,7 @@ char *global_node_name = NULL;
 char *global_capture_plan_path = NULL;
 char *global_uuid = NULL;
 char *backup_dir;
+char *pid_file = NULL;
 int timestart;
 int serial;
 const char *captagent_config;
@@ -460,9 +461,10 @@ int core_config(xml_node *config) {
 				module_path = strdup(value);
 			else if (!strncmp(key, "syslog", 6) && !strncmp(value, "true", 4))
 				_use_syslog = 1;
-			else if (!strncmp(key, "pid_file", 8))
+			else if (!strncmp(key, "pid_file", 8)) {
+				free(pid_file);
 				pid_file = strdup(value);
-			else if (!strncmp(key, "license", 7))
+			} else if (!strncmp(key, "license", 7))
 				global_license = strdup(value);
 			else if (!strncmp(key, "uuid", 4))
 				global_uuid = strdup(value);
@@ -481,6 +483,9 @@ int core_config(xml_node *config) {
 
 		modules = modules->next;
 	}
+
+	if(!pid_file)
+		pid_file = strdup(DEFAULT_PIDFILE);
 
 	if(!global_node_name) {
 		global_node_name = malloc(8);
