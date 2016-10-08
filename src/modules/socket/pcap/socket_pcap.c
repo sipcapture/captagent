@@ -457,8 +457,11 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
 		uint32_t chunk_read = 0;
 
 		/* attempt at input validation */
-		if (len <= link_offset + ip_hl + hdr_offset)
+		if (len <= link_offset + ip_hl + hdr_offset) {
+			LDEBUG("sctp: offset handling %zu vs. %zu",
+				len, link_offset + ip_hl + hdr_offset);
 			goto error;
+		}
 
 		len -= link_offset + ip_hl + hdr_offset;
 		sctp_hdr = (struct sctp_common_hdr *) ((uint8_t *)(ip4_pkt) + ip_hl);
