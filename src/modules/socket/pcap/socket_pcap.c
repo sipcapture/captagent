@@ -471,7 +471,7 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
 		/* stats */
 		stats.recieved_sctp_packets++;
 
-		/* I don't understand the fragment_offset in other protos */
+		/* I don't understand the frag_offset in other protos */
 
 		/* same for the entire package */
 		_msg.hdr_len = link_offset + hdr_offset + ip_hl + sizeof(struct sctp_common_hdr);
