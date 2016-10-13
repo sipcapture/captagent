@@ -28,6 +28,7 @@
 		<load module="socket_pcap" register="local"/>
 		<load module="socket_raw" register="local"/>
 	    <!--
+		<load module="protocol_ss7" register="local"/>
 	    	<load module="transport_json" register="local"/>
 		<load module="protocol_rtcp" register="local"/>
 		<load module="interface_http" register="local"/>

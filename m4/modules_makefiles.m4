@@ -2,6 +2,7 @@ AC_CONFIG_FILES([
 	src/modules/database/hash/Makefile
 	src/modules/protocol/sip/Makefile
 	src/modules/protocol/sip/captureplan/Makefile
+	src/modules/protocol/ss7/Makefile
 	src/modules/protocol/rtcp/Makefile
 	src/modules/protocol/rtcp/captureplan/Makefile
 	src/modules/socket/pcap/Makefile

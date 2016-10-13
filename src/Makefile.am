@@ -7,6 +7,7 @@ SUBDIRS = \
 	modules/socket/rtcpxr \
 	modules/protocol/sip \
 	modules/protocol/rtcp \
+	modules/protocol/ss7 \
 	modules/transport/hep \
 	modules/transport/json \
 	modules/database/hash \
