@@ -25,14 +25,18 @@
 
 #include "sctp_support.h"
 
+#include <captagent/log.h>
+
 
 int sctp_parse_common(msg_t *_msg, const uint8_t *data, size_t len)
 {
 	struct sctp_common_hdr *sctp_hdr;
 
 	/* not enough space for the header */
-	if (len < sizeof(*sctp_hdr))
+	if (len < sizeof(*sctp_hdr)) {
+		LDEBUG("sctp: data too short %zu vs. %zu", len, sizeof(*sctp_hdr));
 		return -1;
+	}
 
 	sctp_hdr = (struct sctp_common_hdr *) data;
 	_msg->rcinfo.src_port = ntohs(sctp_hdr->source);
@@ -46,25 +50,45 @@ int sctp_parse_chunk(msg_t *_msg, const uint8_t *data, size_t len, bool *send_da
 	uint16_t chunk_len;
 
 	*send_data = false;
-	if (len < sizeof(struct sctp_chunk_hdr))
+	if (len < sizeof(struct sctp_chunk_hdr)) {
+		LDEBUG("sctp: chunk too short %zu vs. %zu",
+			len, sizeof(struct sctp_chunk_hdr));
 		return -1;
+	}
 
 	/* length smaller than the header */
 	dhdr = (struct sctp_chunk_data_hdr *) data;
 	chunk_len = ntohs(dhdr->len);
-	if (chunk_len < sizeof(*dhdr))
+	if (chunk_len < sizeof(*dhdr)) {
+		LDEBUG("sctp: chunk hdr too short %zu vs. %zu",
+			chunk_len, sizeof(*dhdr));
 		return -2;
+	}
 
-	if (chunk_len > len)
+	if (chunk_len > len) {
+		LDEBUG("sctp: chunk incomplete %zu vs. %zu",
+			chunk_len, len);
 		return -3;
+	}
 
-	if (dhdr->type != SCTP_CHUNK_DATA)
+	if (dhdr->type != SCTP_CHUNK_DATA) {
+		LDEBUG("sctp: chunk type ignored %u", dhdr->type);
 		return chunk_len;
+	}
 
 	/* check for additional data */
-	if (len < sizeof(*dhdr))
+	if (len < sizeof(*dhdr)) {
+		LDEBUG("sctp: data chunk too short %zu vs. %zu",
+			len, sizeof(*dhdr));
 		return -4;
-	*send_data = true;
+	}
+
+	/* Only handle non-fragmented SCTP data chunks */
+	if (dhdr->beginning && dhdr->ending)
+		*send_data = true;
+	else
+		LDEBUG("sctp: ignoring data chunk beginning: %d ending: %d",
+			dhdr->beginning, dhdr->ending);
 	_msg->sctp_ppid = ntohl(dhdr->ppid);
 	return chunk_len;
 }

@@ -31,6 +31,8 @@
 #include <captagent/api.h>
 #include <captagent/structure.h>
 
+#include <endian.h>
+
 
 enum sctp_chunk_type {
 	SCTP_CHUNK_DATA,
@@ -58,10 +60,19 @@ struct sctp_chunk_hdr {
 struct sctp_chunk_data_hdr {
 	/* hdr */
 	uint8_t		type;
+#if __BYTE_ORDER == __BIG_ENDIAN
 	uint8_t		reserved:5,
 			unordered:1,
 			beginning:1,
 			ending: 1;
+#elif __BYTE_ORDER == __LITTLE_ENDIAN
+	uint8_t		ending: 1,
+			beginning:1,
+			unordered:1,
+			reserved:5;
+#else
+	#error "Unknonwn endian type"
+#endif
 	uint16_t	len;
 
 	/* chunk types */
