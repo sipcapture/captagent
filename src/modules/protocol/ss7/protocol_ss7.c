@@ -195,6 +195,7 @@ static uint8_t *ss7_extract_payload(msg_t *msg, size_t *len, int *opc, int *dpc,
 {
 	switch (msg->sctp_ppid) {
 	case SCTP_M2UA_PPID:
+		msg->rcinfo.proto_type = 0x08;
 		return extract_from_mtp(extract_from_m2ua(msg, len), len, opc, dpc, type);
 		break;
 	default:
