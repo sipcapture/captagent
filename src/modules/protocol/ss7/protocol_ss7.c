@@ -187,13 +187,15 @@ static uint8_t *extract_from_mtp(uint8_t *data, size_t *len, int *opc, int *dpc,
 	*opc = hdr->opc;
 	*dpc = hdr->dpc;
 	*type = hdr->ser_ind;
-	return NULL;
+	*len -= sizeof(*hdr);
+	return &hdr->data[0];
 }
 
 static uint8_t *ss7_extract_payload(msg_t *msg, size_t *len, int *opc, int *dpc, int *type)
 {
 	switch (msg->sctp_ppid) {
 	case SCTP_M2UA_PPID:
+		msg->rcinfo.proto_type = 0x08;
 		return extract_from_mtp(extract_from_m2ua(msg, len), len, opc, dpc, type);
 		break;
 	default:
