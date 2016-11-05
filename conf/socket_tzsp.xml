@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<document type="captagent_module/xml">
+    <module name="socket_tzsp" description="TZSP Socket" serial="2014010402">
+	<profile name="socketsrtcp" description="TZSP local" enable="false" serial="2014010402">
+	    <settings>
+		<param name="host" value="0.0.0.0"/>
+		<param name="port" value="37008"/>
+		<param name="proto" value="udp"/>
+		<param name="capture-plan" value="tzsp_capture_plan.cfg"/>
+	    </settings>
+	</profile>
+    </module>
+</document>
