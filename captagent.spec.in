@@ -228,6 +228,11 @@ autoreconf -if
 %config(noreplace) %{_sysconfdir}/%name/captureplans/rtcpxr_capture_plan.cfg
 %{_libdir}/%name/modules/socket_rtcpxr.so
 
+%files socket-tzsp
+%config(noreplace) %{_sysconfdir}/%name/socket_tzsp.xml
+%config(noreplace) %{_sysconfdir}/%name/captureplans/tzsp_capture_plan.cfg
+%{_libdir}/%name/modules/socket_tzsp.so
+
 %files transport-hep
 %config(noreplace) %{_sysconfdir}/%name/transport_hep.xml
 %{_libdir}/%name/modules/transport_hep.so
@@ -264,6 +269,10 @@ autoreconf -if
 %files socket-rtcpxr-devel
 %{_libdir}/%name/modules/socket_rtcpxr.la
 %{_libdir}/%name/modules/socket_rtcpxr.a
+
+%files socket-tzsp-devel
+%{_libdir}/%name/modules/socket_tzsp.la
+%{_libdir}/%name/modules/socket_tzsp.a
 
 %files transport-hep-devel
 %{_libdir}/%name/modules/transport_hep.la
