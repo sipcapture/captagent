@@ -84,4 +84,47 @@ int dump_proto_packet(struct pcap_pkthdr *, u_char *, uint8_t, char *, uint32_t,
 /*IPv6 filter*/
 #define BPF_DEFRAGMENTION_FILTER_IPV6 "(ip6[6]=44 and (ip6[42:2] & 0xfff8 != 0))"
 
+#define TZSP_TYPE_RECEIVED_TAG_LIST 0
+#define TZSP_TYPE_PACKET_FOR_TRANSMIT 1
+#define TZSP_TYPE_RESERVED 2
+#define TZSP_TYPE_CONFIGURATION 3
+#define TZSP_TYPE_KEEPALIVE 4
+#define TZSP_TYPE_PORT_OPENER 5
+
+#define ARRAYSZ(x) (sizeof(x)/sizeof(*x))
+
+static const char * const tzsp_type_names[] = {
+        [TZSP_TYPE_RECEIVED_TAG_LIST]   = "RECEIVED_TAG_LIST",
+        [TZSP_TYPE_PACKET_FOR_TRANSMIT] = "PACKET_FOR_TRANSMIT",
+        [TZSP_TYPE_RESERVED]            = "RESERVED",
+        [TZSP_TYPE_CONFIGURATION]       = "CONFIGURATION",
+        [TZSP_TYPE_KEEPALIVE]           = "KEEPALIVE",
+        [TZSP_TYPE_PORT_OPENER]         = "PORT_OPENER",
+};
+
+#define TZSP_TAG_END 1
+#define TZSP_TAG_PADDING 0
+
+static const char * const tzsp_tag_names[] = {
+        [TZSP_TAG_END]     = "END",
+        [TZSP_TAG_PADDING] = "PADDING",
+};
+
+struct tzsp_header {
+        uint8_t version;
+        uint8_t type;
+        uint16_t encap;
+} __attribute__((packed));
+
+struct tzsp_tag {
+        uint8_t type;
+        uint8_t length;
+        char  data[];
+} __attribute__((packed));
+
+int w_tzsp_payload_extract(msg_t *_m);
+void proccess_packet(msg_t *_m, struct pcap_pkthdr *pkthdr, u_char *packet);
+
 #endif /* _SOCKET_PCAP_H_ */
+
+

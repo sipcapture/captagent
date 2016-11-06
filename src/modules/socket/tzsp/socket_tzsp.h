@@ -112,8 +112,6 @@ int load_module_xml_config();
 void _run_uv_loop(void *arg);
 int close_socket(unsigned int loc_idx);
 void on_send(uv_udp_send_t* req, int status);
-int w_tzsp_payload_extract(msg_t *_m);
-void proccess_packet(msg_t *_m, struct pcap_pkthdr *pkthdr, u_char *packet);
 
 #if UV_VERSION_MAJOR == 0                          
 uv_buf_t on_alloc(uv_handle_t* client, size_t suggested);
