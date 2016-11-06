@@ -65,6 +65,14 @@ Summary:	socket rtcpxr module for sipcapture HOMER5
 %description socket-rtcpxr
 rtcpxr socket module for a robust, carrier-grade, scalable SIP Capture system and Monitoring Application with HEP/HEP2, IP Proto4 (IPIP) encapsulation & port mirroring/monitoring support right out of the box, ready to process & store insane amounts of signaling with instant search, end-to-end analysis and drill-down capabilities for ITSPs, VoIP Providers and Trunk Suppliers using SIP signaling
 
+%package socket-tzsp
+Requires:	%name = %version
+Summary:	socket tzsp module for sipcapture HOMER5
+
+%description socket-tzsp
+tzsp socket module for a robust, carrier-grade, scalable SIP Capture system and Monitoring Application with HEP/HEP2, IP Proto4 (IPIP) encapsulation & port mirroring/monitoring support right out of the box, ready to process & store insane amounts of signaling with instant search, end-to-end analysis and drill-down capabilities for ITSPs, VoIP Providers and Trunk Suppliers using SIP signaling
+
+
 %package transport-hep
 Requires:	%name = %version
 Summary:	transport hep module for sipcapture HOMER5
@@ -151,6 +159,16 @@ Summary:	socket rtcpxr module development package for sipcapture HOMER5
 
 %description socket-rtcpxr-devel
 rtcpxr socket module development package for a robust, carrier-grade, scalable SIP Capture system and Monitoring Application with HEP/HEP2, IP Proto4 (IPIP) encapsulation & port mirroring/monitoring support right out of the box, ready to process & store insane amounts of signaling with instant search, end-to-end analysis and drill-down capabilities for ITSPs, VoIP Providers and Trunk Suppliers using SIP signaling
+
+
+%package socket-tzsp-devel
+Requires:	%name = %version
+Requires:	socket-tzsp
+
+Summary:	socket tzsp module development package for sipcapture HOMER5
+
+%description socket-tzsp-devel
+tzsp socket module development package for a robust, carrier-grade, scalable SIP Capture system and Monitoring Application with HEP/HEP2, IP Proto4 (IPIP) encapsulation & port mirroring/monitoring support right out of the box, ready to process & store insane amounts of signaling with instant search, end-to-end analysis and drill-down capabilities for ITSPs, VoIP Providers and Trunk Suppliers using SIP signaling
 
 %package transport-hep-devel
 Requires:	%name = %version

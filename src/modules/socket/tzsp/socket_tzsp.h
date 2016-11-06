@@ -29,11 +29,12 @@
 #include <captagent/xmlread.h>
 
 #include <uv.h>
+#include <pcap.h>
 
 #define FILTER_LEN 4080
 
 #define PROTO_SIP    0x01
-#define TZSP_PORT    37008
+#define TZSP_PORT    "37008"
 #define TZSP_HOST    "127.0.0.1"
 #define TZSP_PROTO   "udp"
 
@@ -44,6 +45,7 @@
 #define TZSP_TYPE_KEEPALIVE 4
 #define TZSP_TYPE_PORT_OPENER 5
 
+#define ARRAYSZ(x) (sizeof(x)/sizeof(*x))
 
 extern char *global_config_path;
 extern char *global_scripts_path;
@@ -98,9 +100,6 @@ struct tzsp_tag {
 	char  data[];
 } __attribute__((packed));
 
-static int self_pipe_fds[2];
-
-
 
 extern FILE* yyin;
 extern int yyparse();
@@ -114,7 +113,7 @@ void _run_uv_loop(void *arg);
 int close_socket(unsigned int loc_idx);
 void on_send(uv_udp_send_t* req, int status);
 int w_tzsp_payload_extract(msg_t *_m);
-void proccess_packet((msg_t *_m, struct pcap_pkthdr *pkthdr, u_char *packet);
+void proccess_packet(msg_t *_m, struct pcap_pkthdr *pkthdr, u_char *packet);
 
 #if UV_VERSION_MAJOR == 0                          
 uv_buf_t on_alloc(uv_handle_t* client, size_t suggested);

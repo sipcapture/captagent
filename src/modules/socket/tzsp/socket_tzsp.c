@@ -46,6 +46,7 @@
 #define __FAVOR_BSD
 #endif /* __FAVOR_BSD */
 
+#include <net/ethernet.h>
 #include <netinet/ip.h>
 #include <netinet/tcp.h>
 #include <netinet/udp.h>
@@ -165,9 +166,8 @@ void on_send(uv_udp_send_t* req, int status)
  
 int w_tzsp_payload_extract(msg_t *_m)
 {
-        int n = 0, readsz = 0;
+        int readsz = 0;
         char *recv_buffer = NULL;
-        int idx = 0;
 
         recv_buffer = _m->data;
         readsz = _m->len;
@@ -238,7 +238,7 @@ int w_tzsp_payload_extract(msg_t *_m)
 }
 
 
-void proccess_packet((msg_t *_m, struct pcap_pkthdr *pkthdr, u_char *packet) {
+void proccess_packet(msg_t *_m, struct pcap_pkthdr *pkthdr, u_char *packet) {
 
 	uint8_t hdr_offset = 0;
 	uint16_t ethaddr;
@@ -263,7 +263,6 @@ void proccess_packet((msg_t *_m, struct pcap_pkthdr *pkthdr, u_char *packet) {
         struct ip6_hdr *ip6_pkt = (struct ip6_hdr*)(packet + link_offset + hdr_offset + ((ntohs((uint16_t)*(packet + 12)) == 0x8100)? 4: 0) );
 #endif
 
-	uint8_t loc_index = (uint8_t) *useless;
 	uint32_t ip_ver;
 	uint8_t ip_proto = 0;
 	uint32_t ip_hl = 0;
@@ -272,15 +271,8 @@ void proccess_packet((msg_t *_m, struct pcap_pkthdr *pkthdr, u_char *packet) {
 	uint16_t frag_offset = 0;
 	char ip_src[INET6_ADDRSTRLEN + 1], ip_dst[INET6_ADDRSTRLEN + 1];
 	char mac_src[20], mac_dst[20];
-	u_char *pack = NULL;
-	unsigned char *data, *datatcp;	        
-	int action_idx = 0;	
 	uint32_t len = pkthdr->caplen;
-	uint8_t  psh = 0;
 	        
-	/* stats */
-	stats.recieved_packets_total++;
-
 	ip_ver = ip4_pkt->ip_v;
 
         snprintf(mac_src, sizeof(mac_src), "%.2X-%.2X-%.2X-%.2X-%.2X-%.2X",eth->h_source[0] , eth->h_source[1] , eth->h_source[2] , eth->h_source[3] , eth->h_source[4] , eth->h_source[5]);
@@ -337,7 +329,7 @@ void proccess_packet((msg_t *_m, struct pcap_pkthdr *pkthdr, u_char *packet) {
         	case IPPROTO_TCP: {
 	        	struct tcphdr *tcp_pkt = (struct tcphdr *) ((unsigned char *) (ip4_pkt) + ip_hl);
         		uint16_t tcphdr_offset = frag_offset ? 0 : (uint16_t) (tcp_pkt->th_off * 4);        		
-        		data = (unsigned char *) tcp_pkt + tcphdr_offset;		
+        		//data = (unsigned char *) tcp_pkt + tcphdr_offset;		
         		_m->hdr_len = link_offset + hdr_offset + ip_hl + tcphdr_offset;
         		len -= link_offset + hdr_offset + ip_hl + tcphdr_offset;
 
@@ -364,7 +356,7 @@ void proccess_packet((msg_t *_m, struct pcap_pkthdr *pkthdr, u_char *packet) {
         	case IPPROTO_UDP: {
 	        	struct udphdr *udp_pkt = (struct udphdr *) ((unsigned char *) (ip4_pkt) + ip_hl);
         		uint16_t udphdr_offset = (frag_offset) ? 0 : sizeof(*udp_pkt);
-	        	data = (unsigned char *) (udp_pkt) + udphdr_offset;
+	        	//data = (unsigned char *) (udp_pkt) + udphdr_offset;
 		
         		_m->hdr_len = link_offset + ip_hl + hdr_offset + udphdr_offset;
 	        	
@@ -395,7 +387,7 @@ void proccess_packet((msg_t *_m, struct pcap_pkthdr *pkthdr, u_char *packet) {
 	        	break;
         }
 	
-	return 1;
+	return;
 }
 
 

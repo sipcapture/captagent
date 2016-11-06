@@ -5,6 +5,7 @@ SUBDIRS = \
 	modules/socket/pcap \
 	modules/socket/raw \
 	modules/socket/rtcpxr \
+	modules/socket/tzsp \
 	modules/protocol/sip \
 	modules/protocol/rtcp \
 	modules/protocol/ss7 \
