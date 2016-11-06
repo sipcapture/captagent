@@ -81,7 +81,7 @@ uv_async_t async_handle;
 static uv_udp_t  udp_servers[MAX_SOCKETS];
 int reply_to_tzsp = 1;
 static socket_tzsp_stats_t stats;
-
+int verbose = 0;
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_t call_thread;
 struct reasm_ip *reasm[MAX_SOCKETS];
@@ -165,14 +165,239 @@ void on_send(uv_udp_send_t* req, int status)
  
 int w_tzsp_payload_extract(msg_t *_m)
 {
-        int n = 0;
-        char *message = NULL;
-        uv_udp_send_t* send_req;
+        int n = 0, readsz = 0;
+        char *recv_buffer = NULL;
         int idx = 0;
-        uv_udp_t *handle = NULL;
+
+        recv_buffer = _m->data;
+        readsz = _m->len;
+        
+        char *end = recv_buffer + readsz;
+        char *p = recv_buffer;
+        
+        if (p + sizeof(struct tzsp_header) > end) 
+        {
+                LERR("Malformed packet (truncated header)");
+                return -1;
+        }
+        
+	struct tzsp_header *hdr = (struct tzsp_header *) recv_buffer;
+	p += sizeof(struct tzsp_header);        
+	
+	char got_end_tag = 0;
+	if (hdr->version == 1 && hdr->type == TZSP_TYPE_RECEIVED_TAG_LIST)
+	{
+		while (p < end) 
+		{
+			struct tzsp_tag *tag = (struct tzsp_tag *) p;
+
+			if (verbose) LERR("\ttag { type = %s(%u) }", name_tag(tag->type, tzsp_tag_names, ARRAYSZ(tzsp_tag_names)), tag->type);
+
+			if (tag->type == TZSP_TAG_END) 
+			{
+				got_end_tag = 1;
+				p++;
+				break;
+			}
+			else if (tag->type == TZSP_TAG_PADDING) {
+				p++;
+			}
+			else {
+				if (p + sizeof(struct tzsp_tag) > end || p + sizeof(struct tzsp_tag) + tag->length > end)
+				{
+					LERR("Malformed packet (truncated tag)");
+					return -1;
+				}
+				p += sizeof(struct tzsp_tag) + tag->length;
+			}
+		}
+	}
+	else {
+		LERR("Packet format not understood");
+		return -1;
+	}
+
+	if (!got_end_tag) {
+		LERR("Packet truncated (no END tag)");
+		return -1;
+	}
+		
+	if (verbose) {
+		LERR("\tpacket data begins at offset 0x%.4lx, length 0x%.4lx\n",(p - recv_buffer),readsz - (p - recv_buffer));
+	}
+
+	// packet remains starting at p
+	struct pcap_pkthdr pcap_hdr = {
+		.caplen = readsz - (p - recv_buffer),
+		.len = readsz - (p - recv_buffer),
+	};
+	gettimeofday(&pcap_hdr.ts, NULL);
+	proccess_packet(_m,  &pcap_hdr, (unsigned char *) p);
  
         return 1;
 }
+
+
+void proccess_packet((msg_t *_m, struct pcap_pkthdr *pkthdr, u_char *packet) {
+
+	uint8_t hdr_offset = 0;
+	uint16_t ethaddr;
+	uint16_t mplsaddr;
+
+	/* Pat Callahan's patch for MPLS */
+	memcpy(&ethaddr, (packet + 12), 2);
+        memcpy(&mplsaddr, (packet + 16), 2);
+
+        if (ntohs(ethaddr) == 0x8100) {
+          if (ntohs(mplsaddr) == 0x8847) {
+             hdr_offset = 8;
+          } else {
+             hdr_offset = 4;
+          }
+        }
+
+        struct ethhdr *eth = (struct ethhdr *)packet;
+        
+        struct ip      *ip4_pkt = (struct ip *)    (packet + link_offset + hdr_offset);
+#if USE_IPv6
+        struct ip6_hdr *ip6_pkt = (struct ip6_hdr*)(packet + link_offset + hdr_offset + ((ntohs((uint16_t)*(packet + 12)) == 0x8100)? 4: 0) );
+#endif
+
+	uint8_t loc_index = (uint8_t) *useless;
+	uint32_t ip_ver;
+	uint8_t ip_proto = 0;
+	uint32_t ip_hl = 0;
+	uint32_t ip_off = 0;
+	uint8_t fragmented = 0;
+	uint16_t frag_offset = 0;
+	char ip_src[INET6_ADDRSTRLEN + 1], ip_dst[INET6_ADDRSTRLEN + 1];
+	char mac_src[20], mac_dst[20];
+	u_char *pack = NULL;
+	unsigned char *data, *datatcp;	        
+	int action_idx = 0;	
+	uint32_t len = pkthdr->caplen;
+	uint8_t  psh = 0;
+	        
+	/* stats */
+	stats.recieved_packets_total++;
+
+	ip_ver = ip4_pkt->ip_v;
+
+        snprintf(mac_src, sizeof(mac_src), "%.2X-%.2X-%.2X-%.2X-%.2X-%.2X",eth->h_source[0] , eth->h_source[1] , eth->h_source[2] , eth->h_source[3] , eth->h_source[4] , eth->h_source[5]);
+        snprintf(mac_dst, sizeof(mac_dst), "%.2X-%.2X-%.2X-%.2X-%.2X-%.2X", eth->h_dest[0] , eth->h_dest[1] , eth->h_dest[2] , eth->h_dest[3] , eth->h_dest[4] , eth->h_dest[5]);
+        
+        _m->cap_packet = (void *) packet;
+        _m->cap_header = (void *) pkthdr;                
+
+	switch (ip_ver) {
+
+        	case 4: {
+        #if defined(AIX)
+#undef ip_hl
+        		ip_hl = ip4_pkt->ip_ff.ip_fhl * 4;
+#else
+	        	ip_hl = ip4_pkt->ip_hl * 4;
+#endif
+		        ip_proto = ip4_pkt->ip_p;
+        		ip_off = ntohs(ip4_pkt->ip_off);
+
+	        	fragmented = ip_off & (IP_MF | IP_OFFMASK);
+        		frag_offset = (fragmented) ? (ip_off & IP_OFFMASK) * 8 : 0;
+	        	//frag_id = ntohs(ip4_pkt->ip_id);
+
+	        	inet_ntop(AF_INET, (const void *) &ip4_pkt->ip_src, ip_src, sizeof(ip_src));
+        		inet_ntop(AF_INET, (const void *) &ip4_pkt->ip_dst, ip_dst, sizeof(ip_dst));
+                }
+		break;
+
+#if USE_IPv6
+                case 6: {
+	                ip_hl = sizeof(struct ip6_hdr);
+	                ip_proto = ip6_pkt->ip6_nxt;
+
+        		if (ip_proto == IPPROTO_FRAGMENT) {
+	        	        struct ip6_frag *ip6_fraghdr;
+		                ip6_fraghdr = (struct ip6_frag *)((unsigned char *)(ip6_pkt) + ip_hl);
+		                ip_hl += sizeof(struct ip6_frag);
+        			ip_proto = ip6_fraghdr->ip6f_nxt;
+	        		fragmented = 1;
+		        	frag_offset = ntohs(ip6_fraghdr->ip6f_offlg & IP6F_OFF_MASK);
+        			//frag_id = ntohl(ip6_fraghdr->ip6f_ident);
+                        }
+
+                        inet_ntop(AF_INET6, (const void *)&ip6_pkt->ip6_src, ip_src, sizeof(ip_src));
+        		inet_ntop(AF_INET6, (const void *)&ip6_pkt->ip6_dst, ip_dst, sizeof(ip_dst));
+                }
+                break;
+#endif
+	}
+
+	switch (ip_proto) {
+
+        	case IPPROTO_TCP: {
+	        	struct tcphdr *tcp_pkt = (struct tcphdr *) ((unsigned char *) (ip4_pkt) + ip_hl);
+        		uint16_t tcphdr_offset = frag_offset ? 0 : (uint16_t) (tcp_pkt->th_off * 4);        		
+        		data = (unsigned char *) tcp_pkt + tcphdr_offset;		
+        		_m->hdr_len = link_offset + hdr_offset + ip_hl + tcphdr_offset;
+        		len -= link_offset + hdr_offset + ip_hl + tcphdr_offset;
+
+        		if ((int32_t) len < 0) len = 0;
+        		
+        		_m->len = pkthdr->caplen - link_offset - hdr_offset;
+	        	_m->data = (packet + link_offset + hdr_offset);
+
+	        	_m->rcinfo.src_port = ntohs(tcp_pkt->th_sport);
+        		_m->rcinfo.dst_port = ntohs(tcp_pkt->th_dport);
+	        	_m->rcinfo.src_ip = ip_src;
+	        	_m->rcinfo.dst_ip = ip_dst;
+        		_m->rcinfo.src_mac = mac_src;
+	        	_m->rcinfo.dst_mac = mac_dst;
+        		_m->rcinfo.ip_family = ip_ver == 4 ? AF_INET : AF_INET6;
+        		_m->rcinfo.ip_proto = ip_proto;
+        		//_m->rcinfo.time_sec = pkthdr->ts.tv_sec;
+        		//_m->rcinfo.time_usec = pkthdr->ts.tv_usec;
+        		_m->tcpflag = tcp_pkt->th_flags;
+        		_m->parse_it = 1;        		
+        	}
+        	break;
+
+        	case IPPROTO_UDP: {
+	        	struct udphdr *udp_pkt = (struct udphdr *) ((unsigned char *) (ip4_pkt) + ip_hl);
+        		uint16_t udphdr_offset = (frag_offset) ? 0 : sizeof(*udp_pkt);
+	        	data = (unsigned char *) (udp_pkt) + udphdr_offset;
+		
+        		_m->hdr_len = link_offset + ip_hl + hdr_offset + udphdr_offset;
+	        	
+        		len -= link_offset + ip_hl + udphdr_offset + hdr_offset;
+				
+	        	/* stats */
+        		if ((int32_t) len < 0) len = 0;
+
+	        	_m->len = pkthdr->caplen - link_offset - hdr_offset;
+        		_m->data = (packet + link_offset + hdr_offset);
+	
+	        	_m->rcinfo.src_port = ntohs(udp_pkt->uh_sport);
+        		_m->rcinfo.dst_port = ntohs(udp_pkt->uh_dport);
+        		_m->rcinfo.src_ip = ip_src;
+        		_m->rcinfo.dst_ip = ip_dst;
+        		_m->rcinfo.src_mac = mac_src;
+        		_m->rcinfo.dst_mac = mac_dst;
+        		_m->rcinfo.ip_family = ip_ver == 4 ? AF_INET : AF_INET6;
+        		_m->rcinfo.ip_proto = ip_proto;
+        		//_m->rcinfo.time_sec = pkthdr->ts.tv_sec;
+        		//_m->rcinfo.time_usec = pkthdr->ts.tv_usec;
+        		_m->tcpflag = 0;
+        		_m->parse_it = 1;        		
+        	}
+		break;
+		
+        	default:
+	        	break;
+        }
+	
+	return 1;
+}
+
 
 
 #if UV_VERSION_MAJOR == 0                         
