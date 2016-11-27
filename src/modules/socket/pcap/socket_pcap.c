@@ -500,6 +500,8 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
 
 		while (chunk_read < len) {
 			bool send_data;
+			uint8_t padding;
+
 			plen = sctp_parse_chunk(&_msg, chunk_data, len - chunk_read, &send_data);
 			if (plen < 0)
 				goto error;
@@ -515,8 +517,9 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
 			run_actions(&ctx, main_ct.clist[action_idx], &_msg);
 
 next:
-			chunk_read += plen;
-			chunk_data += plen;
+			padding = (4 - (plen % 4)) & 0x3;
+			chunk_read += plen + padding;
+			chunk_data += plen + padding;
 		}
 
 		stats.send_packets++;
