@@ -98,7 +98,7 @@ static uint8_t *extract_from_m2ua(msg_t *msg, size_t *len)
 	uint8_t *data;
 	uint32_t data_len;
 
-	if (msg->len <= 8) {
+	if (msg->len < 8) {
 		LERR("M2UA hdr too short %u", msg->len);
 		return NULL;
 	}
