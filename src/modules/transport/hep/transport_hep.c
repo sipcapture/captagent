@@ -40,6 +40,7 @@
 #include <signal.h>
 #include <time.h>
 #include <pthread.h>
+#include <assert.h>
 
 #ifndef __FAVOR_BSD
 #define __FAVOR_BSD
@@ -72,6 +73,10 @@ static int description(char *descr);
 static int statistic(char *buf, size_t len);
 static int free_profile(unsigned int idx);
 static uint64_t serial_module(void);
+
+static void reconnect(int idx);
+static void set_conn_state(hep_connection_t* conn, conn_state_type_t new_conn_state);
+static uv_key_t hep_conn_key;
 
 bind_statistic_module_api_t stats_bind_api;
 unsigned int sslInit = 0;
@@ -180,6 +185,18 @@ unsigned int get_profile_index_by_name(char *name) {
 	return 0;
 }
 
+void ensure_connected(int idx) {
+    // Only need to worry about TCP connection.
+    if (hep_connection_s[idx].type != 2)
+        return;
+
+    // If we're connected, nothing to do.
+    if (hep_connection_s[idx].conn_state == STATE_CONNECTED)
+        return;
+
+    reconnect(idx);
+}
+
 int send_hep (msg_t *msg) {
 
         unsigned char *zipData = NULL;
@@ -192,6 +209,9 @@ int send_hep (msg_t *msg) {
         rcinfo = &msg->rcinfo;
 
         stats.recieved_packets_total++;
+
+        // Ensure we are connected by driving our state machine.
+        ensure_connected(idx);
 
 #ifdef USE_ZLIB
         int status = 0;
@@ -683,6 +703,14 @@ void on_alloc(uv_handle_t* client, size_t suggested, uv_buf_t* buf) {
 }
 #endif
 
+void on_tcp_close(uv_handle_t* handle)
+{
+        hep_connection_t* hep_conn = uv_key_get(&hep_conn_key);
+        assert(hep_conn != NULL);
+
+        set_conn_state(hep_conn, STATE_CLOSED);
+}
+
 void on_send_udp_request(uv_udp_send_t* req, int status) 
 {
         if (status == 0 && req) {
@@ -690,14 +718,27 @@ void on_send_udp_request(uv_udp_send_t* req, int status)
                 free(req); 
                 req = NULL;
         }        
-}       
+}
 
 void on_send_tcp_request(uv_write_t* req, int status) 
 {
+        hep_connection_t* hep_conn = uv_key_get(&hep_conn_key);
+        assert(hep_conn != NULL);
+
         if (status == 0 && req) {
                 free(req->data);
                 free(req); 
                 req = NULL;
+        }
+
+        if ((status != 0) && (hep_conn->conn_state == STATE_CONNECTED)) {
+            LERR("tcp send failed! err=%d", status);
+            if (uv_is_active((uv_handle_t*)(req->handle))) {
+                set_conn_state(hep_conn, STATE_CLOSING);
+                uv_close((uv_handle_t*)(req->handle), on_tcp_close);
+            }
+            else
+                set_conn_state(hep_conn, STATE_CLOSED);
         }
 }       
    
@@ -790,7 +831,10 @@ int homer_close(hep_connection_t *conn)
 
   uv_mutex_lock(&conn->mutex);
 
-  conn->async_handle.data = request; 
+  conn->async_handle.data = request;
+
+  if (conn->type == 2)
+    set_conn_state(conn, STATE_SHUTTING_DOWN);
   
   uv_async_send(&conn->async_handle);
 
@@ -798,6 +842,9 @@ int homer_close(hep_connection_t *conn)
   uv_mutex_unlock(&conn->mutex);
    
   uv_thread_join(conn->thread);
+
+  if (conn->type == 2)
+    set_conn_state(conn, STATE_SHUT_DOWN);
 
   return 0;
 }
@@ -846,7 +893,10 @@ int _handle_quit(hep_connection_t *conn)
 	  uv_close((uv_handle_t*)&conn->udp_handle, NULL);
    }
    else {
-   	  uv_close((uv_handle_t*)&conn->tcp_handle, NULL);
+      if (uv_is_active((uv_handle_t*)&conn->tcp_handle)) {
+        set_conn_state(conn, STATE_CLOSING);
+        uv_close((uv_handle_t*)&conn->tcp_handle, on_tcp_close);
+      }
    }
 
    uv_close((uv_handle_t*)&conn->async_handle, NULL);
@@ -857,6 +907,7 @@ int _handle_quit(hep_connection_t *conn)
 void _run_uv_loop(void *arg)
 {
       hep_connection_t *conn = (hep_connection_t *)arg;
+      uv_key_set(&hep_conn_key, conn);
       uv_run(conn->loop, UV_RUN_DEFAULT);   
 }
 
@@ -926,6 +977,14 @@ int init_udp_socket(hep_connection_t *conn, char *host, int port) {
 void on_tcp_connect(uv_connect_t* connection, int status)
 {
         LDEBUG("connected [%d]\n", status);
+
+        hep_connection_t* hep_conn = uv_key_get(&hep_conn_key);
+        assert(hep_conn != NULL);
+	
+        if (status == 0)
+            set_conn_state(hep_conn, STATE_CONNECTED);
+        else
+            set_conn_state(hep_conn, STATE_ERROR);
 }
 
 int init_tcp_socket(hep_connection_t *conn, char *host, int port) {
@@ -946,6 +1005,10 @@ int init_tcp_socket(hep_connection_t *conn, char *host, int port) {
 #else    
         status = uv_ip4_addr(host, port, &v4addr);
 #endif
+
+        set_conn_state(conn, STATE_CONNECTING);
+
+        conn->type = 2;
       
 #if UV_VERSION_MAJOR == 0                         
         status = uv_tcp_connect(&conn->connect, &conn->tcp_handle, v4addr, on_tcp_connect);
@@ -958,36 +1021,15 @@ int init_tcp_socket(hep_connection_t *conn, char *host, int port) {
                 LERR( "capture: bind error");
                 return 2;
         }
-        
-        conn->type = 2;
 
 	err = uv_thread_create(conn->thread, _run_uv_loop, conn);
 
         return 0;
 }
 
-
-void handlerPipe(int signum)
-{
-
-        LERR("SIGPIPE... trying to reconnect...[%d]", signum);
-}
-
-
 int sigPipe(void)
 {
-
-	struct sigaction new_action;
-
-	/* sigation structure */
-	new_action.sa_handler = handlerPipe;
-	sigemptyset(&new_action.sa_mask);
-	new_action.sa_flags = 0;
-
-	if (sigaction(SIGPIPE, &new_action, NULL) == -1) {
-		LERR("Failed to set new Handle");
-		return -1;
-	}
+    signal(SIGPIPE, SIG_IGN);
 
 	return 1;
 }
@@ -1047,12 +1089,16 @@ static int load_module(xml_node *config) {
 
 	LNOTICE("Loaded %s", module_name);
 
+	uv_key_create(&hep_conn_key);
+
 	load_module_xml_config();
 	/* READ CONFIG */
 	profile = module_xml_config;
 
 	/* reset profile */
 	profile_size = 0;
+
+    sigPipe();
 
 	while (profile) {
 
@@ -1206,8 +1252,6 @@ static int load_module(xml_node *config) {
 			}
 	}
 
-	sigPipe();
-
 	return 0;
 }
 
@@ -1221,6 +1265,8 @@ static int unload_module(void)
 
 			free_profile(i);
 	}
+
+	uv_key_delete(&hep_conn_key);
 
     return 0;
 }
@@ -1268,4 +1314,53 @@ static int statistic(char *buf, size_t len)
 	return 1;
 
 }
-                        
+
+static void reconnect(int idx)
+{
+    time_t cur_time = time(NULL);
+
+    // Don't reconnect more then every 2 secs.
+    if (cur_time - hep_connection_s[idx].conn_state_changed_time < 2)
+        return;
+
+    homer_close(&hep_connection_s[idx]);
+
+    init_tcp_socket(&hep_connection_s[idx], profile_transport[idx].capt_host, atoi(profile_transport[idx].capt_port));
+}
+
+static const char* 	get_state_label(conn_state_type_t state)
+{
+	switch (state)
+	{
+		case STATE_INIT:
+			return "INIT";
+		case STATE_CONNECTING:
+			return "CONNECTING";
+		case STATE_CONNECTED:
+			return "CONNECTED";
+		case STATE_CLOSING:
+			return "CLOSING";
+		case STATE_CLOSED:
+			return "CLOSED";
+		case STATE_SHUTTING_DOWN:
+			return "SHUTTING_DOWN";
+		case STATE_SHUT_DOWN:
+			return "SHUT_DOWN";
+		case STATE_ERROR:
+			return "ERROR";
+		default:
+			return "UNKNOWN";
+	}
+}
+
+static void set_conn_state(hep_connection_t* conn, conn_state_type_t new_conn_state)
+{
+	if (conn->conn_state == new_conn_state)
+		return;
+
+	conn_state_type_t old_state = conn->conn_state;
+	conn->conn_state = new_conn_state; 
+	conn->conn_state_changed_time = time(NULL);
+
+	LNOTICE("Connection state change: %s => %s", get_state_label(old_state), get_state_label(new_conn_state));
+}

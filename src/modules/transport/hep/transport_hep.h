@@ -67,6 +67,17 @@ typedef enum {
   QUIT_REQUEST
 } hep_request_type_t;
 
+typedef enum {
+  STATE_INIT = 0,
+  STATE_CONNECTING,
+  STATE_CONNECTED,
+  STATE_CLOSING,
+  STATE_CLOSED,
+  STATE_SHUTTING_DOWN,
+  STATE_SHUT_DOWN,
+  STATE_ERROR
+} conn_state_type_t;
+
 typedef struct hep_connection {
   uint8_t type;
   uv_loop_t *loop;
@@ -81,6 +92,9 @@ typedef struct hep_connection {
   uv_tcp_t tcp_handle; 
   
   void *context;
+
+  conn_state_type_t conn_state;
+  time_t conn_state_changed_time;
 } hep_connection_t;
 
 typedef struct hep_request {
