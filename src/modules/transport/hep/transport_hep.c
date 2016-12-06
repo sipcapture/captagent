@@ -733,6 +733,7 @@ void on_send_tcp_request(uv_write_t* req, int status)
 
         if ((status != 0) && (hep_conn->conn_state == STATE_CONNECTED)) {
             LERR("tcp send failed! err=%d", status);
+            uv_close((uv_handle_t*)&hep_conn->tcp_handle, NULL);
             if (uv_is_active((uv_handle_t*)(req->handle))) {
                 set_conn_state(hep_conn, STATE_CLOSING);
                 uv_close((uv_handle_t*)(req->handle), on_tcp_close);
@@ -983,8 +984,10 @@ void on_tcp_connect(uv_connect_t* connection, int status)
 	
         if (status == 0)
             set_conn_state(hep_conn, STATE_CONNECTED);
-        else
+        else {
+            uv_close((uv_handle_t*)connection->handle, NULL);
             set_conn_state(hep_conn, STATE_ERROR);
+        }
 }
 
 int init_tcp_socket(hep_connection_t *conn, char *host, int port) {
