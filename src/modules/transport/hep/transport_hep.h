@@ -68,7 +68,7 @@ typedef enum {
 } hep_request_type_t;
 
 typedef struct hep_connection {
-  bool type;
+  uint8_t type;
   uv_loop_t *loop;
   uv_thread_t *thread;
   struct sockaddr_in send_addr;
