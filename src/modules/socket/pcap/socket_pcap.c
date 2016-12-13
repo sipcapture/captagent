@@ -208,8 +208,8 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
 	if (profile_socket[loc_index].reasm == 1 && reasm[loc_index] != NULL) {
 		unsigned new_len;
 
-		u_char *new_p = malloc(len - link_offset - hdr_offset;
-		memcpy(new_p, ip4_pkt, len - link_offset - hdr_offset;
+		u_char *new_p = malloc(len - link_offset - hdr_offset);
+		memcpy(new_p, ip4_pkt, len - link_offset - hdr_offset);
 
 		pack = reasm_ip_next(reasm[loc_index], new_p, len - link_offset - hdr_offset,
 				(reasm_time_t) 1000000UL * pkthdr->ts.tv_sec + pkthdr->ts.tv_usec, &new_len);
