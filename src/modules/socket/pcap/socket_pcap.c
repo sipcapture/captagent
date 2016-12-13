@@ -180,7 +180,7 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
         struct ethhdr *eth = (struct ethhdr *)packet;
         struct run_act_ctx ctx;                
         
-        struct ip      *ip4_pkt = (struct ip *)    (packet + link_offset + hdr_offset);
+        struct ip      *ip4_pkt = (struct ip *)    (packet + link_offset + hdr_offset + ((ntohs((uint16_t)*(packet + 12)) == 0x8100)? 4: 0) );
 #if USE_IPv6
         struct ip6_hdr *ip6_pkt = (struct ip6_hdr*)(packet + link_offset + hdr_offset + ((ntohs((uint16_t)*(packet + 12)) == 0x8100)? 4: 0) );
 #endif
