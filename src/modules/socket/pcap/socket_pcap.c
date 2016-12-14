@@ -182,7 +182,7 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
         
         struct ip      *ip4_pkt = (struct ip *)    (packet + link_offset + hdr_offset);
 #if USE_IPv6
-        struct ip6_hdr *ip6_pkt = (struct ip6_hdr*)(packet + link_offset + hdr_offset + ((ntohs((uint16_t)*(packet + 12)) == 0x8100)? 4: 0) );
+        struct ip6_hdr *ip6_pkt = (struct ip6_hdr*)(packet + link_offset + hdr_offset);
 #endif
 
 	uint8_t loc_index = (uint8_t) *useless;
@@ -208,15 +208,15 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
 	if (profile_socket[loc_index].reasm == 1 && reasm[loc_index] != NULL) {
 		unsigned new_len;
 
-		u_char *new_p = malloc(len - link_offset - hdr_offset - ((ntohs((uint16_t) *(packet + 12)) == 0x8100) ? 4 : 0));
-		memcpy(new_p, ip4_pkt, len - link_offset - hdr_offset - ((ntohs((uint16_t) *(packet + 12)) == 0x8100) ? 4 : 0));
+		u_char *new_p = malloc(len - link_offset - hdr_offset);
+		memcpy(new_p, ip4_pkt, len - link_offset - hdr_offset);
 
-		pack = reasm_ip_next(reasm[loc_index], new_p, len - link_offset - hdr_offset - ((ntohs((uint16_t)*(packet + 12)) == 0x8100)? 4:0),
+		pack = reasm_ip_next(reasm[loc_index], new_p, len - link_offset - hdr_offset,
 				(reasm_time_t) 1000000UL * pkthdr->ts.tv_sec + pkthdr->ts.tv_usec, &new_len);
 
 		if (pack == NULL) return;
 
-		len = new_len + link_offset + hdr_offset + ((ntohs((uint16_t) *(packet + 12)) == 0x8100) ? 4 : 0);
+		len = new_len + link_offset + hdr_offset;
 		pkthdr->len = new_len;
 		pkthdr->caplen = new_len;
 
@@ -1202,7 +1202,7 @@ void proccess_packet(msg_t *_m, struct pcap_pkthdr *pkthdr, u_char *packet) {
         
         struct ip      *ip4_pkt = (struct ip *)    (packet + link_offset + hdr_offset);
 #if USE_IPv6
-        struct ip6_hdr *ip6_pkt = (struct ip6_hdr*)(packet + link_offset + hdr_offset + ((ntohs((uint16_t)*(packet + 12)) == 0x8100)? 4: 0) );
+        struct ip6_hdr *ip6_pkt = (struct ip6_hdr*)(packet + link_offset + hdr_offset);
 #endif
 
 	uint32_t ip_ver;
