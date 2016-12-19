@@ -713,12 +713,13 @@ void on_tcp_close(uv_handle_t* handle)
 {
 #if UV_VERSION_MAJOR == 0                         
         /* need implement it */
+        hep_connection_t* hep_conn = handle->loop->data;        
 #else
-        hep_connection_t* hep_conn = uv_key_get(&hep_conn_key);
-        assert(hep_conn != NULL);
-
-        set_conn_state(hep_conn, STATE_CLOSED);
+        hep_connection_t* hep_conn = uv_key_get(&hep_conn_key);        
 #endif        
+        assert(hep_conn != NULL);
+        set_conn_state(hep_conn, STATE_CLOSED);
+
 }
 
 void on_send_udp_request(uv_udp_send_t* req, int status) 
@@ -740,10 +741,12 @@ void on_send_tcp_request(uv_write_t* req, int status)
         }
 
 #if UV_VERSION_MAJOR == 0                         
-
-        /* not yet implemented */
+        hep_connection_t* hep_conn = req->handle->loop->data;
 #else        
         hep_connection_t* hep_conn = uv_key_get(&hep_conn_key);
+
+#endif   
+
         assert(hep_conn != NULL);        
 
         if ((status != 0) && (hep_conn->conn_state == STATE_CONNECTED)) {
@@ -755,9 +758,7 @@ void on_send_tcp_request(uv_write_t* req, int status)
             }
             else
                 set_conn_state(hep_conn, STATE_CLOSED);
-        }
-#endif        
-
+        }    
 }       
    
 int _handle_send_udp_request(hep_connection_t *conn, unsigned char *message, size_t len)
@@ -927,7 +928,7 @@ void _run_uv_loop(void *arg){
       hep_connection_t *conn = (hep_connection_t *)arg;
 
 #if UV_VERSION_MAJOR == 0
-        /* empty */
+        conn->loop->data = conn;
 #else               
         uv_key_set(&hep_conn_key, conn);
 #endif
@@ -1003,10 +1004,11 @@ void on_tcp_connect(uv_connect_t* connection, int status)
         LDEBUG("connected [%d]\n", status);
 
 #if UV_VERSION_MAJOR == 0                         
-        /* not implemented */
+        hep_connection_t* hep_conn = connection->handle->loop->data;
 #else
 
         hep_connection_t* hep_conn = uv_key_get(&hep_conn_key);
+#endif   
         assert(hep_conn != NULL);        
 	
         if (status == 0)
@@ -1015,7 +1017,7 @@ void on_tcp_connect(uv_connect_t* connection, int status)
             uv_close((uv_handle_t*)connection->handle, NULL);
             set_conn_state(hep_conn, STATE_ERROR);
         }
-#endif   
+
         
 }
 
