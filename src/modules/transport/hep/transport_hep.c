@@ -76,7 +76,13 @@ static uint64_t serial_module(void);
 
 static void reconnect(int idx);
 static void set_conn_state(hep_connection_t* conn, conn_state_type_t new_conn_state);
+
+#if UV_VERSION_MAJOR == 0                         
+        /* need implement it */
+#else
 static uv_key_t hep_conn_key;
+#endif  
+
 
 bind_statistic_module_api_t stats_bind_api;
 unsigned int sslInit = 0;
@@ -705,10 +711,14 @@ void on_alloc(uv_handle_t* client, size_t suggested, uv_buf_t* buf) {
 
 void on_tcp_close(uv_handle_t* handle)
 {
+#if UV_VERSION_MAJOR == 0                         
+        /* need implement it */
+#else
         hep_connection_t* hep_conn = uv_key_get(&hep_conn_key);
         assert(hep_conn != NULL);
 
         set_conn_state(hep_conn, STATE_CLOSED);
+#endif        
 }
 
 void on_send_udp_request(uv_udp_send_t* req, int status) 
@@ -722,14 +732,19 @@ void on_send_udp_request(uv_udp_send_t* req, int status)
 
 void on_send_tcp_request(uv_write_t* req, int status) 
 {
-        hep_connection_t* hep_conn = uv_key_get(&hep_conn_key);
-        assert(hep_conn != NULL);
 
         if (status == 0 && req) {
                 free(req->data);
                 free(req); 
                 req = NULL;
         }
+
+#if UV_VERSION_MAJOR == 0                         
+
+        /* not yet implemented */
+#else        
+        hep_connection_t* hep_conn = uv_key_get(&hep_conn_key);
+        assert(hep_conn != NULL);        
 
         if ((status != 0) && (hep_conn->conn_state == STATE_CONNECTED)) {
             LERR("tcp send failed! err=%d", status);
@@ -741,6 +756,8 @@ void on_send_tcp_request(uv_write_t* req, int status)
             else
                 set_conn_state(hep_conn, STATE_CLOSED);
         }
+#endif        
+
 }       
    
 int _handle_send_udp_request(hep_connection_t *conn, unsigned char *message, size_t len)
@@ -905,10 +922,16 @@ int _handle_quit(hep_connection_t *conn)
    return 0;
 }
 
-void _run_uv_loop(void *arg)
-{
+void _run_uv_loop(void *arg){
+
       hep_connection_t *conn = (hep_connection_t *)arg;
-      uv_key_set(&hep_conn_key, conn);
+
+#if UV_VERSION_MAJOR == 0
+        /* empty */
+#else               
+        uv_key_set(&hep_conn_key, conn);
+#endif
+                        
       uv_run(conn->loop, UV_RUN_DEFAULT);   
 }
 
@@ -979,8 +1002,12 @@ void on_tcp_connect(uv_connect_t* connection, int status)
 {
         LDEBUG("connected [%d]\n", status);
 
+#if UV_VERSION_MAJOR == 0                         
+        /* not implemented */
+#else
+
         hep_connection_t* hep_conn = uv_key_get(&hep_conn_key);
-        assert(hep_conn != NULL);
+        assert(hep_conn != NULL);        
 	
         if (status == 0)
             set_conn_state(hep_conn, STATE_CONNECTED);
@@ -988,6 +1015,8 @@ void on_tcp_connect(uv_connect_t* connection, int status)
             uv_close((uv_handle_t*)connection->handle, NULL);
             set_conn_state(hep_conn, STATE_ERROR);
         }
+#endif   
+        
 }
 
 int init_tcp_socket(hep_connection_t *conn, char *host, int port) {
@@ -1092,7 +1121,12 @@ static int load_module(xml_node *config) {
 
 	LNOTICE("Loaded %s", module_name);
 
+#if UV_VERSION_MAJOR == 0                         
+        /* not implemented */
+#else    
 	uv_key_create(&hep_conn_key);
+#endif
+                
 
 	load_module_xml_config();
 	/* READ CONFIG */
@@ -1269,8 +1303,12 @@ static int unload_module(void)
 			free_profile(i);
 	}
 
+#if UV_VERSION_MAJOR == 0                         
+        /* not implemented */
+#else    
 	uv_key_delete(&hep_conn_key);
-
+#endif
+              
     return 0;
 }
 
