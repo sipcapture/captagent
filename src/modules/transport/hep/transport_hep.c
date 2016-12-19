@@ -76,7 +76,6 @@ static uint64_t serial_module(void);
 
 static void reconnect(int idx);
 static void set_conn_state(hep_connection_t* conn, conn_state_type_t new_conn_state);
-static uv_key_t hep_conn_key;
 
 bind_statistic_module_api_t stats_bind_api;
 unsigned int sslInit = 0;
@@ -705,7 +704,7 @@ void on_alloc(uv_handle_t* client, size_t suggested, uv_buf_t* buf) {
 
 void on_tcp_close(uv_handle_t* handle)
 {
-        hep_connection_t* hep_conn = uv_key_get(&hep_conn_key);
+        hep_connection_t* hep_conn = handle->loop->data;
         assert(hep_conn != NULL);
 
         set_conn_state(hep_conn, STATE_CLOSED);
@@ -722,7 +721,7 @@ void on_send_udp_request(uv_udp_send_t* req, int status)
 
 void on_send_tcp_request(uv_write_t* req, int status) 
 {
-        hep_connection_t* hep_conn = uv_key_get(&hep_conn_key);
+        hep_connection_t* hep_conn = req->handle->loop->data;
         assert(hep_conn != NULL);
 
         if (status == 0 && req) {
@@ -908,7 +907,7 @@ int _handle_quit(hep_connection_t *conn)
 void _run_uv_loop(void *arg)
 {
       hep_connection_t *conn = (hep_connection_t *)arg;
-      uv_key_set(&hep_conn_key, conn);
+      conn->loop->data = conn;
       uv_run(conn->loop, UV_RUN_DEFAULT);   
 }
 
@@ -979,7 +978,7 @@ void on_tcp_connect(uv_connect_t* connection, int status)
 {
         LDEBUG("connected [%d]\n", status);
 
-        hep_connection_t* hep_conn = uv_key_get(&hep_conn_key);
+        hep_connection_t* hep_conn = connection->handle->loop->data;
         assert(hep_conn != NULL);
 	
         if (status == 0)
@@ -1091,8 +1090,6 @@ static int load_module(xml_node *config) {
 	char module_api_name[256];
 
 	LNOTICE("Loaded %s", module_name);
-
-	uv_key_create(&hep_conn_key);
 
 	load_module_xml_config();
 	/* READ CONFIG */
@@ -1268,8 +1265,6 @@ static int unload_module(void)
 
 			free_profile(i);
 	}
-
-	uv_key_delete(&hep_conn_key);
 
     return 0;
 }
