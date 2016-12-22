@@ -34,11 +34,16 @@
 
 
 #define SCTP_M2UA_PPID	2
+#define SCTP_M2PA_PPID	5
 
 #define M2UA_MSG	6
 #define M2UA_DATA	1
 
 #define M2UA_IE_DATA	0x0300
+
+
+#define M2PA_CLASS	11
+#define M2PA_DATA	1
 
 #define MTP_ISUP	0x05
 
@@ -169,6 +174,67 @@ next:
 	return NULL;
 }
 
+static uint8_t *extract_from_m2pa(msg_t *msg, size_t *len)
+{
+	uint8_t *data;
+	uint32_t data_len;
+
+	if (msg->len < 8) {
+		LERR("M2PA hdr too short %u", msg->len);
+		return NULL;
+	}
+	data = msg->data;
+
+	/* check the header */
+	if (data[0] != 0x01) {
+		LERR("M2PA unknown version number %d", data[0]);
+		return NULL;
+	}
+	if (data[1] != 0x00) {
+		LERR("M2PA unknown reserved fields %d", data[1]);
+		return NULL;
+	}
+	if (data[2] != M2PA_CLASS) {
+		LDEBUG("M2PA unhandled message class %d", data[2]);
+		return NULL;
+	}
+	if (data[3] != M2PA_DATA) {
+		LDEBUG("M2PA not data msg but %d", data[3]);
+		return NULL;
+	}
+
+	/* check the length */
+	memcpy(&data_len, &data[4], sizeof(data_len));
+	data_len = ntohl(data_len);
+	if (msg->len < data_len) {
+		LERR("M2PA data can't fit %u vs. %u", msg->len, data_len);
+		return NULL;
+	}
+
+	/* skip the header */
+	data += 8;
+	data_len -= 8;
+
+	/* BSN, FSN and then priority */
+	if (data_len < 8) {
+		LERR("M2PA no space for BSN/FSN %u\n", data_len);
+		return NULL;
+	}
+	data += 8;
+	data_len -= 8;
+	if (data_len == 0)
+		return NULL;
+	else if (data_len < 1) {
+		LERR("M2PA no space for prio %u\n", data_len);
+		return NULL;
+	}
+	data += 1;
+	data_len -= 1;
+
+	*len = data_len;
+	return data;
+}
+
 static uint8_t *extract_from_mtp(uint8_t *data, size_t *len, int *opc, int *dpc, int *type)
 {
 	struct mtp_level_3_hdr *hdr;
@@ -198,6 +264,9 @@ static uint8_t *ss7_extract_payload(msg_t *msg, size_t *len, int *opc, int *dpc,
 		msg->rcinfo.proto_type = 0x08;
 		return extract_from_mtp(extract_from_m2ua(msg, len), len, opc, dpc, type);
 		break;
+	case SCTP_M2PA_PPID:
+		msg->rcinfo.proto_type = 0x0d;
+		return extract_from_mtp(extract_from_m2pa(msg, len), len, opc, dpc, type);
 	default:
 		LDEBUG("SS7 SCTP PPID(%u) not known", msg->sctp_ppid);
 		return NULL;
