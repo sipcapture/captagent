@@ -45,9 +45,6 @@ profile_database_t profile_database[MAX_DATABASE];
 #define EXPIRE_RTCP_HASH 80
 #define EXPIRE_TIMER_ARRAY 80
 
-int expire_hash_value = EXPIRE_RTCP_HASH;
-int rtcp_timeout = EXPIRE_RTCP_HASH;
-
 typedef struct mediaport {
   char ipportid[400];
 } mediaport_t;
@@ -58,21 +55,9 @@ struct ipport_items *ipports = NULL;
 bool hash_mode = FALSE;
 
 int bind_api(database_module_api_t* api);
-int w_is_rtcp_exists(msg_t *msg);
-int w_check_rtcp_ipport(msg_t *msg);
-
 
 extern char* global_config_path;
 
 /* IPPORTS */
-struct ipport_items *find_ipport(char *ip, int port);
-struct ipport_items *find_ipport_key(char *key);
-void add_ipport(char *key, char *callid);
-int delete_ipport(char *ip, int port);
-int clear_ipport(struct ipport_items *ipport);
-int find_and_update(char *key, char *callid);
-void clear_ipports();
-void print_ipports();
-int check_ipport(char *name);
 
 #endif /* DATABASE_LI_H_ */
