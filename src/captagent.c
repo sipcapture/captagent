@@ -155,7 +155,7 @@ int daemonize(int nofork) {
 		}
 	}
 
-	if (pid_file != 0) {
+	if (pid_file != 0  && !nofork) {
 		if ((pid_stream = fopen(pid_file, "r")) != NULL) {
 			if (fscanf(pid_stream, "%d", &p) < 0) {
 				LERR("could not parse pid file %s", pid_file);
