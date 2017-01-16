@@ -72,6 +72,9 @@
 #include <netinet/icmp6.h>
 #endif
 
+#include "uthash.h"
+/* ### Declaration of HASH TABLE FOR HANDSHAKE FLOWS ### */
+extern struct Hash_Table *HT_Flows;
 
 
 xml_node *module_xml_config = NULL;
@@ -356,7 +359,13 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
 
 			action_idx = profile_socket[loc_index].action;		
 			run_actions(&ctx, main_ct.clist[action_idx], &_msg);
-
+			
+			/**
+			   hook to function process_packet:
+			   in process_packet I have to prepare the Key
+			   and the Handshake for Hashtable 
+			*/
+			
                         /* clear datatcp */
                         free(datatcp);                    
 		}

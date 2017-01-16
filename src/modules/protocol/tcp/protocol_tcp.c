@@ -47,14 +47,16 @@
 #include <captagent/log.h>
 #include "localapi.h"
 
+#include "tls_ssl.h"
+
 pthread_rwlock_t ipport_lock;
 
-unsigned int profile_size = 0;
+unsigned int profile_size   = 0;
 
 xml_node *module_xml_config = NULL;
-char *module_name="protocol_tcp";
-uint64_t module_serial = 0;
-char *module_description = NULL;
+char *module_name           = "protocol_tcp";
+uint64_t module_serial      = 0;
+char *module_description    = NULL;
 
 static int load_module(xml_node *config);
 static int unload_module(void);
@@ -65,23 +67,52 @@ static uint64_t serial_module(void);
 
 
 static cmd_export_t cmds[] = {
-		 {"protocol_tcp_bind_api",  (cmd_function)bind_api,   1, 0, 0, 0},
-		 {"check_rtcp_ipport", (cmd_function) w_check_rtcp_ipport, 0, 0, 0, 0 },
-		 {"is_rtcp_exist", (cmd_function) w_is_rtcp_exists, 0, 0, 0, 0 },
-		 {"bind_database_has",  (cmd_function)bind_protocol_tcp,  0, 0, 0, 0},
+		 {"protocol_tcp_bind_api", (cmd_function) bind_api, 1, 0, 0, 0},
+		 {"check_tcp_ipport",      (cmd_function) w_check_tcp_ipport, 0, 0, 0, 0 },
+		 {"is_tls",                (cmd_function) is_tls, 0, 0, 0, 0 },
+		 {"extract_hand",          (cmd_function) extract_hand, 0, 0, 0, 0 },
+		 {"bind_protocol_tcp",     (cmd_function) bind_protocol_tcp, 0, 0, 0, 0},
          /* ================================ */
-         {0, 0, 0, 0, 0, 0}
+		 {0, 0, 0, 0, 0, 0}
 };
 
 struct module_exports exports = {
-		"protocol_tcp",
-        cmds,        /* Exported functions */
+        "protocol_tcp",
+	cmds,           /* Exported functions */
         load_module,    /* module initialization function */
         unload_module,
         description,
         statistic,
         serial_module
 };
+
+
+int is_tls(msg_t *msg) {
+  
+  /**
+     NOTE:
+     I must define Key and Handshake
+     I need to put them in the function called by callback in socket
+     then pass to this function to be check (key) and filled (handshake)
+  */
+  
+  return tls_packet_dissector(msg->data,
+			      msg->len,
+			      ip_version,   // check if already inside msg
+			      handshake,
+			      flow_key,
+			      src_port,     //   "
+			      dst_port,     //   "
+			      proto_id_l3); //   "
+}
+
+
+
+
+
+
+
+/* ### CAPTAGENT FUNCTIONS ### */
 
 int bind_api(database_module_api_t* api)
 {
@@ -159,7 +190,7 @@ void free_module_xml_config() {
 
 static int load_module(xml_node *config) {
 
-	xml_node *params, *profile=NULL, *settings;
+	xml_node *params, *profile = NULL, *settings;
 	char *key, *value = NULL;
 
 	LNOTICE("Loaded %s", module_name);
@@ -258,11 +289,11 @@ static int load_module(xml_node *config) {
 
 
 static int free_profile(unsigned int idx) {
-
-	if (profile_database[idx].name)	 free(profile_database[idx].name);
-	if (profile_database[idx].description)	 free(profile_database[idx].description);
-
-	return 1;
+  
+  if (profile_database[idx].name)	 free(profile_database[idx].name);
+  if (profile_database[idx].description) free(profile_database[idx].description);
+  
+  return 1;
 }
 
 

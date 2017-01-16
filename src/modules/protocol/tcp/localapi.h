@@ -24,11 +24,27 @@
 */
 
 
-#ifndef DATABASE_HASH_API_H_
-#define DATABASE_HASH_API_H_
+#ifndef LOCAL_API_H_
+#define LOCAL_API_H_
 
 #include <captagent/log.h>
 #include <captagent/export_function.h>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* ### CAPTAGENT FUNCTIONS ### */
 
 typedef char* (*hashapi_lookup_f)(char *ip, int port);
 char* hashapi_lookup(char *ip, int port);
@@ -66,4 +82,4 @@ static inline int protocol_tcp_load_api(protocol_tcp_api_t *api)
 
 
 
-#endif /* DATABASE_HASH_API_H_ */
+#endif /* LOCAL_API_H_ */

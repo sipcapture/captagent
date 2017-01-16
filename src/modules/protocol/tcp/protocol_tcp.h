@@ -23,8 +23,8 @@
  *
 */
 
-#ifndef DATABASE_HASH_H_
-#define DATABASE_HASH_H_
+#ifndef PROTOCOL_TCP_H_
+#define PROTOCOL_TCP_H_
 
 
 #include <captagent/xmlread.h>
@@ -60,4 +60,4 @@ extern char* global_config_path;
 
 /* IPPORTS */
 
-#endif /* DATABASE_LI_H_ */
+#endif /* PROTOCOL_TCP_H_ */
