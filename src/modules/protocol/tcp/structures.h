@@ -258,7 +258,7 @@ struct Flow_key
 **/
 struct Hash_Table
 {
-  struct Flow_key *flow_key_hash; // Key
+  struct Flow_key flow_key_hash; // Key
   /* struct Flow *flow_hash; */
   struct Handshake *handshake;
   u_int8_t is_handsk_fin;

@@ -1,26 +1,6 @@
-/**
-   TLS dissector: parse the pkt and extract the handshake (if present)
-   TLS version supported: TLSv1 TLSv1.2
-   
-   Copyright (C) 2016-2017 Michele Campus
-   
-   This file is part of captagent.
-   
-   Homer capture agent is free software; you can redistribute it and/or modify
-   it under the terms of the GNU General Public License as published by
-   the Free Software Foundation; either version 3 of the License, or
-   (at your option) any later version
-   
-   Homer capture agent is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU General Public License for more details.
-   
-   You should have received a copy of the GNU General Public License
-   along with this program; if not, write to the Free Software
-   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-**/
-
+/*
+ * This TLS dissector parse the pkt and extract the handshake (if present)
+ */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -143,20 +123,12 @@ static void add_cert(struct Hash_Table **flow_in, struct Handshake **handshake, 
 
 
 // ADD FLOW
-
-/**
-   TODO:
-   fix the fact to consider these flows 
-   (ip_scr = x ip_dest = y)
-   (ip_scr = y ip_dest = x)
-   the SAME flow (check how to fix this when key is create and check)
- */
 static void add_flow(/* struct Hash_Table * HT_Flows,  */struct Flow_key *key, struct Handshake *handshake, u_int8_t flag, u_int8_t len_id)
 {
   struct Hash_Table * flow_in;
 
   /* key already in the hash? */
-  HASH_FIND(hh, HT_Flows, key, sizeof(struct Flow_key), flow_in);
+  HASH_FIND(hh, HT_Flows, &key, sizeof(struct Flow_key), flow_in);
   
   /* new flow: add the flow if the key is not used */
   if(!flow_in) {
@@ -173,11 +145,10 @@ static void add_flow(/* struct Hash_Table * HT_Flows,  */struct Flow_key *key, s
       memset(flow_in, 0, sizeof(struct Hash_Table));
       // alloc mem for handshake field of flow
       flow_in->handshake = malloc(sizeof(struct Flow_key));
-      // init flow handshake
-      flow_in->handshake = {0};
       
       // set KEY
-      flow_in->flow_key_hash = key;
+      memcpy(&flow_in->flow_key_hash, key, sizeof(struct Flow_key));
+      /* flow_in.flow_key_hash = key; */
       
       // set handshake fin to FALSE
       flow_in->is_handsk_fin = FALSE;
@@ -385,12 +356,13 @@ int tls_packet_dissector(const u_char ** payload,
 		    pp = pp + exts_offset;
 		  }
 		  // search flow and eventually inser new in HT or update old
+		  // 10 CLI
 		  add_flow(/* HT_Flows, */ flow_key, handshake, CLI, len_id);
-		  more_records = FALSE;
+		  more_records = 1;
 		  break;
 		}
 		else {
-		  more_records = FALSE;
+		  more_records = 1;
 		  // search flow and eventually inser new in HT update old
 		  add_flow(/* HT_Flows, */ flow_key, handshake, CLI, len_id);
 		  break;
@@ -464,12 +436,12 @@ int tls_packet_dissector(const u_char ** payload,
 		
 		// 1
 		if(pp[5] == 0x0b) {
-		  more_records = TRUE;
+		  more_records = 0;
 		  break;
 		}
 		// 2
 		else if(pp[5] == 0x14) {
-		  more_records = FALSE;
+		  more_records = 1;
 		  break;
 		}
 	      
@@ -504,13 +476,13 @@ int tls_packet_dissector(const u_char ** payload,
 		// search flow and eventually inser new in HT update old
 		add_flow(/* HT_Flows, */ flow_key, handshake, SRV, len_id);
 		
-		more_records = FALSE;
+		more_records = 1;
 		break;
 	      }
 	      else {
 		// search flow and eventually inser new in HT update old
 		add_flow(/* HT_Flows,  */flow_key, handshake, SRV, len_id);
-		more_records = FALSE;
+		more_records = 1;
 		break;
 	      }
 	      
@@ -556,14 +528,14 @@ int tls_packet_dissector(const u_char ** payload,
 		  // search flow and eventually inser new in HT update old
 		  add_flow(/* HT_Flows,  */flow_key, handshake, CERT_S, cert_len);
 	      }
-	      more_records = TRUE;
+	      more_records = 0;
 	      break;
 	    }
 	    else {
 	      if(cert_len > 0)
 		// search flow and eventually inser new in HT update old
 		add_flow(/* HT_Flows, */ flow_key, handshake, CERT_S, cert_len);
-	      more_records = FALSE;
+	      more_records = 1;
 	      break;
 	    }
 	  }
@@ -584,11 +556,11 @@ int tls_packet_dissector(const u_char ** payload,
 		fprintf(stderr, "This is not a valid TLS/SSL packet\n");
 		return -1;
 	      }
-	      more_records = TRUE;
+	      more_records = 0;
 	      break;
 	    }
 	    else {
-	      more_records = FALSE;
+	      more_records = 1;
 	      break;
 	    }
 	  }
@@ -600,7 +572,7 @@ int tls_packet_dissector(const u_char ** payload,
 	
 	    if(offset < size_payload) {
 	      if(pp[0] == 0x14) {
-		more_records = FALSE;
+		more_records = 1;
 		//extract key
 		break;
 	      }
@@ -608,12 +580,12 @@ int tls_packet_dissector(const u_char ** payload,
 		fprintf(stderr, "This is not a valid TLS/SSL packet\n");
 		return -1;
 	      }
-	      more_records = TRUE;
+	      more_records = 0;
 	      //extract key
 	      break;
 	    }
 	    else {
-	      more_records = FALSE;
+	      more_records = 1;
 	      //extract key
 	      break;
 	    }
@@ -632,11 +604,11 @@ int tls_packet_dissector(const u_char ** payload,
 		fprintf(stderr, "This is not a valid TLS/SSL packet\n");
 		return -1;
 	      }
-	      more_records = TRUE;
+	      more_records = 0;
 	      break;
 	    }
 	    else {
-	      more_records = FALSE;
+	      more_records = 1;
 	      break;
 	    }
 	  }
@@ -654,7 +626,7 @@ int tls_packet_dissector(const u_char ** payload,
 	      return -1;
 	    }
 	    else {
-	      more_records = FALSE;
+	      more_records = 1;
 	      break;
 	    }
 	  }
@@ -665,23 +637,23 @@ int tls_packet_dissector(const u_char ** payload,
 	  {
 	    struct Hash_Table *old; 
 	    old = malloc(sizeof(struct Hash_Table));
-	    
-	    old->flow_key_hash = flow_key;
+
+	    memcpy(&old->flow_key_hash, flow_key, sizeof(struct Flow_key));
 	    
 	    // set handshake fin to TRUE
-	    HASH_FIND(hh, HT_Flows, flow_key,
+	    HASH_FIND(hh, HT_Flows, &flow_key,
 		      sizeof(struct Flow_key), old);
 	    if(old) {
 	      old->is_handsk_fin = TRUE;
 	      HASH_REPLACE(hh, HT_Flows, flow_key_hash,
 			   sizeof(struct Flow_key), old, el);
 	    }
-	    more_records = FALSE;
+	    more_records = 1;
 	    break;
 	  }
 	  
 	} // switch
-      } while(more_records == TRUE);
+      } while(more_records == 0);
     }
     
     /**
@@ -702,3 +674,4 @@ int tls_packet_dissector(const u_char ** payload,
   }
   return -1;
 }
+sss
