@@ -1,6 +1,26 @@
-/*
- * This TLS dissector parse the pkt and extract the handshake (if present)
- */
+/**
+   TLS dissector: parse the pkt and extract the handshake (if present)
+   TLS version supported: TLSv1 TLSv1.2
+   
+   Copyright (C) 2016-2017 Michele Campus
+   
+   This file is part of captagent.
+   
+   Homer capture agent is free software; you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation; either version 3 of the License, or
+   (at your option) any later version
+   
+   Homer capture agent is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details.
+   
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, write to the Free Software
+   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+**/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -148,7 +168,6 @@ static void add_flow(/* struct Hash_Table * HT_Flows,  */struct Flow_key *key, s
       
       // set KEY
       memcpy(&flow_in->flow_key_hash, key, sizeof(struct Flow_key));
-      /* flow_in.flow_key_hash = key; */
       
       // set handshake fin to FALSE
       flow_in->is_handsk_fin = FALSE;
@@ -233,7 +252,7 @@ int tls_packet_dissector(const u_char ** payload,
     struct header_tls_record *hdr_tls_rec = (struct header_tls_record*)(*payload);
       
     u_int16_t type = 0;
-    u_int8_t more_records = 0;
+    u_int8_t more_records = TRUE;
     
     // Record Type
     switch(hdr_tls_rec->type) {
@@ -358,11 +377,11 @@ int tls_packet_dissector(const u_char ** payload,
 		  // search flow and eventually inser new in HT or update old
 		  // 10 CLI
 		  add_flow(/* HT_Flows, */ flow_key, handshake, CLI, len_id);
-		  more_records = 1;
+		  more_records = FALSE;
 		  break;
 		}
 		else {
-		  more_records = 1;
+		  more_records = FALSE;
 		  // search flow and eventually inser new in HT update old
 		  add_flow(/* HT_Flows, */ flow_key, handshake, CLI, len_id);
 		  break;
@@ -436,12 +455,12 @@ int tls_packet_dissector(const u_char ** payload,
 		
 		// 1
 		if(pp[5] == 0x0b) {
-		  more_records = 0;
+		  more_records = TRUE;
 		  break;
 		}
 		// 2
 		else if(pp[5] == 0x14) {
-		  more_records = 1;
+		  more_records = FALSE;
 		  break;
 		}
 	      
@@ -476,13 +495,13 @@ int tls_packet_dissector(const u_char ** payload,
 		// search flow and eventually inser new in HT update old
 		add_flow(/* HT_Flows, */ flow_key, handshake, SRV, len_id);
 		
-		more_records = 1;
+		more_records = FALSE;
 		break;
 	      }
 	      else {
 		// search flow and eventually inser new in HT update old
 		add_flow(/* HT_Flows,  */flow_key, handshake, SRV, len_id);
-		more_records = 1;
+		more_records = FALSE;
 		break;
 	      }
 	      
@@ -528,14 +547,14 @@ int tls_packet_dissector(const u_char ** payload,
 		  // search flow and eventually inser new in HT update old
 		  add_flow(/* HT_Flows,  */flow_key, handshake, CERT_S, cert_len);
 	      }
-	      more_records = 0;
+	      more_records = TRUE;
 	      break;
 	    }
 	    else {
 	      if(cert_len > 0)
 		// search flow and eventually inser new in HT update old
 		add_flow(/* HT_Flows, */ flow_key, handshake, CERT_S, cert_len);
-	      more_records = 1;
+	      more_records = FALSE;
 	      break;
 	    }
 	  }
@@ -556,11 +575,11 @@ int tls_packet_dissector(const u_char ** payload,
 		fprintf(stderr, "This is not a valid TLS/SSL packet\n");
 		return -1;
 	      }
-	      more_records = 0;
+	      more_records = TRUE;
 	      break;
 	    }
 	    else {
-	      more_records = 1;
+	      more_records = FALSE;
 	      break;
 	    }
 	  }
@@ -572,7 +591,7 @@ int tls_packet_dissector(const u_char ** payload,
 	
 	    if(offset < size_payload) {
 	      if(pp[0] == 0x14) {
-		more_records = 1;
+		more_records = FALSE;
 		//extract key
 		break;
 	      }
@@ -580,12 +599,12 @@ int tls_packet_dissector(const u_char ** payload,
 		fprintf(stderr, "This is not a valid TLS/SSL packet\n");
 		return -1;
 	      }
-	      more_records = 0;
+	      more_records = TRUE;
 	      //extract key
 	      break;
 	    }
 	    else {
-	      more_records = 1;
+	      more_records = FALSE;
 	      //extract key
 	      break;
 	    }
@@ -604,11 +623,11 @@ int tls_packet_dissector(const u_char ** payload,
 		fprintf(stderr, "This is not a valid TLS/SSL packet\n");
 		return -1;
 	      }
-	      more_records = 0;
+	      more_records = TRUE;
 	      break;
 	    }
 	    else {
-	      more_records = 1;
+	      more_records = FALSE;
 	      break;
 	    }
 	  }
@@ -626,7 +645,7 @@ int tls_packet_dissector(const u_char ** payload,
 	      return -1;
 	    }
 	    else {
-	      more_records = 1;
+	      more_records = FALSE;
 	      break;
 	    }
 	  }
@@ -648,7 +667,7 @@ int tls_packet_dissector(const u_char ** payload,
 	      HASH_REPLACE(hh, HT_Flows, flow_key_hash,
 			   sizeof(struct Flow_key), old, el);
 	    }
-	    more_records = 1;
+	    more_records = FALSE;
 	    break;
 	  }
 	  
