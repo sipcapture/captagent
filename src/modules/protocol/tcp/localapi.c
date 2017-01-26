@@ -45,7 +45,7 @@ int bind_protocol_tcp(protocol_tcp_api_t* api)
 
         }
 
-        api->lookup  = hashapi_lookup;
+        api->lookup = hashapi_lookup;
 
         return 0;
 }

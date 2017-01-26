@@ -9,6 +9,7 @@ SUBDIRS = \
 	modules/protocol/sip \
 	modules/protocol/rtcp \
 	modules/protocol/ss7 \
+	modules/protocol/tcp \
 	modules/transport/hep \
 	modules/transport/json \
 	modules/database/hash \
