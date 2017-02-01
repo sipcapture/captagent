@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <document type="captagent_module/xml">
     <module name="protocol_ss7" description="SS7 Protocol suite" serial="20161010">
-	<profile name="proto_ss7" description="PROTO SS&" enable="true" serial="20161010">
+	<profile name="proto_ss7" description="PROTO SS7" enable="true" serial="20161010">
 	    <settings>
 	    </settings>
 	</profile>
