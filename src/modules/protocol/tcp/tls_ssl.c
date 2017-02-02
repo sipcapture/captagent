@@ -26,8 +26,8 @@
 #include <string.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
-#include "tls_ssl.h"
 #include "structures.h"
+#include "tls_ssl.h"
 
 #define SERVER_NAME_LEN   256
 #define TLS_HEADER_LEN      5
@@ -221,9 +221,8 @@ static void add_flow(/* struct Hash_Table * HT_Flows,  */struct Flow_key *key, s
 
 ///////////////////////// FUNCTIONS ////////////////////////////////////
 
-
 // Function to dissect TLS/SSL
-int tls_packet_dissector(const u_char ** payload,
+u_int8_t tls_packet_dissector(const u_char ** payload,
 			      const u_int16_t size_payload,
 			      const u_int8_t ip_version,
 			      struct Handshake * handshake,
@@ -693,4 +692,3 @@ int tls_packet_dissector(const u_char ** payload,
   }
   return -1;
 }
-sss

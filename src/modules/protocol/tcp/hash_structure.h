@@ -23,42 +23,18 @@
  *
 */
 
-#ifndef PROTOCOL_TCP_H_
-#define PROTOCOL_TCP_H_
+#ifndef HASH_STRUCTURE_H_
+#define HASH_STRUCTURE_H_
+
+typedef struct ipport_items {
+  char name[400];
+  char ip[250];
+  int port;
+  char sessionid[250];
+  long create_ts;
+  long modify_ts;
+  UT_hash_handle hh;
+} ipport_items_t;
 
 
-#include <captagent/xmlread.h>
-#include "uthash.h"
-#include "hash_structure.h"
-
-int timer_timeout = 10;
-int timer_loop_stop = 0;
-
-//static int global_session_id = 0;
-
-int cin_min = 100;
-int cin_max = 800;
-
-#define MAX_DATABASE 10
-profile_database_t profile_database[MAX_DATABASE];
-
-#define EXPIRE_RTCP_HASH 80
-#define EXPIRE_TIMER_ARRAY 80
-
-typedef struct mediaport {
-  char ipportid[400];
-} mediaport_t;
-
-
-struct ipport_items *ipports = NULL;
-
-bool hash_mode = FALSE;
-
-int bind_api(database_module_api_t* api);
-int is_tls(msg_t *msg);
-
-extern char* global_config_path;
-
-/* IPPORTS */
-
-#endif /* PROTOCOL_TCP_H_ */
+#endif /* HASH_STRUCTURE_H_ */

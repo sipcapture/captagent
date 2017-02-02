@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<document type="captagent_module/xml">
+    <module name="protocol_tcp" description="TCP Protocol" serial="2014010402">
+	<profile name="proto_tcp" description="TCP PROTO" enable="true" serial="2014010402">
+	    <settings>
+		<param name="flow-timeout" value="180"/>
+	    </settings>
+	</profile>
+    </module>
+</document>

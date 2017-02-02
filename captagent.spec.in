@@ -228,6 +228,10 @@ autoreconf -if
 %config(noreplace) %{_sysconfdir}/%name/captureplans/sip_capture_plan.cfg
 %{_libdir}/%name/modules/protocol_sip.so
 
+%files protocol-tcp
+%config(noreplace) %{_sysconfdir}/%name/protocol_tcp.xml
+%{_libdir}/%name/modules/protocol_tcp.so
+
 %files protocol-rtcp
 %config(noreplace) %{_sysconfdir}/%name/protocol_rtcp.xml
 %config(noreplace) %{_sysconfdir}/%name/captureplans/rtcp_capture_plan.cfg
@@ -271,6 +275,10 @@ autoreconf -if
 %files protocol-sip-devel
 %{_libdir}/%name/modules/protocol_sip.la
 %{_libdir}/%name/modules/protocol_sip.a
+
+%files protocol-tcp-devel
+%{_libdir}/%name/modules/protocol_tcp.la
+%{_libdir}/%name/modules/protocol_tcp.a
 
 %files protocol-rtcp-devel
 %{_libdir}/%name/modules/protocol_rtcp.la

@@ -68,9 +68,8 @@ static uint64_t serial_module(void);
 
 static cmd_export_t cmds[] = {
 		 {"protocol_tcp_bind_api", (cmd_function) bind_api, 1, 0, 0, 0},
-		 {"check_tcp_ipport",      (cmd_function) w_check_tcp_ipport, 0, 0, 0, 0 },
 		 {"is_tls",                (cmd_function) is_tls, 0, 0, 0, 0 },
-		 {"extract_hand",          (cmd_function) extract_hand, 0, 0, 0, 0 },
+		// {"extract_hand",          (cmd_function) extract_hand, 0, 0, 0, 0 },
 		 {"bind_protocol_tcp",     (cmd_function) bind_protocol_tcp, 0, 0, 0, 0},
          /* ================================ */
 		 {0, 0, 0, 0, 0, 0}
@@ -95,6 +94,13 @@ int is_tls(msg_t *msg) {
      I need to put them in the function called by callback in socket
      then pass to this function to be check (key) and filled (handshake)
   */
+
+  /*
+  u_int8_t ip_version;
+  struct Handshake * handshake;
+  Flow_key * flow_key;
+  u_int16_t src_port, dst_port, proto_id_l3
+
   
   return tls_packet_dissector(msg->data,
 			      msg->len,
@@ -104,6 +110,8 @@ int is_tls(msg_t *msg) {
 			      src_port,     //   "
 			      dst_port,     //   "
 			      proto_id_l3); //   "
+  */
+  return 0;                           
 }
 
 
@@ -266,8 +274,7 @@ static int load_module(xml_node *config) {
 					}
 
 					/* cache */
-					if (!strncmp(key, "timer-timeout", 13) && atoi(value) > 200) timer_timeout = atoi(value);
-					else if (!strncmp(key, "rtcp-timeout", 12) && atoi(value) > 80) rtcp_timeout = atoi(value);
+					//if (!strncmp(key, "timer-timeout", 13) && atoi(value) > 200) timer_timeout = atoi(value);
 				}
 
 				nextparam: params = params->next;
