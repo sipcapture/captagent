@@ -165,8 +165,27 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
 
 	uint8_t hdr_offset = 0;
 
+	uint8_t erspan_offset = 0;
+	uint8_t tmp_ip_proto = 0;
+	uint8_t tmp_ip_len = 0;
+
 	uint16_t ethaddr;
 	uint16_t mplsaddr;
+
+	uint8_t loc_index = (uint8_t) *useless;
+
+	if (profile_socket[loc_index].erspan == 1) {
+		memcpy(&tmp_ip_proto, (packet + ETHHDR_SIZE + IPPROTO_OFFSET), 1);
+		if (tmp_ip_proto == GRE_PROTO) {
+			memcpy(&tmp_ip_len, (packet + ETHHDR_SIZE), 1);
+			tmp_ip_len = (tmp_ip_len & IPLEN_MASK) * 4; // LSB 4 bits: lenght in 32-bit words
+			//printf("ip.proto: %d, ip header len: %d\n", tmp_ip_proto, tmp_ip_len);
+			erspan_offset = ETHHDR_SIZE + tmp_ip_len + GREHDR_SIZE; // Ethernet + IP + GRE
+			pkthdr->len -= erspan_offset;
+			pkthdr->caplen -= erspan_offset;
+			packet += erspan_offset;
+		}
+	}
 
 	/* Pat Callahan's patch for MPLS */
 	memcpy(&ethaddr, (packet + 12), 2);
@@ -188,7 +207,6 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
         struct ip6_hdr *ip6_pkt = (struct ip6_hdr*)(packet + link_offset + hdr_offset);
 #endif
 
-	uint8_t loc_index = (uint8_t) *useless;
 	msg_t _msg;
 	uint32_t ip_ver;
 	uint8_t ip_proto = 0;
@@ -890,6 +908,7 @@ static int load_module(xml_node *config) {
 		profile_socket[profile_size].timeout = 100;
 		profile_socket[profile_size].full_packet = 0;
 		profile_socket[profile_size].reasm = 0;         		                
+		profile_socket[profile_size].erspan = 0;
 
 		/* SETTINGS */
 		settings = xml_get("settings", profile, 1);
@@ -954,7 +973,8 @@ static int load_module(xml_node *config) {
 						profile_socket[profile_size].capture_filter = strdup(value);
 					else if(!strncmp(key, "debug", 5) && !strncmp(value, "true", 4))
                                                 debug_socket_pcap_enable = 1;	
-                                                
+					else if (!strncmp(key, "erspan", 6) && !strncmp(value, "true", 4))
+						profile_socket[profile_size].erspan = 1;
 				}
 
 				nextparam: params = params->next;

@@ -47,6 +47,11 @@ int ipv6fragments=0;
 #define FDDIHDR_SIZE 21
 #define ISDNHDR_SIZE 16
 #define IEEE80211HDR_SIZE 32
+#define GREHDR_SIZE 4
+
+#define GRE_PROTO 47
+#define IPPROTO_OFFSET 9
+#define IPLEN_MASK 0b00001111
 
 #define MAX_SOCKETS 10
 profile_socket_t profile_socket[MAX_SOCKETS];
