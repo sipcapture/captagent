@@ -166,6 +166,7 @@ typedef struct profile_socket {
 		uint8_t full_packet;
                 struct profile_socket *next;
                 void *reasm_t;
+                uint8_t erspan;
 } profile_socket_t;
 
 
