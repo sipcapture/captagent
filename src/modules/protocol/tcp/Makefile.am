@@ -3,7 +3,7 @@ include $(top_srcdir)/modules.am
 SUBDIRS = \
 	.
 
-noinst_HEADERS = protocol_tcp.h localapi.h uthash.h tls_ssl.h structures.h define.h
+noinst_HEADERS = protocol_tcp.h localapi.h uthash.h tls_ssl.h structures.h define.h hash_structure.h
 #
 protocol_tcp_la_SOURCES = protocol_tcp.c localapi.c tls_ssl.c
 protocol_tcp_la_CFLAGS = -Wall ${MODULE_CFLAGS} ${EXPAT_LIBS}
