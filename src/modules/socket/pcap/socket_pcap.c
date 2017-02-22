@@ -617,47 +617,43 @@ int init_socket(unsigned int loc_idx) {
 	}
 
 	/* create filter string */
+	if(profile_socket[loc_idx].filter && strlen(profile_socket[loc_idx].filter) > 0)
+	{
+		len += snprintf(filter_expr+len, sizeof(filter_expr)-len, "(%s)", profile_socket[loc_idx].filter);
+
+		if(ipv4fragments || ipv6fragments)
+		{
+			if (ipv4fragments)
+			{
+				LDEBUG("Reassembling of IPv4 packets is enabled, adding '%s' to filter", BPF_DEFRAGMENTION_FILTER_IPV4);
+				len += snprintf(filter_expr+len, sizeof(filter_expr), " or %s", BPF_DEFRAGMENTION_FILTER_IPV4);
+			}
+			if (ipv6fragments)
+			{
+				LDEBUG("Reassembling of IPv6 packets is enabled, adding '%s' to filter", BPF_DEFRAGMENTION_FILTER_IPV6);
+				len += snprintf(filter_expr+len, sizeof(filter_expr), " or %s", BPF_DEFRAGMENTION_FILTER_IPV6);
+			}
+		}
+	}
+
 	if(profile_socket[loc_idx].capture_filter)
 	{
-	
-		if(profile_socket[loc_idx].filter && strlen(profile_socket[loc_idx].filter) > 0)
-                {
-                        len += snprintf(filter_expr+len, sizeof(filter_expr)-len, "(%s)", profile_socket[loc_idx].filter);
-                }
-
-                if(!strncmp(profile_socket[loc_idx].capture_filter, "rtcp", 4))
-                {
-                        len += snprintf(filter_expr+len, sizeof(filter_expr), "%s %s", len ? "and" : "", RTCP_FILTER);
-                }
-                else if(!strncmp(profile_socket[loc_idx].capture_filter, "rtp", 3))
-                {
-                        len += snprintf(filter_expr+len, sizeof(filter_expr), "%s %s", len ? "and" : "", RTP_FILTER);
-                }
-	
-                if(ipv4fragments || ipv6fragments)
-                {
-                        len += snprintf(filter_expr+len, sizeof(filter_expr), " or %s", ipv4fragments ? BPF_DEFRAGMENTION_FILTER_IPV4 : BPF_DEFRAGMENTION_FILTER_IPV6);                
-                }
-
-	        if (pcap_compile(sniffer_proto[loc_idx], &filter, filter_expr, 1, 0) == -1) {
-        		LERR("Failed to compile filter \"%s\": %s", filter_expr, pcap_geterr(sniffer_proto[loc_idx]));
-        		return -1;
+		if(!strncmp(profile_socket[loc_idx].capture_filter, "rtcp", 4))
+		{
+			len += snprintf(filter_expr+len, sizeof(filter_expr), "%s %s", len ? " and" : "", RTCP_FILTER);
 		}
-		
-		/*
-		if(set_raw_filter(loc_idx, filter_expr) == -1) {                
-                        LERR("Failed to compile raw filter \"%s\": %s", filter_expr, pcap_geterr(sniffer_proto[loc_idx]));
-                        return -1;                        
-                } 
-                */               
+		else if(!strncmp(profile_socket[loc_idx].capture_filter, "rtp", 3))
+		{
+			len += snprintf(filter_expr+len, sizeof(filter_expr), "%s %s", len ? " and" : "", RTP_FILTER);
+		}
 	}
-	else {		
-        	/* compile filter expression (global constant, see above) */
-        	if (pcap_compile(sniffer_proto[loc_idx], &filter, profile_socket[loc_idx].filter, 1, 0) == -1) {
-        		LERR("Failed to compile filter \"%s\": %s", profile_socket[loc_idx].filter, pcap_geterr(sniffer_proto[loc_idx]));
-        		return -1;
-		}				
-        }
+
+	LNOTICE("Using filter: %s", filter_expr);
+	/* compile filter expression (global constant, see above) */
+	if (pcap_compile(sniffer_proto[loc_idx], &filter, filter_expr, 1, 0) == -1) {
+		LERR("Failed to compile filter \"%s\": %s", filter_expr, pcap_geterr(sniffer_proto[loc_idx]));
+		return -1;
+	}
 
 	/* install filter on sniffer session */
 	if (pcap_setfilter(sniffer_proto[loc_idx], &filter)) {
@@ -950,9 +946,9 @@ static int load_module(xml_node *config) {
 					else if (!strncmp(key, "reasm", 5) && !strncmp(value, "true", 4))
 						profile_socket[profile_size].reasm = +1;
                                         else if (!strncmp(key, "ipv4fragments", 13) && !strncmp(value, "true", 4))
-						ipv4fragments = 1;		
+						ipv4fragments = 1;
                                         else if (!strncmp(key, "ipv6fragments", 13) && !strncmp(value, "true", 4))
-						ipv6fragments = 1;																																
+						ipv6fragments = 1;
                                         else if(!strncmp(key, "tcpdefrag", 9) && !strncmp(value, "true", 4))
                                                 profile_socket[profile_size].reasm +=2;                                                    						
 					else if (!strncmp(key, "ring-buffer", 11))					        
