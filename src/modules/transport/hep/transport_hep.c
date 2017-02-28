@@ -740,12 +740,9 @@ void on_send_tcp_request(uv_write_t* req, int status)
                 req = NULL;
         }
 
-#if UV_VERSION_MAJOR == 0                         
-        hep_connection_t* hep_conn = req->handle->loop->data;
-#else        
-        hep_connection_t* hep_conn = uv_key_get(&hep_conn_key);
+#if UV_VERSION_MAJOR != 0                         
 
-#endif   
+	hep_connection_t* hep_conn = uv_key_get(&hep_conn_key);
 
         assert(hep_conn != NULL);        
 
@@ -759,6 +756,8 @@ void on_send_tcp_request(uv_write_t* req, int status)
             else
                 set_conn_state(hep_conn, STATE_CLOSED);
         }    
+#endif   
+	
 }       
    
 int _handle_send_udp_request(hep_connection_t *conn, unsigned char *message, size_t len)
