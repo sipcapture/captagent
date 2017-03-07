@@ -8,8 +8,8 @@ License:	GPLv3
 URL:		http://www.sipcapture.org/
 Source0:	%name-%version.tar.gz
 
-Buildrequires:	json-c-devel expat-devel libpcap-devel flex-devel
-Requires:	json-c expat libpcap
+Buildrequires:	json-c-devel expat-devel libpcap-devel flex-devel libuv-devel
+Requires:	json-c expat libpcap libuv
 
 %description
 HOMER5 a robust, carrier-grade, scalable SIP Capture system and Monitoring Application with HEP/HEP2, IP Proto4 (IPIP) encapsulation & port mirroring/monitoring support right out of the box, ready to process & store insane amounts of signaling with instant search, end-to-end analysis and drill-down capabilities for ITSPs, VoIP Providers and Trunk Suppliers using SIP signaling
@@ -37,12 +37,26 @@ Summary:	protocol sip module for sipcapture HOMER5
 %description protocol-sip
 sip protocol module for a robust, carrier-grade, scalable SIP Capture system and Monitoring Application with HEP/HEP2, IP Proto4 (IPIP) encapsulation & port mirroring/monitoring support right out of the box, ready to process & store insane amounts of signaling with instant search, end-to-end analysis and drill-down capabilities for ITSPs, VoIP Providers and Trunk Suppliers using SIP signaling
 
+%package protocol-tcp
+Requires:	%name = %version
+Summary:	protocol TCP module for sipcapture HOMER5
+
+%description protocol-tcp
+TCP protocol module for a robust, carrier-grade, scalable SIP Capture system and Monitoring Application with HEP/HEP2, IP Proto4 (IPIP) encapsulation & port mirroring/monitoring support right out of the box, ready to process & store insane amounts of signaling with instant search, end-to-end analysis and drill-down capabilities for ITSPs, VoIP Providers and Trunk Suppliers using SIP signaling
+
 %package protocol-rtcp
 Requires:	%name = %version
 Summary:	protocol rtcp module for sipcapture HOMER5
 
 %description protocol-rtcp
 rtcp protocol module for a robust, carrier-grade, scalable SIP Capture system and Monitoring Application with HEP/HEP2, IP Proto4 (IPIP) encapsulation & port mirroring/monitoring support right out of the box, ready to process & store insane amounts of signaling with instant search, end-to-end analysis and drill-down capabilities for ITSPs, VoIP Providers and Trunk Suppliers using SIP signaling
+
+%package protocol-ss7
+Requires:	%name = %version
+Summary:	protocol ss7 module for sipcapture HOMER5
+
+%description protocol-ss7
+ss7 protocol module for a robust, carrier-grade, scalable SIP Capture system and Monitoring Application with HEP/HEP2, IP Proto4 (IPIP) encapsulation & port mirroring/monitoring support right out of the box, ready to process & store insane amounts of signaling with instant search, end-to-end analysis and drill-down capabilities for ITSPs, VoIP Providers and Trunk Suppliers using SIP signaling
 
 %package socket-pcap
 Requires:	%name = %version
@@ -124,6 +138,13 @@ Summary:	protocol sip module development package for sipcapture HOMER5
 %description protocol-sip-devel
 sip protocol module development package for a robust, carrier-grade, scalable SIP Capture system and Monitoring Application with HEP/HEP2, IP Proto4 (IPIP) encapsulation & port mirroring/monitoring support right out of the box, ready to process & store insane amounts of signaling with instant search, end-to-end analysis and drill-down capabilities for ITSPs, VoIP Providers and Trunk Suppliers using SIP signaling
 
+%package protocol-tcp-devel
+Requires:	%name = %version
+Summary:	protocol TCP module development package for sipcapture HOMER5
+
+%description protocol-tcp-devel
+TCP protocol module development package for a robust, carrier-grade, scalable SIP Capture system and Monitoring Application with HEP/HEP2, IP Proto4 (IPIP) encapsulation & port mirroring/monitoring support right out of the box, ready to process & store insane amounts of signaling with instant search, end-to-end analysis and drill-down capabilities for ITSPs, VoIP Providers and Trunk Suppliers using SIP signaling
+
 %package protocol-rtcp-devel
 Requires:	%name = %version
 Requires:	protocol-rtcp
@@ -132,6 +153,15 @@ Summary:	protocol rtcp module development package for sipcapture HOMER5
 
 %description protocol-rtcp-devel
 rtcp protocol module development package for a robust, carrier-grade, scalable SIP Capture system and Monitoring Application with HEP/HEP2, IP Proto4 (IPIP) encapsulation & port mirroring/monitoring support right out of the box, ready to process & store insane amounts of signaling with instant search, end-to-end analysis and drill-down capabilities for ITSPs, VoIP Providers and Trunk Suppliers using SIP signaling
+
+%package protocol-ss7-devel
+Requires:	%name = %version
+Requires:	protocol-ss7
+
+Summary:	protocol ss7 module development package for sipcapture HOMER5
+
+%description protocol-ss7-devel
+ss7 protocol module development package for a robust, carrier-grade, scalable SIP Capture system and Monitoring Application with HEP/HEP2, IP Proto4 (IPIP) encapsulation & port mirroring/monitoring support right out of the box, ready to process & store insane amounts of signaling with instant search, end-to-end analysis and drill-down capabilities for ITSPs, VoIP Providers and Trunk Suppliers using SIP signaling
 
 %package socket-pcap-devel
 Requires:	%name = %version
@@ -213,11 +243,14 @@ autoreconf -if
 %files
 %defattr(644,root,root,755)
 %config(noreplace) %{_sysconfdir}/%name/%name.xml
-%attr(755,root,root) %{_bindir}/%name
+%attr(755,root,root) %{_sbindir}/%name
 
 %files database-hash
 %config(noreplace) %{_sysconfdir}/%name/database_hash.xml
 %{_libdir}/%name/modules/database_hash.so
+
+%files database-redis
+%{_libdir}/%name/modules/database_redis.so
 
 %files database-redis
 %config(noreplace) %{_sysconfdir}/%name/database_redis.xml
@@ -236,6 +269,10 @@ autoreconf -if
 %config(noreplace) %{_sysconfdir}/%name/protocol_rtcp.xml
 %config(noreplace) %{_sysconfdir}/%name/captureplans/rtcp_capture_plan.cfg
 %{_libdir}/%name/modules/protocol_rtcp.so
+
+%files protocol-ss7
+%config(noreplace) %{_sysconfdir}/%name/protocol_ss7.xml
+%{_libdir}/%name/modules/protocol_ss7.so
 
 %files socket-pcap
 %config(noreplace) %{_sysconfdir}/%name/socket_pcap.xml
@@ -272,6 +309,10 @@ autoreconf -if
 %{_libdir}/%name/modules/database_hash.la
 %{_libdir}/%name/modules/database_hash.a
 
+%files database-redis-devel
+%{_libdir}/%name/modules/database_redis.la
+%{_libdir}/%name/modules/database_redis.a
+
 %files protocol-sip-devel
 %{_libdir}/%name/modules/protocol_sip.la
 %{_libdir}/%name/modules/protocol_sip.a
@@ -283,6 +324,10 @@ autoreconf -if
 %files protocol-rtcp-devel
 %{_libdir}/%name/modules/protocol_rtcp.la
 %{_libdir}/%name/modules/protocol_rtcp.a
+
+%files protocol-ss7-devel
+%{_libdir}/%name/modules/protocol_ss7.la
+%{_libdir}/%name/modules/protocol_ss7.a
 
 %files socket-pcap-devel
 %{_libdir}/%name/modules/socket_pcap.la
