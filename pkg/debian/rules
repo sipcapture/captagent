@@ -9,7 +9,7 @@ export DH_OPTIONS
 
 build:
 	autoreconf -if
-	./configure --prefix=/usr --sysconfdir=/etc --libdir=/usr/lib/$(shell dpkg-architecture -qDEB_HOST_MULTIARCH)
+	./configure --prefix=/usr --sysconfdir=/etc --libdir=/usr/lib/$(shell dpkg-architecture -qDEB_HOST_MULTIARCH) --enable-ipv6
 	make
 
 binary-arch:
