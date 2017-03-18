@@ -141,6 +141,19 @@ int register_module(char *resource_name, xml_node *config, bool global) {
 	return 1;
 }
 
+int unregister_module(struct module *m) {
+
+	int res = -1;
+	res = m->unload_f();
+	if (res) {
+		LERR("module unload failed for [%s]", m->name);
+		dlclose(m->lib);
+	}
+
+	return res;
+}
+
+
 int unregister_modules(void) {
 	struct module *m, *ml = NULL;
 	int res = -1;
@@ -156,19 +169,6 @@ int unregister_modules(void) {
 		ret = ml->cmds;
 		free(ret);
 		free(ml);
-	}
-
-	return res;
-}
-
-
-int unregister_module(struct module *m) {
-
-	int res = -1;
-	res = m->unload_f();
-	if (res) {
-		LERR("module unload failed for [%s]", m->name);
-		dlclose(m->lib);
 	}
 
 	return res;
