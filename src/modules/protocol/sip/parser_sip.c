@@ -903,7 +903,7 @@ parse_message (char *message, unsigned int blen, unsigned int *bytes_parsed, sip
 	set_hname (&psip->fromURI, (offset - last_offset - FROM_LEN), tmp + FROM_LEN);
 	psip->hasFrom = TRUE;
 	
-	if (!psip->fromURI.len == 0 && getTag (&psip->fromTag, psip->fromURI.s, psip->fromURI.len)) {
+	if ( !(psip->fromURI.len == 0) && getTag (&psip->fromTag, psip->fromURI.s, psip->fromURI.len) ) {
 	    psip->hasFromTag = TRUE;
 	  }
 	/* extract user */
@@ -921,7 +921,7 @@ parse_message (char *message, unsigned int blen, unsigned int *bytes_parsed, sip
 	  header_offset = TO_LEN;
 	if (set_hname (&psip->toURI, (offset - last_offset - header_offset), tmp + header_offset)) {
 	  psip->hasTo = TRUE;
-	  if (!psip->toURI.len == 0 && getTag (&psip->toTag, psip->toURI.s, psip->toURI.len)) {
+	  if ( !(psip->toURI.len == 0) && getTag (&psip->toTag, psip->toURI.s, psip->toURI.len) ) {
 	    psip->hasToTag = TRUE;
 	  }
 	  /* extract user */
