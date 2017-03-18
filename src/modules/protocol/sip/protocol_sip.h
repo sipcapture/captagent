@@ -49,7 +49,7 @@ bind_database_module_api_t database_bind_api;
 #define PROTO_H321   0x0c
 
 typedef struct protocol_sip_stats {
-	uint64_t recieved_packets_total;
+	uint64_t received_packets_total;
 	uint64_t parsed_packets;
 	uint64_t send_packets;
 } protocol_sip_stats_t;

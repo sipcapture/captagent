@@ -178,7 +178,7 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
 		memcpy(&tmp_ip_proto, (packet + ETHHDR_SIZE + IPPROTO_OFFSET), 1);
 		if (tmp_ip_proto == GRE_PROTO) {
 			memcpy(&tmp_ip_len, (packet + ETHHDR_SIZE), 1);
-			tmp_ip_len = (tmp_ip_len & IPLEN_MASK) * 4; // LSB 4 bits: lenght in 32-bit words
+			tmp_ip_len = (tmp_ip_len & IPLEN_MASK) * 4; // LSB 4 bits: length in 32-bit words
 			//printf("ip.proto: %d, ip header len: %d\n", tmp_ip_proto, tmp_ip_len);
 			erspan_offset = ETHHDR_SIZE + tmp_ip_len + GREHDR_SIZE; // Ethernet + IP + GRE
 			pkthdr->len -= erspan_offset;
@@ -224,7 +224,7 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
 	uint8_t  psh = 0;
 	        
 	/* stats */
-	stats.recieved_packets_total++;
+	stats.received_packets_total++;
 
 	if (profile_socket[loc_index].reasm == 1 && reasm[loc_index] != NULL) {
 		unsigned new_len;
@@ -315,7 +315,7 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
 		
 		len -= link_offset + hdr_offset + ip_hl + tcphdr_offset;
 
-		stats.recieved_tcp_packets++;
+		stats.received_tcp_packets++;
 
 #if USE_IPv6
 		/* if (ip_ver == 6)
@@ -441,7 +441,7 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
 #endif
 
 		/* stats */
-		stats.recieved_udp_packets++;
+		stats.received_udp_packets++;
 
 		if ((int32_t) len < 0) len = 0;
 
@@ -501,7 +501,7 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
 		len -= plen;
 
 		/* stats */
-		stats.recieved_sctp_packets++;
+		stats.received_sctp_packets++;
 
 		/* I don't understand the frag_offset in other protos */
 
@@ -1101,10 +1101,10 @@ static int statistic(char *buf, size_t len) {
 
 	int ret = 0;
 
-	ret += snprintf(buf+ret, len-ret, "Total received: [%" PRId64 "]\r\n", stats.recieved_packets_total);
-	ret += snprintf(buf+ret, len-ret, "TCP received: [%" PRId64 "]\r\n", stats.recieved_tcp_packets);
-	ret += snprintf(buf+ret, len-ret, "UDP received: [%" PRId64 "]\r\n", stats.recieved_udp_packets);
-	ret += snprintf(buf+ret, len-ret, "SCTP received: [%" PRId64 "]\r\n", stats.recieved_sctp_packets);
+	ret += snprintf(buf+ret, len-ret, "Total received: [%" PRId64 "]\r\n", stats.received_packets_total);
+	ret += snprintf(buf+ret, len-ret, "TCP received: [%" PRId64 "]\r\n", stats.received_tcp_packets);
+	ret += snprintf(buf+ret, len-ret, "UDP received: [%" PRId64 "]\r\n", stats.received_udp_packets);
+	ret += snprintf(buf+ret, len-ret, "SCTP received: [%" PRId64 "]\r\n", stats.received_sctp_packets);
 	ret += snprintf(buf+ret, len-ret, "Total sent: [%" PRId64 "]\r\n", stats.send_packets);
 
 

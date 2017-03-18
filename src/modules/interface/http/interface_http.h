@@ -62,11 +62,11 @@ int readbody = 0;
 #define API_MODULE_EXEC "/api/module/exec"
 
 typedef struct interface_http_stats {
-	uint64_t recieved_request_total;
-	uint64_t recieved_request_put;
-	uint64_t recieved_request_get;
-	uint64_t recieved_request_delete;
-	uint64_t recieved_request_post;
+	uint64_t received_request_total;
+	uint64_t received_request_put;
+	uint64_t received_request_get;
+	uint64_t received_request_delete;
+	uint64_t received_request_post;
 	uint64_t send_response_total;
 	uint64_t send_json_response;
 	uint64_t send_erros_total;

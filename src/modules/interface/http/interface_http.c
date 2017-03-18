@@ -334,25 +334,25 @@ int api_request_handler(struct mg_connection *conn, void *cbdata) {
 	LDEBUG("CAPT_API DEBUG: METHOD: [%s]", request_info->request_method);
 	LDEBUG("CAPT_API DEBUG: URI: [%s]", request_info->uri);
 
-	stats.recieved_request_total++;
+	stats.received_request_total++;
 
 	if (!strcmp(request_info->request_method, "POST")) {
 
-		stats.recieved_request_post++;
+		stats.received_request_post++;
 		proceed_post_request(request_info, conn);
 
 	} else if (!strcmp(request_info->request_method, "PUT")) {
 
-		stats.recieved_request_put++;
+		stats.received_request_put++;
 		proceed_put_request(request_info, conn);
 
 	} else if (!strcmp(request_info->request_method, "DELETE")) {
-		stats.recieved_request_delete++;
+		stats.received_request_delete++;
 		proceed_delete_request(request_info, conn);
 
 	} else if (!strcmp(request_info->request_method, "GET")) {
 
-		stats.recieved_request_get++;
+		stats.received_request_get++;
 		proceed_get_request(request_info, conn);
 
 	} else {
@@ -1494,10 +1494,10 @@ static int description(char *descr) {
 static int statistic(char *buf, size_t len) {
 
 	int ret = 0;
-	ret += snprintf(buf+ret, len-ret, "Total requests: [%" PRId64 "]\r\n", stats.recieved_request_total);
-	ret += snprintf(buf+ret, len-ret, "GET requests: [%" PRId64 "]\r\n", stats.recieved_request_get);
-	ret += snprintf(buf+ret, len-ret, "POST requests: [%" PRId64 "]\r\n", stats.recieved_request_post);
-	ret += snprintf(buf+ret, len-ret, "DELETE requests: [%" PRId64 "]\r\n", stats.recieved_request_delete);
+	ret += snprintf(buf+ret, len-ret, "Total requests: [%" PRId64 "]\r\n", stats.received_request_total);
+	ret += snprintf(buf+ret, len-ret, "GET requests: [%" PRId64 "]\r\n", stats.received_request_get);
+	ret += snprintf(buf+ret, len-ret, "POST requests: [%" PRId64 "]\r\n", stats.received_request_post);
+	ret += snprintf(buf+ret, len-ret, "DELETE requests: [%" PRId64 "]\r\n", stats.received_request_delete);
 	ret += snprintf(buf+ret, len-ret, "Total response: [%" PRId64 "]\r\n", stats.send_response_total);
 	ret += snprintf(buf+ret, len-ret, "JSON response: [%" PRId64 "]\r\n", stats.send_json_response);
 	ret += snprintf(buf+ret, len-ret, "Error response: [%" PRId64 "]\r\n", stats.send_erros_total);

@@ -71,7 +71,7 @@ struct sctp_chunk_data_hdr {
 			unordered:1,
 			reserved:5;
 #else
-	#error "Unknonwn endian type"
+	#error "Unknown endian type"
 #endif
 	uint16_t	len;
 

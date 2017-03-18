@@ -54,7 +54,7 @@
 profile_transport_t profile_transport[MAX_TRANPORTS];
 
 typedef struct transport_hep_stats {
-	uint64_t recieved_packets_total;
+	uint64_t received_packets_total;
 	uint64_t send_packets_total;
 	uint64_t reconnect_total;
 	uint64_t compressed_total;
