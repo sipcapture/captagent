@@ -215,7 +215,7 @@ tcpreasm_ip_next_tcp (struct tcpreasm_ip *tcpreasm, unsigned char *packet, unsig
 	enum tcpreasm_proto proto;
 	union tcpreasm_id id;
 	unsigned hash;
-	bool last_frag;
+	bool last_frag = false;
 
 
 	process_timeouts (tcpreasm, timestamp);
