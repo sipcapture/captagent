@@ -121,12 +121,12 @@ struct wifi_hdr
 /* +++++++++++++ Internet Protocol (IPv4) header +++++++++++++ */
 struct ipv4_hdr
 {
-#if defined(__LITTLE_ENDIAN)
+#if __BYTE_ORDER == __LITTLE_ENDIAN
   u_int8_t ihl:4, version:4;
-#elif defined(__BIG_ENDIAN)
+#elif __BYTE_ORDER == __BIG_ENDIAN
   u_int8_t version:4, ihl:4;
 #else
-# error "Byte order must be defined"
+#error "Byte order must be defined"
 #endif
   u_int8_t ip_tos;            // type of service
   u_int16_t ip_len;           // total length (ip header + payload)
@@ -183,12 +183,12 @@ struct tcp_hdr
   u_int16_t tcp_dst_port;    // destination TCP port
   u_int32_t tcp_seq;          // TCP sequence number
   u_int32_t tcp_ack;          // TCP acknowledgement number
-#if defined(__LITTLE_ENDIAN)
+#if __BYTE_ORDER == __LITTLE_ENDIAN
   u_int8_t reserved:4, tcp_offset:4;
-#elif defined(__BIG_ENDIAN)
+#elif __BYTE_ORDER == __BIG_ENDIAN
   u_int8_t tcp_offset:4, reserved:4;
 #else
-# error "Byte order must be defined"
+#error "Byte order must be defined"
 #endif
   u_int8_t tcp_flags;         // TCP flags (and 2-bits from reserved space)
 #define TCP_FIN   0x01
