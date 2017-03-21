@@ -46,6 +46,7 @@
 #define __FAVOR_BSD
 #endif /* __FAVOR_BSD */
 #include <net/ethernet.h> 
+#include <netinet/in.h>
 #include <netinet/ip.h>
 #include <netinet/tcp.h>
 #include <netinet/udp.h>
@@ -199,7 +200,7 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
           }
         }
 
-        struct ethhdr *eth = (struct ethhdr *)packet;
+        struct ether_header *eth = (struct ether_header *)packet;
         struct run_act_ctx ctx;                
         
         struct ip      *ip4_pkt = (struct ip *)    (packet + link_offset + hdr_offset);
@@ -249,8 +250,9 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
 
 	ip_ver = ip4_pkt->ip_v;
 
-        snprintf(mac_src, sizeof(mac_src), "%.2X-%.2X-%.2X-%.2X-%.2X-%.2X",eth->h_source[0] , eth->h_source[1] , eth->h_source[2] , eth->h_source[3] , eth->h_source[4] , eth->h_source[5]);
-        snprintf(mac_dst, sizeof(mac_dst), "%.2X-%.2X-%.2X-%.2X-%.2X-%.2X", eth->h_dest[0] , eth->h_dest[1] , eth->h_dest[2] , eth->h_dest[3] , eth->h_dest[4] , eth->h_dest[5]);
+		//BSD
+        snprintf(mac_src, sizeof(mac_src), "%.2X-%.2X-%.2X-%.2X-%.2X-%.2X",eth->ether_shost[0] , eth->ether_shost[1] , eth->ether_shost[2] , eth->ether_shost[3] , eth->ether_shost[4] , eth->ether_shost[5]);
+        snprintf(mac_dst, sizeof(mac_dst), "%.2X-%.2X-%.2X-%.2X-%.2X-%.2X",eth->ether_dhost[0] , eth->ether_dhost[1] , eth->ether_dhost[2] , eth->ether_dhost[3] , eth->ether_dhost[4] , eth->ether_dhost[5]);
         
         memset(&_msg, 0, sizeof(msg_t));
         memset(&ctx, 0, sizeof(struct run_act_ctx));
@@ -694,11 +696,12 @@ int set_raw_filter(unsigned int loc_idx, char *filter) {
                 return -1;
         }
 
+#if ( defined (OS_LINUX) || defined (OS_SOLARIS) )
         if(setsockopt(fd, SOL_SOCKET, SO_ATTACH_FILTER, &raw_filter, sizeof(raw_filter)) < 0 ) {
                 LERR(" setsockopt filter: [%s] [%d]", strerror(errno), errno);
                 return -1;
-                
         }
+#endif
 
         //free(BPF_code);
         pcap_freecode( (struct bpf_program *) &raw_filter);
@@ -1223,7 +1226,7 @@ void proccess_packet(msg_t *_m, struct pcap_pkthdr *pkthdr, u_char *packet) {
           }
         }
 
-        struct ethhdr *eth = (struct ethhdr *)packet;
+        struct ether_header *eth = (struct ether_header *)packet;
         
         struct ip      *ip4_pkt = (struct ip *)    (packet + link_offset + hdr_offset);
 #if USE_IPv6
@@ -1243,8 +1246,8 @@ void proccess_packet(msg_t *_m, struct pcap_pkthdr *pkthdr, u_char *packet) {
 	        
 	ip_ver = ip4_pkt->ip_v;
 
-        snprintf(mac_src, sizeof(mac_src), "%.2X-%.2X-%.2X-%.2X-%.2X-%.2X",eth->h_source[0] , eth->h_source[1] , eth->h_source[2] , eth->h_source[3] , eth->h_source[4] , eth->h_source[5]);
-        snprintf(mac_dst, sizeof(mac_dst), "%.2X-%.2X-%.2X-%.2X-%.2X-%.2X", eth->h_dest[0] , eth->h_dest[1] , eth->h_dest[2] , eth->h_dest[3] , eth->h_dest[4] , eth->h_dest[5]);
+        snprintf(mac_src, sizeof(mac_src), "%.2X-%.2X-%.2X-%.2X-%.2X-%.2X",eth->ether_shost[0] , eth->ether_shost[1] , eth->ether_shost[2] , eth->ether_shost[3] , eth->ether_shost[4] , eth->ether_shost[5]);
+        snprintf(mac_dst, sizeof(mac_dst), "%.2X-%.2X-%.2X-%.2X-%.2X-%.2X",eth->ether_dhost[0] , eth->ether_dhost[1] , eth->ether_dhost[2] , eth->ether_dhost[3] , eth->ether_dhost[4] , eth->ether_dhost[5]);
         
         _m->cap_packet = (void *) packet;
         _m->cap_header = (void *) pkthdr;                

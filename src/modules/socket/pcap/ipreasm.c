@@ -14,8 +14,9 @@
 #include "config.h"
 #endif /* HAVE_CONFIG_H */
 
+#include <sys/types.h>
+#include <netinet/in.h>
 #include <netinet/ip.h>
-#include <netinet/udp.h>
 #if USE_IPv6
 #include <netinet/ip6.h>
 #endif /* USE_IPv6 */

@@ -31,8 +31,6 @@
 #include <captagent/api.h>
 #include <captagent/structure.h>
 
-#include <endian.h>
-
 
 enum sctp_chunk_type {
 	SCTP_CHUNK_DATA,
