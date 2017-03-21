@@ -28,6 +28,7 @@
 #include <pthread.h>
 #include <stdint.h>
 #include <inttypes.h>
+#include <netinet/in.h>
 
 #include <captagent/api.h>
 #include <captagent/structure.h>
@@ -322,7 +323,7 @@ int parse_sip(msg_t *msg, unsigned int type) {
 
 	int ret = -1;
 
-	stats.recieved_packets_total++;
+	stats.received_packets_total++;
 
 	memset(&msg->sip, 0, sizeof(sip_msg_t));
 
@@ -391,7 +392,7 @@ int light_parse_sip(msg_t *msg) {
 	int ret = -1;
 	uint32_t bytes_parsed = 0;
 
-	stats.recieved_packets_total++;
+	stats.received_packets_total++;
 
 	memset(&msg->sip, 0, sizeof(sip_msg_t));
 
@@ -664,7 +665,7 @@ static int statistic(char *buf, size_t len)
 {
 	int ret = 0;
 
-		ret += snprintf(buf+ret, len-ret, "Total received: [%" PRId64 "]\r\n", stats.recieved_packets_total);
+		ret += snprintf(buf+ret, len-ret, "Total received: [%" PRId64 "]\r\n", stats.received_packets_total);
 		ret += snprintf(buf+ret, len-ret, "Parsed packets: [%" PRId64 "]\r\n", stats.parsed_packets);
 		ret += snprintf(buf+ret, len-ret, "Total sent: [%" PRId64 "]\r\n", stats.send_packets);
 

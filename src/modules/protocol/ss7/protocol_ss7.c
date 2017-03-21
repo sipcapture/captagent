@@ -29,7 +29,7 @@
 #include <captagent/modules.h>
 #include <captagent/log.h>
 
-#include <endian.h>
+#include <sys/types.h>
 #include <limits.h>
 
 
@@ -63,7 +63,7 @@ struct mtp_level_3_hdr {
 		opc : 14,
 		dpc : 14;
 #else
-	#error "Unknonwn endian type"
+	#error "Unknown endian type"
 #endif
 	uint8_t data[0];
 } __attribute__((packed));

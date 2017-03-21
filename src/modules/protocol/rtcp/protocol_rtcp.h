@@ -23,8 +23,8 @@
  *
 */
 
-#ifndef _PROTOCOL_SIP_H_
-#define _PROTOCOL_SIP_H_
+#ifndef _PROTOCOL_RTCP_H_
+#define _PROTOCOL_RTCP_H_
 
 #include <captagent/xmlread.h>
 #include "parser_rtcp.h"
@@ -34,7 +34,7 @@
 #define PROTO_RTCP_JSON   0x05
 
 typedef struct protocol_rtcp_stats {
-	uint64_t recieved_packets_total;
+	uint64_t received_packets_total;
 	uint64_t parsed_packets;
 	uint64_t send_packets;
 } protocol_rtcp_stats_t;
@@ -71,4 +71,4 @@ int check_module_xml_config();
                                     
 
 
-#endif /* _PROTOCOL_SIP_H_ */
+#endif /* _PROTOCOL_RTCP_H_ */

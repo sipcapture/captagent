@@ -382,7 +382,7 @@ int insert_redis(const db_msg_t *msg, const db_value_t* _v, const int _n)
 	unsigned int idx = 0, ret = 0;
 
 	/* stats */
-	stats.recieved_packets_total++;
+	stats.received_packets_total++;
 
 	idx = get_profile_index_by_name(msg->profile_name.s);
 
@@ -463,7 +463,7 @@ int delete_redis(const db_msg_t *msg, const db_value_t* _v, const int _n) {
 
 
 	/* stats */
-	stats.recieved_packets_total++;
+	stats.received_packets_total++;
 
 	idx = get_profile_index_by_name(msg->profile_name.s);
 
@@ -513,7 +513,7 @@ int select_redis(const db_msg_t *msg, db_value_t* _v, const int _n) {
 	int i = 0;
 
 	/* stats */
-	stats.recieved_packets_total++;
+	stats.received_packets_total++;
 
 	idx = get_profile_index_by_name(msg->profile_name.s);
 
@@ -588,7 +588,7 @@ int raw_query_redis(char* query, const db_msg_t *msg, db_value_t* _v, const int 
 	redisReply *reply;
 
 	/* stats */
-	stats.recieved_packets_total++;
+	stats.received_packets_total++;
 
 	idx = get_profile_index_by_name(msg->profile_name.s);
 
@@ -632,7 +632,7 @@ int count_redis(char* query, const db_msg_t *msg) {
 	/* send to parse module */
 
 
-	stats.recieved_packets_total++;
+	stats.received_packets_total++;
 
 	idx = get_profile_index_by_name(msg->profile_name.s);
 
@@ -913,7 +913,7 @@ static int statistic(char *buf, size_t len)
 
 		int ret = 0;
 
-		ret += snprintf(buf+ret, len-ret, "received: [%" PRId64 "]\r\n", stats.recieved_packets_total);
+		ret += snprintf(buf+ret, len-ret, "received: [%" PRId64 "]\r\n", stats.received_packets_total);
 		ret += snprintf(buf+ret, len-ret, "wrote: [%" PRId64 "]\r\n", stats.write_packets_total);
 		ret += snprintf(buf+ret, len-ret, "reconnect: [%" PRId64 "]\r\n", stats.reconnect_total);
 

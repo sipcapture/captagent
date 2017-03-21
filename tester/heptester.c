@@ -425,7 +425,7 @@ int parsing_hepv3_message(char *buf, unsigned int len) {
                 /* if chunk_length */
                 if(chunk_length == 0) {
                         /* BAD LEN we drop this packet */
-                        printf("Content-Len exit: LENGHT [%d] vs TOTAL[%d]: chunk_vendor:[%d], chunk_type:[%d], chunk_length:[%d]\n", i, total_length, chunk_vendor, chunk_type, chunk_length);
+                        printf("Content-Len exit: LENGTH [%d] vs TOTAL[%d]: chunk_vendor:[%d], chunk_type:[%d], chunk_length:[%d]\n", i, total_length, chunk_vendor, chunk_type, chunk_length);
                         goto error;
                 }
 
@@ -435,7 +435,7 @@ int parsing_hepv3_message(char *buf, unsigned int len) {
                         i+=chunk_length;
                 }
                 else {                                                                                                                               
-                        printf("PARSING Lenght current [%d]: vs TOTAL[%d], chunk_vendor:[%d], chunk_type:[%d], chunk_length:[%d]\n", i, total_length, chunk_vendor, chunk_type, chunk_length);
+                        printf("PARSING Length current [%d]: vs TOTAL[%d], chunk_vendor:[%d], chunk_type:[%d], chunk_length:[%d]\n", i, total_length, chunk_vendor, chunk_type, chunk_length);
                         switch(chunk_type) {
                                      
                                 case 0:

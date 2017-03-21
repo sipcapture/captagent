@@ -43,7 +43,7 @@
 #define PROTO_H321   0x0c
 
 typedef struct database_redis_stats {
-	uint64_t recieved_packets_total;
+	uint64_t received_packets_total;
 	uint64_t reconnect_total;
 	uint64_t write_packets_total;
 } database_redis_stats_t;

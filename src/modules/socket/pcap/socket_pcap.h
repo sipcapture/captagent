@@ -57,10 +57,10 @@ int ipv6fragments=0;
 profile_socket_t profile_socket[MAX_SOCKETS];
 
 typedef struct socket_pcap_stats {
-	uint64_t recieved_packets_total;
-	uint64_t recieved_tcp_packets;
-	uint64_t recieved_udp_packets;
-	uint64_t recieved_sctp_packets;
+	uint64_t received_packets_total;
+	uint64_t received_tcp_packets;
+	uint64_t received_udp_packets;
+	uint64_t received_sctp_packets;
 	uint64_t send_packets;
 } socket_pcap_stats_t;
 

@@ -33,6 +33,8 @@
 #include <sys/types.h>
 #include <ctype.h>
 #include <sys/socket.h>
+#include <netinet/in.h>
+#include <netinet/ip.h>
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <fcntl.h>
@@ -193,10 +195,10 @@ int send_json (msg_t *msg) {
 
         if(msg->parsed_data && rcinfo->proto_type == 1) sipPacket = (sip_msg_t *) msg->parsed_data;
 
-        stats.recieved_packets_total++;
+        stats.received_packets_total++;
 
         /* workaround for old json */
-        snprintf(tmpser, 100, "%" PRId64, (int64_t) stats.recieved_packets_total);
+        snprintf(tmpser, 100, "%" PRId64, (int64_t) stats.received_packets_total);
 
 	json_object_object_add(jobj_reply, "packet_id", json_object_new_string(tmpser));
         json_object_object_add(jobj_reply, "my_time", json_object_new_int(time(0)));
@@ -859,7 +861,7 @@ static int statistic(char *buf, size_t len)
 {
 	int ret = 0;
 
-	ret += snprintf(buf+ret, len-ret, "Total received: [%" PRId64 "]\r\n", stats.recieved_packets_total);
+	ret += snprintf(buf+ret, len-ret, "Total received: [%" PRId64 "]\r\n", stats.received_packets_total);
 	ret += snprintf(buf+ret, len-ret, "Reconnect total: [%" PRId64 "]\r\n", stats.reconnect_total);
 	ret += snprintf(buf+ret, len-ret, "Errors total: [%" PRId64 "]\r\n", stats.errors_total);
 	ret += snprintf(buf+ret, len-ret, "Compressed total: [%" PRId64 "]\r\n", stats.compressed_total);

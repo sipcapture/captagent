@@ -16,6 +16,8 @@
 #include "config.h"
 #endif /* HAVE_CONFIG_H */
 
+#include <sys/types.h>
+#include <netinet/in.h>
 #include <netinet/ip.h>
 #include <netinet/udp.h>
 #if USE_IPv6
@@ -215,7 +217,7 @@ tcpreasm_ip_next_tcp (struct tcpreasm_ip *tcpreasm, unsigned char *packet, unsig
 	enum tcpreasm_proto proto;
 	union tcpreasm_id id;
 	unsigned hash;
-	bool last_frag;
+	bool last_frag = false;
 
 
 	process_timeouts (tcpreasm, timestamp);

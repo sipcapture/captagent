@@ -214,7 +214,7 @@ int send_hep (msg_t *msg) {
         idx = get_profile_index_by_name(msg->profile_name);
         rcinfo = &msg->rcinfo;
 
-        stats.recieved_packets_total++;
+        stats.received_packets_total++;
 
         // Ensure we are connected by driving our state machine.
         ensure_connected(idx);
@@ -1346,7 +1346,7 @@ static int statistic(char *buf, size_t len)
 {
 	int ret = 0;
 
-	ret += snprintf(buf+ret, len-ret, "Total received: [%" PRId64 "]\r\n", stats.recieved_packets_total);
+	ret += snprintf(buf+ret, len-ret, "Total received: [%" PRId64 "]\r\n", stats.received_packets_total);
 	ret += snprintf(buf+ret, len-ret, "Reconnect total: [%" PRId64 "]\r\n", stats.reconnect_total);
 	ret += snprintf(buf+ret, len-ret, "Errors total: [%" PRId64 "]\r\n", stats.errors_total);
 	ret += snprintf(buf+ret, len-ret, "Compressed total: [%" PRId64 "]\r\n", stats.compressed_total);

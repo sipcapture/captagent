@@ -27,7 +27,7 @@
 #define _RTCP_PARSER_H
 
 #include <arpa/inet.h>
-#include <endian.h>
+#include <sys/types.h>
 #include <inttypes.h>
 #include <string.h>
 

@@ -56,10 +56,10 @@ extern int handler(int value);
 #define MAX_SOCKETS 10
 
 typedef struct socket_tzsp_stats {
-	uint64_t recieved_packets_total;
-	uint64_t recieved_tcp_packets;
-	uint64_t recieved_udp_packets;
-	uint64_t recieved_sctp_packets;
+	uint64_t received_packets_total;
+	uint64_t received_tcp_packets;
+	uint64_t received_udp_packets;
+	uint64_t received_sctp_packets;
 	uint64_t send_packets;
 } socket_tzsp_stats_t;
 
