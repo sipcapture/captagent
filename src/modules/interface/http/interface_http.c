@@ -41,6 +41,7 @@
 #include <signal.h>
 #include <time.h>
 #include <dirent.h>
+#include <limits.h>
 
 #include "config.h"
 

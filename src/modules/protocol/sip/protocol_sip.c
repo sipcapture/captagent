@@ -28,6 +28,7 @@
 #include <pthread.h>
 #include <stdint.h>
 #include <inttypes.h>
+#include <netinet/in.h>
 
 #include <captagent/api.h>
 #include <captagent/structure.h>

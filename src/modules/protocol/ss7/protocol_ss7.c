@@ -29,7 +29,7 @@
 #include <captagent/modules.h>
 #include <captagent/log.h>
 
-#include <endian.h>
+#include <sys/types.h>
 #include <limits.h>
 
 

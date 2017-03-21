@@ -33,6 +33,8 @@
 #include <sys/types.h>
 #include <ctype.h>
 #include <sys/socket.h>
+#include <netinet/in.h>
+#include <netinet/ip.h>
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <fcntl.h>

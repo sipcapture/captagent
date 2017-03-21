@@ -29,7 +29,7 @@
 #include <pcap.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <endian.h>
+#include <sys/types.h>
 #include <net/ethernet.h>
 #include "define.h"
 #include "uthash.h"

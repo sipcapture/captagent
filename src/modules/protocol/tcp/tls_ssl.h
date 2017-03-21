@@ -22,7 +22,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <endian.h>
+#include <sys/types.h>
 #include <net/ethernet.h>
 
 #ifdef __GNUC__
