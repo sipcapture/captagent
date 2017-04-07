@@ -11,7 +11,7 @@
 #	under GPLv3, able to handle thousands of call setups per second.
 ### END INIT INFO
 
-cap=/usr/bin/captagent
+cap=/usr/sbin/captagent
 prog=captagent
 pidfile=/var/run/$prog.pid
 lockfile=/var/lock/$prog
