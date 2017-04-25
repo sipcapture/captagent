@@ -167,5 +167,6 @@ typedef struct _rtcp_app
 
 int capt_parse_rtcp(char *packet, int len, char *json_buffer, int buffer_len);
 int check_rtcp_version (char *packet, int len);
+int check_rtp_version (char *packet, int len);
 
 #endif /* _RTCP_PARSER_H*/

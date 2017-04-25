@@ -47,6 +47,21 @@ int check_rtcp_version (char *packet, int len) {
 	return -3;
 }
 
+int check_rtp_version (char *packet, int len) {
+
+	if(packet == NULL || len == 0) return -1;
+
+	rtcp_header_t *rtcp = (rtcp_header_t *)packet;
+
+	if(rtcp->version != 2)
+	{
+		LERR("wrong version\n");
+		return -2;
+	}
+
+	return 1;
+}
+
 
 int capt_parse_rtcp(char *packet, int len, char *json_buffer, int buffer_len) {
 

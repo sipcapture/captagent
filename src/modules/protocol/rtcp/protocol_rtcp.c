@@ -56,6 +56,7 @@ static cmd_export_t cmds[] = {
         {"protocol_rtcp_bind_api",  (cmd_function)bind_api,   1, 0, 0, 0},
         {"parse_rtcp_to_json", (cmd_function) w_parse_rtcp_to_json, 0, 0, 0, 0 },
         {"is_rtcp", (cmd_function) w_is_rtcp, 0, 0, 0, 0 },
+        {"is_rtp", (cmd_function) w_is_rtp, 0, 0, 0, 0 },
         {"set_rtcp_flag", (cmd_function) w_set_rtcp_flag, 0, 0, 0, 0 },
         {0, 0, 0, 0, 0, 0}
 };
@@ -114,6 +115,10 @@ int w_is_rtcp (msg_t *msg) {
         return check_rtcp_version (msg->data, msg->len);
 }
 
+int w_is_rtp (msg_t *msg) {
+
+        return check_rtp_version (msg->data, msg->len);
+}
 
 int w_set_rtcp_flag(msg_t *msg) {
 
