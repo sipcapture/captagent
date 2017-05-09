@@ -53,6 +53,10 @@
 #include <json.h>  
 #endif
 
+#ifndef PATH_MAX
+#define PATH_MAX 4096
+#endif
+
 #include <captagent/globals.h>
 #include <captagent/api.h>
 #include <captagent/structure.h>
