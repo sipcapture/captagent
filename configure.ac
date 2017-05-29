@@ -59,6 +59,16 @@ AC_ARG_ENABLE(mysql,
 AC_MSG_RESULT([$MYSQL])
 AC_SUBST([MYSQL])
 
+useEpan=no
+AC_ARG_ENABLE(compression,
+   [  --enable-epan	Enable EPAN support / Wireshark dissectors)],
+   [EPAN="$enableval"]
+   useEpan=yes,
+   [EPAN="no"]
+)
+AC_MSG_RESULT([$EPAN])
+AC_SUBST([EPAN])
+
 
 usePCRE=no
 AC_MSG_CHECKING([whether to use pcre])
@@ -216,6 +226,17 @@ if test "$ZLIB" = "yes"; then
    AC_DEFINE(USE_ZLIB, 1, [Use ZIP library])
 fi
 
+dnl
+dnl check for epan library
+dnl
+   
+if test "$EPAN" = "yes"; then
+   AC_CHECKING([for epan Library and Header files])
+   AC_CHECK_HEADER(epan.h,,[AC_MSG_ERROR([epan.h headers not found.])])
+   AC_CHECK_LIB(wireshark, epan_get_version, [ ], [AC_MSG_ERROR([$PACKAGE_NAME requires but cannot find wireshark libraries])])
+   AC_DEFINE(USE_EPAN, 1, [Use EPAN library])
+fi
+
 
 dnl
 dnl check for redis library
@@ -352,5 +373,6 @@ echo Build with REDIS............ : $useRedis
 echo Build with MySQL............ : $useMysql
 echo Build with PCRE............. : $usePCRE
 echo Build with LibUV............ : $useLIBUV
+echo Build with EPAN............. : $useEPAN
 echo
 
