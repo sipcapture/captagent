@@ -60,7 +60,7 @@ AC_MSG_RESULT([$MYSQL])
 AC_SUBST([MYSQL])
 
 useEpan=no
-AC_ARG_ENABLE(compression,
+AC_ARG_ENABLE(epan,
    [  --enable-epan	Enable EPAN support / Wireshark dissectors)],
    [EPAN="$enableval"]
    useEpan=yes,
