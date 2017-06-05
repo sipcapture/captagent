@@ -373,6 +373,6 @@ echo Build with REDIS............ : $useRedis
 echo Build with MySQL............ : $useMysql
 echo Build with PCRE............. : $usePCRE
 echo Build with LibUV............ : $useLIBUV
-echo Build with EPAN............. : $useEPAN
+echo Build with EPAN............. : $useEpan
 echo
 
