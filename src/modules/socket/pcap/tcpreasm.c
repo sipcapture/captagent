@@ -249,7 +249,7 @@ tcpreasm_ip_next_tcp (struct tcpreasm_ip *tcpreasm, unsigned char *packet, unsig
                 
         if(debug_socket_pcap_enable) {
         
-                LDEBUG("TCPREASM: Proto [%d], Hash:[%d] SPORT: [%d], DPORT: [%d]\n", proto, hash, sport, dport);
+                LDEBUG("TCPREASM: Proto [%d], Hash:[%u] SPORT: [%u], DPORT: [%u]\n", proto, hash, sport, dport);
         }
         
 	hash %= REASM_IP_HASH_SIZE;
@@ -341,7 +341,7 @@ tcpreasm_ip_next_tcp (struct tcpreasm_ip *tcpreasm, unsigned char *packet, unsig
 	
 	unsigned char *r = assemble_tcp (entry, output_len);
 
-	//LDEBUG("TCP REASSEM: [%d]\n", *output_len);
+	//LDEBUG("TCP REASSEM: [%u]\n", *output_len);
 	//LDEBUG("MESSAGE: [%s]\n", r);
 	
 	drop_entry (tcpreasm, entry);
@@ -421,7 +421,7 @@ assemble_tcp (struct tcpreasm_ip_entry *entry, unsigned *output_len)
 	unsigned char *p = malloc (entry->len + offset0);
 	unsigned tlen = 0;
 	
-	//LDEBUG("TOTAL LEN: %d\n", entry->len);
+	//LDEBUG("TOTAL LEN: %u\n", entry->len);
 	
 	if (p == NULL)
 		return NULL;

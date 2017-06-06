@@ -183,7 +183,7 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
     if (tmp_ip_proto == GRE_PROTO) {
       memcpy(&tmp_ip_len, (packet + ETHHDR_SIZE), 1);
       tmp_ip_len = (tmp_ip_len & IPLEN_MASK) * 4; // LSB 4 bits: length in 32-bit words
-      //printf("ip.proto: %d, ip header len: %d\n", tmp_ip_proto, tmp_ip_len);
+      //printf("ip.proto: %u, ip header len: %u\n", tmp_ip_proto, tmp_ip_len);
       erspan_offset = ETHHDR_SIZE + tmp_ip_len + GREHDR_SIZE; // Ethernet + IP + GRE
       pkthdr->len -= erspan_offset;
       pkthdr->caplen -= erspan_offset;
@@ -364,7 +364,7 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
       if((tcp_pkt->th_flags & TH_PUSH)) psh = 1;
 
                                         
-      if(debug_socket_pcap_enable) LDEBUG("DEFRAG TCP process: LEN:[%d], ACK:[%d], PSH[%d]\n", len, (tcp_pkt->th_flags & TH_ACK), psh);
+      if(debug_socket_pcap_enable) LDEBUG("DEFRAG TCP process: LEN:[%u], ACK:[%u], PSH[%u]\n", len, (tcp_pkt->th_flags & TH_ACK), psh);
                         
       datatcp = tcpreasm_ip_next_tcp(tcpreasm[loc_index], new_p_2, len , (tcpreasm_time_t) 1000000UL * pkthdr->ts.tv_sec + pkthdr->ts.tv_usec, &new_len, &ip4_pkt->ip_src, &ip4_pkt->ip_dst, ntohs(tcp_pkt->th_sport), ntohs(tcp_pkt->th_dport), psh);
 
@@ -373,7 +373,7 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
       len = new_len;
                         
       if(debug_socket_pcap_enable)
-	LDEBUG("COMPLETE TCP DEFRAG: LEN[%d], PACKET:[%s]\n", len, datatcp);
+	LDEBUG("COMPLETE TCP DEFRAG: LEN[%u], PACKET:[%s]\n", len, datatcp);
                         
 
       if(!profile_socket[profile_size].full_packet) {
@@ -612,12 +612,12 @@ int init_socket(unsigned int loc_idx) {
 		};
 		
 		if (pcap_set_snaplen(sniffer_proto[loc_idx], profile_socket[loc_idx].snap_len) == -1) {
-			LERR("Failed to set snap_len [%d], \"%s\": %s", profile_socket[loc_idx].snap_len, (char *) profile_socket[loc_idx].device, pcap_geterr(sniffer_proto[loc_idx]));
+			LERR("Failed to set snap_len [%u], \"%s\": %s", profile_socket[loc_idx].snap_len, (char *) profile_socket[loc_idx].device, pcap_geterr(sniffer_proto[loc_idx]));
 			return -1;						
 		};
 		
 		if (pcap_set_buffer_size(sniffer_proto[loc_idx], buffer_size) == -1) {
-			LERR("Failed to set buffer_size [%d] \"%s\": %s", buffer_size,  (char *) profile_socket[loc_idx].device, pcap_geterr(sniffer_proto[loc_idx]));
+			LERR("Failed to set buffer_size [%u] \"%s\": %s", buffer_size,  (char *) profile_socket[loc_idx].device, pcap_geterr(sniffer_proto[loc_idx]));
 			return -1;									
 		};
 		
@@ -704,7 +704,7 @@ int set_raw_filter(unsigned int loc_idx, char *filter) {
         //struct pcap_t *aa;
         int fd = -1;
                 
-        LERR("APPLY FILTER [%d]\n", loc_idx);        
+        LERR("APPLY FILTER [%u]\n", loc_idx);
         if(loc_idx >= MAX_SOCKETS || sniffer_proto[loc_idx] == NULL) return 0;         
 
         fd = pcap_get_selectable_fd(sniffer_proto[loc_idx]);
@@ -781,7 +781,7 @@ void* proto_collect(void *arg) {
 		exit(-1);
 	}
 
-	LDEBUG("Link offset interface type [%u] [%d] [%d]", dl, dl, link_offset);
+	LDEBUG("Link offset interface type [%u] [%d] [%u]", dl, dl, link_offset);
 
 	while(1) {
 		ret = pcap_loop(sniffer_proto[loc_idx], 0, (pcap_handler) callback_proto, (u_char *) &loc_idx);
