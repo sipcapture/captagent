@@ -110,6 +110,9 @@ int dump_proto_packet(struct pcap_pkthdr *, u_char *, uint8_t, char *, uint32_t,
 /*IPv6 filter*/
 #define BPF_DEFRAGMENTION_FILTER_IPV6 "(ip6[6]=44 and (ip6[42:2] & 0xfff8 != 0))"
 
+#define REASM_UDP (1<<0)
+#define REASM_TCP (1<<1)
+
 #define TZSP_TYPE_RECEIVED_TAG_LIST 0
 #define TZSP_TYPE_PACKET_FOR_TRANSMIT 1
 #define TZSP_TYPE_RESERVED 2

@@ -252,7 +252,7 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
   /* stats */
   stats.received_packets_total++;
 
-  if (profile_socket[loc_index].reasm == 1 && reasm[loc_index] != NULL) {
+  if (profile_socket[loc_index].reasm && reasm[loc_index] != NULL) {
     unsigned new_len;
 
     u_char *new_p = malloc(len - link_offset - hdr_offset);
@@ -969,13 +969,13 @@ static int load_module(xml_node *config) {
 					if (!usefile && !strncmp(key, "dev", 3))
 						profile_socket[profile_size].device = strdup(value);
 					else if (!strncmp(key, "reasm", 5) && !strncmp(value, "true", 4))
-						profile_socket[profile_size].reasm = +1;
+						profile_socket[profile_size].reasm |= REASM_UDP;
                                         else if (!strncmp(key, "ipv4fragments", 13) && !strncmp(value, "true", 4))
 						ipv4fragments = 1;
                                         else if (!strncmp(key, "ipv6fragments", 13) && !strncmp(value, "true", 4))
 						ipv6fragments = 1;
                                         else if(!strncmp(key, "tcpdefrag", 9) && !strncmp(value, "true", 4))
-                                                profile_socket[profile_size].reasm +=2;                                                    						
+                                                profile_socket[profile_size].reasm |= REASM_TCP;
 					else if (!strncmp(key, "ring-buffer", 11))					        
 						profile_socket[profile_size].ring_buffer = atoi(value);		
 					else if (!strncmp(key, "full-packet",11) && !strncmp(value, "true", 4))					        
@@ -1034,14 +1034,14 @@ static int load_module(xml_node *config) {
 		}
 
 		 /* REASM */
-                if (profile_socket[i].reasm == 1 || profile_socket[i].reasm == 3) {
+                if (profile_socket[i].reasm & REASM_UDP) {
                         reasm[i] = reasm_ip_new();
                         reasm_ip_set_timeout(reasm[i], 30000000);
                 }
                 else reasm[i] = NULL;
 
                 /* TCPREASM */
-                if (profile_socket[i].reasm == 2 || profile_socket[i].reasm == 3) {
+                if (profile_socket[i].reasm & REASM_TCP) {
                         tcpreasm[i] = tcpreasm_ip_new ();
                         tcpreasm_ip_set_timeout(tcpreasm[i], 30000000);
                 }
