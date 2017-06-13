@@ -34,9 +34,6 @@ extern int handler(int value);
 extern char *global_config_path;
 extern char *global_scripts_path;
 
-int ipv4fragments=0;
-int ipv6fragments=0;
-
 /* Ethernet type in case of vlan or mpls header */
 #define VLAN            0x8100
 #define MPLS_UNI        0x8847
@@ -84,6 +81,13 @@ typedef struct socket_pcap_stats {
 	uint64_t received_sctp_packets;
 	uint64_t send_packets;
 } socket_pcap_stats_t;
+
+typedef struct socket_pcap_user_data {
+	int ipv4fragments;
+	int ipv6fragments;
+
+} socket_pcap_user_data_t;
+
 
 extern FILE* yyin;
 extern int yyparse();
