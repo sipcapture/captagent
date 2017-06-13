@@ -106,7 +106,7 @@ int dump_proto_packet(struct pcap_pkthdr *, u_char *, uint8_t, char *, uint32_t,
 
 
 /*IPv4 filter*/
-#define BPF_DEFRAGMENTION_FILTER_IPV4 "(ip[6:2] & 0x3fff != 0)"
+#define BPF_DEFRAGMENTION_FILTER_IPV4 "(ip[6:2] & 0x1fff != 0)"
 /*IPv6 filter*/
 #define BPF_DEFRAGMENTION_FILTER_IPV6 "(ip6[6]=44 and (ip6[42:2] & 0xfff8 != 0))"
 
