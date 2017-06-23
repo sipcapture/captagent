@@ -60,7 +60,7 @@ AC_MSG_RESULT([$MYSQL])
 AC_SUBST([MYSQL])
 
 useEpan=no
-AC_ARG_ENABLE(compression,
+AC_ARG_ENABLE(epan,
    [  --enable-epan	Enable EPAN support / Wireshark dissectors)],
    [EPAN="$enableval"]
    useEpan=yes,
@@ -373,6 +373,6 @@ echo Build with REDIS............ : $useRedis
 echo Build with MySQL............ : $useMysql
 echo Build with PCRE............. : $usePCRE
 echo Build with LibUV............ : $useLIBUV
-echo Build with EPAN............. : $useEPAN
+echo Build with EPAN............. : $useEpan
 echo
 
