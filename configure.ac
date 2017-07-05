@@ -233,7 +233,7 @@ dnl
 if test "$EPAN" = "yes"; then
    AC_CHECKING([for epan Library and Header files])
    AC_CHECK_HEADER(epan.h,,[AC_MSG_ERROR([epan.h headers not found.])])
-   AC_CHECK_LIB(wireshark, epan_get_version, [ ], [AC_MSG_ERROR([$PACKAGE_NAME requires but cannot find wireshark libraries])])
+   AC_CHECK_LIB(wireshark, epan_get_version, [ LIBS="${LIBS}" ], [AC_MSG_ERROR([$PACKAGE_NAME requires but cannot find wireshark libraries])])
    AC_DEFINE(USE_EPAN, 1, [Use EPAN library])
 fi
 
