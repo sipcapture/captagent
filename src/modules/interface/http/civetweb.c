@@ -101,7 +101,7 @@
 #include <windows.h>
 
 #ifndef PATH_MAX
-#define PATH_MAX MAX_PATH
+#define PATH_MAX 4096
 #endif
 
 #ifndef _IN_PORT_T
