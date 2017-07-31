@@ -25,6 +25,8 @@
 #include <sys/types.h>
 #include <net/ethernet.h>
 
+#include "structures.h"
+
 #ifdef __GNUC__
 /* GNU C */
 #define PACK_OFF __attribute__ ((__packed__));

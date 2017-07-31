@@ -129,7 +129,6 @@ int w_send_json_api(msg_t *_m, char *param1)
     return ret;
 }
 
-
 int reload_config (char *erbuf, int erlen) {
 
 	char module_config_name[500];
@@ -176,6 +175,68 @@ unsigned int get_profile_index_by_name(char *name) {
 		}
 	}
 	return 0;
+}
+
+void showCerts(SSL* ssl) {
+
+        X509 *cert;
+        char *line;
+
+        cert = SSL_get_peer_certificate(ssl); /* get the server's certificate */
+        if ( cert != NULL ) {
+                LDEBUG("Server certificates:");
+                line = X509_NAME_oneline(X509_get_subject_name(cert), 0, 0);
+                LDEBUG("Subject: %s", line);
+                free(line);       /* free the malloc'ed string */
+                line = X509_NAME_oneline(X509_get_issuer_name(cert), 0, 0);
+                LDEBUG("Issuer: %s", line);
+                free(line);       /* free the malloc'ed string */
+                X509_free(cert);     /* free the malloc'ed certificate copy */
+        }
+        else
+                LERR("No certificates.");
+}
+
+int initSSL(unsigned int idx) {
+
+        long ctx_options;
+
+        /* if(ssl) SSL_free(ssl);
+        if(ctx) SSL_CTX_free(ctx);
+        */
+
+        if(init_jsonsocket_blocking(idx)) {
+                LERR("capture: couldn't init hep socket");
+                return 1;
+        }
+
+        profile_transport[idx].ctx = initCTX();
+
+        /* workaround bug openssl */
+        ctx_options = SSL_OP_ALL;
+        ctx_options |= SSL_OP_NO_SSLv2;
+        SSL_CTX_set_options(profile_transport[idx].ctx, ctx_options);
+
+        /*extra*/
+        SSL_CTX_ctrl(profile_transport[idx].ctx, BIO_C_SET_NBIO, 1, NULL);
+
+        /* create new SSL connection state */
+        profile_transport[idx].ssl = SSL_new(profile_transport[idx].ctx);
+
+        SSL_set_connect_state(profile_transport[idx].ssl);
+
+        /* attach socket */
+        SSL_set_fd(profile_transport[idx].ssl, profile_transport[idx].socket);    /* attach the socket descriptor */
+
+        /* perform the connection */
+        if ( SSL_connect(profile_transport[idx].ssl) == -1 )  {
+              ERR_print_errors_fp(stderr);
+              return 1;
+        }
+
+        showCerts(profile_transport[idx].ssl);
+
+        return 0;
 }
 
 int send_json (msg_t *msg) {
@@ -478,68 +539,6 @@ SSL_CTX* initCTX(void) {
         return ctx;
 }
 
-
-void showCerts(SSL* ssl) {
-
-        X509 *cert;
-        char *line;
-
-        cert = SSL_get_peer_certificate(ssl); /* get the server's certificate */
-        if ( cert != NULL ) {
-                LDEBUG("Server certificates:");
-                line = X509_NAME_oneline(X509_get_subject_name(cert), 0, 0);
-                LDEBUG("Subject: %s", line);
-                free(line);       /* free the malloc'ed string */
-                line = X509_NAME_oneline(X509_get_issuer_name(cert), 0, 0);
-                LDEBUG("Issuer: %s", line);
-                free(line);       /* free the malloc'ed string */
-                X509_free(cert);     /* free the malloc'ed certificate copy */
-        }
-        else
-                LERR("No certificates.");
-}
-
-int initSSL(unsigned int idx) {
-
-        long ctx_options;
-
-        /* if(ssl) SSL_free(ssl);
-        if(ctx) SSL_CTX_free(ctx);
-        */
-
-        if(init_jsonsocket_blocking(idx)) {
-                LERR("capture: couldn't init hep socket");
-                return 1;
-        }
-
-        profile_transport[idx].ctx = initCTX();
-
-        /* workaround bug openssl */
-        ctx_options = SSL_OP_ALL;
-        ctx_options |= SSL_OP_NO_SSLv2;
-        SSL_CTX_set_options(profile_transport[idx].ctx, ctx_options);
-
-        /*extra*/
-        SSL_CTX_ctrl(profile_transport[idx].ctx, BIO_C_SET_NBIO, 1, NULL);
-
-        /* create new SSL connection state */
-        profile_transport[idx].ssl = SSL_new(profile_transport[idx].ctx);
-
-        SSL_set_connect_state(profile_transport[idx].ssl);
-
-        /* attach socket */
-        SSL_set_fd(profile_transport[idx].ssl, profile_transport[idx].socket);    /* attach the socket descriptor */
-
-        /* perform the connection */
-        if ( SSL_connect(profile_transport[idx].ssl) == -1 )  {
-              ERR_print_errors_fp(stderr);
-              return 1;
-        }
-
-        showCerts(profile_transport[idx].ssl);
-
-        return 0;
-}
 
 #endif /* use SSL */
 
