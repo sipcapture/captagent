@@ -362,7 +362,8 @@ add_fragment_tcp (struct tcpreasm_ip_entry *entry, struct tcpreasm_frag_entry *f
 	 *   decreases by 1.
 	 */
 
-	struct tcpreasm_frag_entry *cur = entry->frags, *next = cur->next;
+        struct tcpreasm_frag_entry *cur = entry->frags;
+        struct tcpreasm_frag_entry  *next = cur->next;
 
 	entry->len+=frag->len;
 
