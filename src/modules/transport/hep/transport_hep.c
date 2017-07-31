@@ -962,7 +962,25 @@ int init_udp_socket(hep_connection_t *conn, char *host, int port) {
 
         struct sockaddr_in v4addr;
         int status = 0;
-        
+        struct addrinfo hints[1] = {{ 0 }};            
+        struct addrinfo *ai;
+        char cport[15];
+                  
+        hints->ai_family = AF_UNSPEC;        
+        hints->ai_socktype = SOCK_DGRAM;
+        hints->ai_protocol = IPPROTO_UDP;
+        hints->ai_flags = 0;
+                
+        snprintf(cport, sizeof(cport), "%d", port);
+
+        if ((status = getaddrinfo(host, cport, hints, &ai)) != 0) {
+                LERR( "capture: getaddrinfo: %s", gai_strerror(status));
+                return 0;   
+        }
+	
+	/* copy structure */
+        memcpy(&conn->send_addr, (struct sockaddr_in*)&ai->ai_addr, sizeof(struct sockaddr_in));                                        
+                
         uv_async_init(conn->loop, &conn->async_handle, _async_callback);
         uv_udp_init(conn->loop, &conn->udp_handle);  
 
@@ -980,15 +998,7 @@ int init_udp_socket(hep_connection_t *conn, char *host, int port) {
               
 #endif        
         uv_udp_set_broadcast(&conn->udp_handle, 1);
-
-     
-#if UV_VERSION_MAJOR == 0                         
-        conn->send_addr = uv_ip4_addr(host, port);
-
-#else    
-        status = uv_ip4_addr(host, port, &conn->send_addr);
-#endif
-
+             
         conn->udp_handle.data = conn;
       
         conn->type = 1;
@@ -1025,18 +1035,33 @@ int init_tcp_socket(hep_connection_t *conn, char *host, int port) {
         struct sockaddr_in v4addr;
         int status;
 	int err;
+	struct addrinfo hints[1] = {{ 0 }};	    
+        struct addrinfo *ai;
+        char cport[15];
+                
+        hints->ai_family = AF_UNSPEC;        
+        hints->ai_socktype = SOCK_STREAM;
+        hints->ai_protocol = IPPROTO_TCP;
+        hints->ai_flags = 0;
 
+        snprintf(cport, sizeof(cport), "%d", port);
+
+        if ((status = getaddrinfo(host, cport, hints, &ai)) != 0) {
+                LERR( "capture: getaddrinfo: %s", gai_strerror(status));
+                return 0;   
+        }
+	
         uv_async_init(conn->loop, &conn->async_handle, _async_callback);
 	err = uv_tcp_init(conn->loop, &conn->tcp_handle);
 	if (err) return err;  
+
+        /* copy structure */
+        memcpy(&v4addr, (struct sockaddr_in*)&ai->ai_addr, sizeof(struct sockaddr_in));
    
 	uv_tcp_keepalive(&conn->tcp_handle, 1, 60);
 
 #if UV_VERSION_MAJOR == 0                         
-        v4addr = uv_ip4_addr(host, port);
-
-#else    
-        status = uv_ip4_addr(host, port, &v4addr);
+        /* v4addr = uv_ip4_addr(host, port);*/            
 #endif
 
         set_conn_state(conn, STATE_CONNECTING);
