@@ -177,6 +177,8 @@ unsigned int get_profile_index_by_name(char *name) {
 	return 0;
 }
 
+#ifdef USE_SSL
+
 void showCerts(SSL* ssl) {
 
         X509 *cert;
@@ -238,6 +240,8 @@ int initSSL(unsigned int idx) {
 
         return 0;
 }
+
+#endif /* endif SSL */
 
 int send_json (msg_t *msg) {
 
