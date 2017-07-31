@@ -68,7 +68,5 @@ void free_module_xml_config();
 int load_module_xml_config();
 int reload_config (char *erbuf, int erlen);
 int check_module_xml_config();
-                                    
-
-
+                                 
 #endif /* _PROTOCOL_RTCP_H_ */

@@ -188,6 +188,7 @@ void free_module_xml_config() {
 	if(module_xml_config) xml_free(module_xml_config);
 }
 
+
 /* modules external API */
 
 static int load_module(xml_node *config) {
@@ -256,7 +257,6 @@ static int load_module(xml_node *config) {
 					if (key == NULL || value == NULL) {
 						LERR("bad values in the config");
 						goto nextparam;
-
 					}
 
 					/*

@@ -53,6 +53,21 @@ typedef struct mediaport {
 } mediaport_t;
 
 
+typedef struct {
+    const char *name;
+    uint32_t address;
+    uint32_t mask;
+} NetInfo;
+
+
+static NetInfo rfc1918nets[] = {
+  {"10.0.0.0",    0x0a000000UL, 0xff000000UL},
+  {"172.16.0.0",  0xac100000UL, 0xfff00000UL},
+  {"192.168.0.0", 0xc0a80000UL, 0xffff0000UL},
+  {"100.64.0.0",  0x64400000UL, 0xffc00000UL},
+  {NULL,          0UL,          0UL}
+};
+
 struct ipport_items *ipports = NULL;
 
 bool hash_mode = FALSE;
@@ -74,5 +89,8 @@ int find_and_update(char *key, char *callid);
 void clear_ipports();
 void print_ipports();
 int check_ipport(char *name);
+/* nat detection */
+int rfc1918address(str *address);
+int nat_mode = 1;
 
 #endif /* DATABASE_LI_H_ */

@@ -56,6 +56,7 @@ xml_node *module_xml_config = NULL;
 char *module_name="database_hash";
 uint64_t module_serial = 0;
 char *module_description = NULL;
+int debug_param = 0;
 
 static int load_module(xml_node *config);
 static int unload_module(void);
@@ -92,6 +93,34 @@ int bind_api(database_module_api_t* api)
         return 0;
 }
 
+
+int rfc1918address(str *address)
+{
+    uint32_t in4_addr;
+    uint32_t netaddr;     
+    char in4_string[INET_ADDRSTRLEN];
+    int i, result = 0;
+    
+    memcpy(in4_string, address->s, address->len);
+    in4_string[address->len] = '\0';
+
+    result = inet_pton(AF_INET, in4_string, &in4_addr);
+
+    netaddr = ntohl(in4_addr);
+    
+    LDEBUG("CHECKING IP RFC [%s] - [%u], [%u], [%d]", in4_string, in4_addr, netaddr, result);
+
+    for (i=0; rfc1918nets[i].name!=NULL; i++) {
+        LDEBUG("CHECKING RFC IN ADR:[%u],MASK[%u] RES:[%u]", rfc1918nets[i].address, rfc1918nets[i].mask, (netaddr & rfc1918nets[i].mask));
+        if ((netaddr & rfc1918nets[i].mask)==rfc1918nets[i].address) {
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
+
 int w_check_rtcp_ipport(msg_t *msg)
 {
 
@@ -110,6 +139,12 @@ int w_check_rtcp_ipport(msg_t *msg)
 			snprintf(ipptmp, sizeof(ipptmp), "%.*s:%d", mp->rtcp_ip.len, mp->rtcp_ip.s, mp->rtcp_port);			
 			LDEBUG("RTCP CALLID: %.*s", msg->sip.callId.len, msg->sip.callId.s);
 			LDEBUG("RTCP IP PORT: %s", ipptmp);
+			
+			if(nat_mode == 1 && rfc1918address(&mp->rtcp_ip) == 1)
+			{
+	                      LDEBUG ("Detected NAT IP from RFC1918 [%.*s] changing to [%s]", mp->rtcp_ip.len, mp->rtcp_ip.s, msg->rcinfo.src_ip);
+			      snprintf(ipptmp, sizeof(ipptmp), "%.*s:%d", mp->rtcp_ip.len, mp->rtcp_ip.s, mp->rtcp_port);			
+			}
 
 			/* one pair = one timer */
 			if(!find_and_update(ipptmp, callid))			
@@ -502,6 +537,8 @@ static int load_module(xml_node *config) {
 					/* cache */
 					if (!strncmp(key, "timer-timeout", 13) && atoi(value) > 200) timer_timeout = atoi(value);
 					else if (!strncmp(key, "rtcp-timeout", 12) && atoi(value) > 80) rtcp_timeout = atoi(value);
+					else if (!strncmp (key, "nat-mode", 8)) nat_mode = atoi(value);
+					else if (!strncmp (key, "debug", 5)) debug_param = atoi(value);					                                             
 				}
 
 				nextparam: params = params->next;
