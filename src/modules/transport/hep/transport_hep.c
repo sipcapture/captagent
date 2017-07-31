@@ -979,11 +979,10 @@ int init_udp_socket(hep_connection_t *conn, char *host, int port) {
         }
 	
 	/* copy structure */
-        memcpy(&conn->send_addr, (struct sockaddr_in*)&ai->ai_addr, sizeof(struct sockaddr_in));                                        
-                
+        memcpy(&conn->send_addr, ai->ai_addr, sizeof(struct sockaddr));                                        
+        
         uv_async_init(conn->loop, &conn->async_handle, _async_callback);
         uv_udp_init(conn->loop, &conn->udp_handle);  
-
         
 #if UV_VERSION_MAJOR == 0                         
         v4addr = uv_ip4_addr("0.0.0.0", 0);
@@ -1056,7 +1055,7 @@ int init_tcp_socket(hep_connection_t *conn, char *host, int port) {
 	if (err) return err;  
 
         /* copy structure */
-        memcpy(&v4addr, (struct sockaddr_in*)&ai->ai_addr, sizeof(struct sockaddr_in));
+        memcpy(&v4addr, (struct sockaddr_in*) ai->ai_addr, sizeof(struct sockaddr_in));
    
 	uv_tcp_keepalive(&conn->tcp_handle, 1, 60);
 
