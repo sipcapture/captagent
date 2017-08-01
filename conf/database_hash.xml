@@ -4,6 +4,8 @@
 	<profile name="database_hash" description="HASH RTCP" enable="true" serial="2014010402">
 	    <settings>
 		<param name="timer-expire" value="80"/>
+		 <!-- enable if you have nat devices and masqaraded ip -->
+		 <param name="nat-mode" value="false"/>		    
 	    </settings>
 	</profile>
     </module>
