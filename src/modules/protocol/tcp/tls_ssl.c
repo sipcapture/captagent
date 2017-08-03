@@ -247,7 +247,8 @@ u_int8_t tls_packet_dissector(const u_char ** payload,
   if(proto_id_l3 == IPPROTO_TCP &&
      ((src_port == 443 || dst_port == 443) ||
       (src_port == 636 || dst_port == 636) ||
-      (src_port == 389 || dst_port == 389))) {
+      (src_port == 389 || dst_port == 389) ||
+      (src_port == 5061 || dst_port == 5061))) {
 
     /** dissect the packet **/
   
