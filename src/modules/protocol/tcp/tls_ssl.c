@@ -312,15 +312,18 @@ u_int8_t tls_packet_dissector(const u_char ** payload,
 	    pp = pp + RANDOM;
 	    // check session ID
 	    u_int8_t len_id = 1;
+	    
+	    // 2 cases: len_id = 0; len_id > 0
 	    if(*pp != 0) {
 	      // read and save ID
-	      len_id = ntohs(*pp);
+	      len_id = *pp;
 	      handshake->sessID_c = malloc(sizeof(char) * len_id);
-	      memcpy(handshake->sessID_c, pp+1, len_id);	
+	      memcpy(handshake->sessID_c, pp+1, len_id);
+	      pp = pp + len_id + 1;
 	    }
-	    // every time move foward of n bytes
-	    pp = pp + len_id;
-      
+	    else
+	      pp = pp + len_id;
+	    
 	    // check cipher suite
 	    u_int16_t cipher_len =  pp[1] + (pp[0] << 8);
 
