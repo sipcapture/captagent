@@ -4,9 +4,8 @@
    - Network layer
    - Transport layer
    
-   Copyright (C) 2016-2017 Michele Campus
-   
-   This file is part of captagent.
+   Author: 2016-2017 Michele Campus <fci1908@gmail.com>
+   (C) Homer Project 2012-2017 (http://www.sipcapture.org)
    
    Homer capture agent is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -22,14 +21,13 @@
    along with this program; if not, write to the Free Software
    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 **/
-
 #ifndef STRUCTURES_H_
 #define STRUCTURES_H_
 
 #include <pcap.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/types.h>
+#include <endian.h>
 #include <net/ethernet.h>
 #include "define.h"
 #include "uthash.h"
@@ -121,12 +119,12 @@ struct wifi_hdr
 /* +++++++++++++ Internet Protocol (IPv4) header +++++++++++++ */
 struct ipv4_hdr
 {
-#if __BYTE_ORDER == __LITTLE_ENDIAN
+#if defined(__LITTLE_ENDIAN)
   u_int8_t ihl:4, version:4;
-#elif __BYTE_ORDER == __BIG_ENDIAN
+#elif defined(__BIG_ENDIAN)
   u_int8_t version:4, ihl:4;
 #else
-#error "Byte order must be defined"
+# error "Byte order must be defined"
 #endif
   u_int8_t ip_tos;            // type of service
   u_int16_t ip_len;           // total length (ip header + payload)
@@ -183,12 +181,12 @@ struct tcp_hdr
   u_int16_t tcp_dst_port;    // destination TCP port
   u_int32_t tcp_seq;          // TCP sequence number
   u_int32_t tcp_ack;          // TCP acknowledgement number
-#if __BYTE_ORDER == __LITTLE_ENDIAN
+#if defined(__LITTLE_ENDIAN)
   u_int8_t reserved:4, tcp_offset:4;
-#elif __BYTE_ORDER == __BIG_ENDIAN
+#elif defined(__BIG_ENDIAN)
   u_int8_t tcp_offset:4, reserved:4;
 #else
-#error "Byte order must be defined"
+# error "Byte order must be defined"
 #endif
   u_int8_t tcp_flags;         // TCP flags (and 2-bits from reserved space)
 #define TCP_FIN   0x01
@@ -214,31 +212,55 @@ struct udp_hdr
   u_int16_t check;
 } PACK_OFF;
 
+/* general stats filled by every pkts  */
+struct flow_stats
+{
+  u_int16_t discarded_bytes;
+  u_int16_t ethernet_pkts;
+  u_int16_t wifi_pkts;
+  u_int16_t arp_pkts;
+  u_int16_t ipv4_pkts;
+  u_int16_t ipv6_pkts;
+  u_int16_t vlan_pkts;
+  u_int16_t mpls_pkts;
+  u_int16_t pppoe_pkts;
+  u_int16_t tcp_pkts;
+  u_int16_t udp_pkts;
+  u_int16_t num_tls_pkts; // count tls pkts
+  
+};
 
-/* +++++++++++++++++++++++ FLOW HANDSHAKE +++++++++++++++++++++++++ */
+/* struct passed to the callback proto function */
+/* for the detection process */
+struct flow_callback_proto
+{
+  pcap_t *pcap_handle;
+  struct flow_stats stats;
+};
 
-/**
-   Handshake struct for the Flow (to put in Hashtable)
+
+struct Certificate
+{
+  
+};
+
+// Handshake struct for the Flow (to put in Hashtable)
+/* 
    - random val (C-S)
    - session ID (C-S)
    - certificate_server
-   - Pre Master secret (??)
-   - others ??
 */
 struct Handshake
 {
-  u_int8_t cli_rand[32];    // Client random num
-  u_int8_t srv_rand[32];    // Server random num
+  /* u_int8_t cli_rand[32];    // Client random num */
+  /* u_int8_t srv_rand[32];    // Server random num */
   u_int8_t * sessID_c;      // Client session ID
   u_int8_t * sessID_s;      // Server session ID
-  char     * certificate_S; // Certificate
-  char     * certificate_C; // [Opt] Client Certificate
+  struct Certificate * certificate_S; // Server Certificate
+  struct Certificate * certificate_C; // [Opt] Client Certificate
 };
 
-/**
-   Struct for Key:
-   struct containing the fields used as the key in the hashmap for a flow
-*/
+/* struct containing the fields used as the key in the hashmap for a flow */
 struct Flow_key
 {
   // IPV4
@@ -253,13 +275,10 @@ struct Flow_key
   u_int8_t proto_id_l3;
 };
 
-/**
-   HASH TABLE 
-**/
+/** HASH TABLE **/
 struct Hash_Table
 {
   struct Flow_key flow_key_hash; // Key
-  /* struct Flow *flow_hash; */
   struct Handshake *handshake;
   u_int8_t is_handsk_fin;
   UT_hash_handle hh;

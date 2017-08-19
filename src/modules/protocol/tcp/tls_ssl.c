@@ -1,36 +1,37 @@
 /**
-   TLS dissector: parse the pkt and extract the handshake (if present)
-   TLS version supported: TLSv1 TLSv1.2
+  This TLS dissector parse the pkt and extract the handshake (if present)
+  
+  Author: 2016-2017 Michele Campus <fci1908@gmail.com>
+  (C) Homer Project 2012-2017 (http://www.sipcapture.org)
    
-   Copyright (C) 2016-2017 Michele Campus
-   
-   This file is part of captagent.
-   
-   Homer capture agent is free software; you can redistribute it and/or modify
-   it under the terms of the GNU General Public License as published by
-   the Free Software Foundation; either version 3 of the License, or
-   (at your option) any later version
-   
-   Homer capture agent is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU General Public License for more details.
-   
-   You should have received a copy of the GNU General Public License
-   along with this program; if not, write to the Free Software
-   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Homer capture agent is free software; you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation; either version 3 of the License, or
+  (at your option) any later version
+  
+  Homer capture agent is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+  
+  You should have received a copy of the GNU General Public License
+  along with this program; if not, write to the Free Software
+  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 **/
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/socket.h>
 #include <sys/types.h>
-#include <netinet/in.h>
-#include <netinet/ip.h>
+#include <sys/stat.h>
 #include <arpa/inet.h>
-#include "structures.h"
+#include <openssl/x509.h>
+#include <openssl/x509v3.h>
+#include <time.h>
+#include <math.h>
+#include <unistd.h>
 #include "tls_ssl.h"
+#include "structures.h"
 
 #define SERVER_NAME_LEN   256
 #define TLS_HEADER_LEN      5
@@ -64,8 +65,9 @@ enum {
   CLIENT_HELLO        = 1,
   SERVER_HELLO        = 2,
   CERTIFICATE         = 11,
-  SERVER_KEY_EXCHANGE = 12,
   CERTIFICATE_REQUEST = 13,
+  CERTIFICATE_STATUS  = 22,
+  SERVER_KEY_EXCHANGE = 12,
   SERVER_DONE         = 14,
   CERTIFICATE_VERIFY  = 15,
   CLIENT_KEY_EXCHANGE = 16,
@@ -93,50 +95,109 @@ enum {
 #define CERT_C  13
 
 
+/** ###### FunctionS to save and split the certificate(s) ###### **/
 
-/** ### FunctionS for the HASH TABLE (uthash) ### **/
+// SAVE CERTIFICATE AS .DER FILE
+static void save_certificate_FILE(const unsigned char * cert, u_int16_t cert_len)
+{
+  FILE *fw;
+  X509 *x_cert;
+  char filename[cert_len];
+  char buff[cert_len];
+  struct tm *timeinfo;
+  struct timeval tv;
+  int millisec;
+  
+  x_cert = d2i_X509(NULL, &cert, cert_len);
+  if (!x_cert) {
+    fprintf(stderr, "Error on d21_X509 funtion\n");
+    return;
+  }
+
+  gettimeofday(&tv, NULL);
+
+  // trick to have milliseconds (thanks to a Stack Overflow answer)
+  millisec = lrint(tv.tv_usec/1000.0); // Round to nearest millisec
+  if(millisec >= 1000) {               // Allow for rounding up to nearest second
+    millisec -= 1000;
+    tv.tv_sec++;
+  }
+
+  timeinfo = localtime(&tv.tv_sec);
+
+  //set to zero
+  memset(filename, 0, cert_len);
+  memset(buff, 0, cert_len);
+  struct stat st = {0};
+
+  // check or create certificates directory
+  if (stat("certificates/", &st) == -1) {
+    mkdir("certificates/", 0555);
+  }
+
+  /* save every file with the time certificate was catched */
+  strftime(filename, sizeof(filename), "certificates/cert_%Y-%m-%d_%H-%M-%S-%%03u.der", timeinfo);
+  snprintf(buff, sizeof(buff), filename, tv.tv_usec);
+  
+  if(!(fw = fopen(buff,"w"))) {
+    fprintf(stderr, "Error on opening file descriptor fw\n");
+    return;
+  }
+
+  // function to convert raw data (DER) to PEM certificate (good for parsing with openssl)
+  i2d_X509_fp(fw, x_cert);
+
+  // free cert and close file descriptor
+  X509_free(x_cert);
+  fclose(fw);
+}
+
+// SPLIT CERTIFICATE FUNCTION
+/* static struct Certificate split_Server_Certificate(char * certificate, u_int16_t cert_len) */
+/* {  */
+/* **** TODO **** */
+/* } */
+
+
+/** ###### FunctionS for the HASH TABLE (uthash) ###### **/
 
 struct Hash_Table *HT_Flows = NULL; // # HASH TABLE
 
-// ADD CLI RAND
-static void add_cli_rand_id(struct Hash_Table **flow_in, struct Handshake **handshake, u_int8_t len_id)
+// ADD CLI ID
+static void add_cli_id(struct Hash_Table **flow_in, struct Handshake **handshake, u_int8_t len_id)
 {
-  // copy cli_rand
-  memcpy((*flow_in)->handshake->cli_rand, (*handshake)->cli_rand, 32);
   // copy sessID_c
   if(len_id > 1) {
     (*flow_in)->handshake->sessID_c = malloc(sizeof(char) * len_id);
-    memcpy((*flow_in)->handshake->sessID_c, (*handshake)->sessID_c, len_id);	
+    memcpy((*flow_in)->handshake->sessID_c, (*handshake)->sessID_c, len_id);
   }
   else
     (*flow_in)->handshake->sessID_c = NULL;
 }
 
-// ADD SRV RAND
-static void add_srv_rand_id(struct Hash_Table **flow_in, struct Handshake **handshake, u_int8_t len_id)
+// ADD SRV ID
+static void add_srv_id(struct Hash_Table **flow_in, struct Handshake **handshake, u_int8_t len_id)
 {
-  // copy srv_rand
-  memcpy((*flow_in)->handshake->srv_rand, (*handshake)->srv_rand, 32);
   // copy sessID_c
   if(len_id > 1) {
     (*flow_in)->handshake->sessID_s = malloc(sizeof(char) * len_id);
-    memcpy((*flow_in)->handshake->sessID_s, (*handshake)->sessID_s, len_id);	
+    memcpy((*flow_in)->handshake->sessID_s, (*handshake)->sessID_s, len_id);
   }
   else
     (*flow_in)->handshake->sessID_s = NULL;
 }
 
-// ADD CERT
-static void add_cert(struct Hash_Table **flow_in, struct Handshake **handshake, u_int8_t len_cert, u_int8_t cc)
+// UPDATE CERT (used o update the certificate)
+static void update_cert(struct Hash_Table **flow_in, struct Handshake **handshake, u_int8_t len_cert, u_int8_t cc)
 {
   // copy certificate_S
   if(len_cert > 1) {
     if(cc == CERT_S) {
-      (*flow_in)->handshake->certificate_S = malloc(sizeof(char) * len_cert);
+      (*flow_in)->handshake->certificate_S = malloc(sizeof(struct Certificate) * 1);
       memcpy((*flow_in)->handshake->certificate_S, (*handshake)->certificate_S, len_cert);
     }
     else if(len_cert == CERT_C) {
-      (*flow_in)->handshake->certificate_C = malloc(sizeof(char) * len_cert);
+      (*flow_in)->handshake->certificate_C = malloc(sizeof(struct Certificate) * 1);
       memcpy((*flow_in)->handshake->certificate_C, (*handshake)->certificate_C, len_cert);
     }
   }
@@ -146,7 +207,7 @@ static void add_cert(struct Hash_Table **flow_in, struct Handshake **handshake, 
 
 
 // ADD FLOW
-static void add_flow(/* struct Hash_Table * HT_Flows,  */struct Flow_key *key, struct Handshake *handshake, u_int8_t flag, u_int8_t len_id)
+static void add_flow(struct Flow_key *key, struct Handshake *handshake, u_int8_t flag, u_int8_t len_id)
 {
   struct Hash_Table * flow_in;
 
@@ -167,36 +228,38 @@ static void add_flow(/* struct Hash_Table * HT_Flows,  */struct Flow_key *key, s
       // set memory to 0 
       memset(flow_in, 0, sizeof(struct Hash_Table));
       // alloc mem for handshake field of flow
-      flow_in->handshake = malloc(sizeof(struct Flow_key));
+      flow_in->handshake = malloc(sizeof(struct Handshake));
       
       // set KEY
       memcpy(&flow_in->flow_key_hash, key, sizeof(struct Flow_key));
+      /* flow_in.flow_key_hash = key; */
       
       // set handshake fin to FALSE
       flow_in->is_handsk_fin = FALSE;
       
-      // se cli hello -> ADD_CLI_RAND_ID
-      add_cli_rand_id(&flow_in, &handshake, len_id);
+      // se cli hello -> ADD_CLI_ID
+      add_cli_id(&flow_in, &handshake, len_id);
       
       // add new elem in Hash Table
       HASH_ADD(hh, HT_Flows, flow_key_hash, sizeof(struct Flow_key), flow_in);
     }
   }
-  /* update flow or discard */
-  else {
+  else { // update flow or discard
 
     /* the handshake is not complete, so it must be fill with new value(s) */
     if(flow_in->is_handsk_fin == FALSE) {
       
-      // se cli hello -> ADD_CLI_RAND_ID
+      // if cli hello -> ADD_CLI_RAND_ID
       if(flag == CLI)
-	add_cli_rand_id(&flow_in, &handshake, len_id);
-      // se serv hello -> ADD_SRV_RAND_ID
+	add_cli_id(&flow_in, &handshake, len_id);
+
+      // if serv hello -> ADD_SRV_RAND_ID
       else if(flag == SRV)
-	add_srv_rand_id(&flow_in, &handshake, len_id);
-      // se cert hello -> ADD_CERT_IN
+	add_srv_id(&flow_in, &handshake, len_id);
+
+      // if cert hello -> UPDATE_CERT
       else if(flag == CERT_S) {
-	add_cert(&flow_in, &handshake, len_id, flag);
+	update_cert(&flow_in, &handshake, len_id, flag);
 	// set handshake fin to TRUE
 	flow_in->is_handsk_fin = TRUE;
       }
@@ -206,7 +269,7 @@ static void add_flow(/* struct Hash_Table * HT_Flows,  */struct Flow_key *key, s
       
       /* if the pkt is a Client Hello, open a new flow for handshake */
       if(flag == CLI) {
-	add_cli_rand_id(&flow_in, &handshake, len_id);
+	add_cli_id(&flow_in, &handshake, len_id);
 	
 	/* **** IMPORTANT!!! CHECK IF FLOW IS OVERWRITTEN **** */
 	
@@ -217,6 +280,7 @@ static void add_flow(/* struct Hash_Table * HT_Flows,  */struct Flow_key *key, s
 	/* discard pkt */
 	/* look also if flow is too old:
 	   if yes, delete it */
+	/* --TODO-- */
       }
     }
   }
@@ -224,20 +288,31 @@ static void add_flow(/* struct Hash_Table * HT_Flows,  */struct Flow_key *key, s
 
 ///////////////////////// FUNCTIONS ////////////////////////////////////
 
+
 // Function to dissect TLS/SSL
-u_int8_t tls_packet_dissector(const u_char ** payload,
-			      const u_int16_t size_payload,
-			      const u_int8_t ip_version,
-			      struct Handshake * handshake,
-			      struct Flow_key * flow_key,
-			      const u_int16_t src_port,
-			      const u_int16_t dst_port,
-			      const u_int8_t proto_id_l3/* , */
-			      /* struct Hash_Table ** HT_Flows */)
+int tls_packet_dissector(const u_char ** payload,
+			 const u_int16_t size_payload,
+			 const u_int8_t ip_version,
+			 struct Flow_key * flow_key,
+			 const u_int16_t src_port,
+			 const u_int16_t dst_port,
+			 const u_int8_t proto_id_l3)
 {
   struct Hash_Table *el;
+  struct Handshake * handshake;
   const u_int8_t * pp = *payload;
 
+  /**
+     # HANDSHAKE #
+     initialize the handshake structure
+  */
+  handshake = malloc(sizeof(struct Handshake) * 1);
+  if(!handshake) {
+    fprintf(stderr, "error on malloc handshake\n");
+    return -1;
+  }
+  memset(handshake, 0, sizeof(struct Handshake));
+  
   /**
      NOTE:
      port 443 is for HTTP over TLS/SSL
@@ -255,7 +330,7 @@ u_int8_t tls_packet_dissector(const u_char ** payload,
     struct header_tls_record *hdr_tls_rec = (struct header_tls_record*)(*payload);
       
     u_int16_t type = 0;
-    u_int8_t more_records = TRUE;
+    u_int8_t more_records = 0;
     
     // Record Type
     switch(hdr_tls_rec->type) {
@@ -294,6 +369,7 @@ u_int8_t tls_packet_dissector(const u_char ** payload,
 	struct handshake_header * hand_hdr = (struct handshake_header*) pp;
 	pp = pp + HANDSK_HEADER_LEN;
 	int offset;
+	u_int8_t is_cert_status = 0;
 
 	switch(hand_hdr->msg_type) {
       
@@ -307,8 +383,7 @@ u_int8_t tls_packet_dissector(const u_char ** payload,
 	    }
 	    // move foward of 2 bytes
 	    pp = pp + 2;
-	    // copy random bytes move foward
-	    memcpy(handshake->cli_rand, pp, 32);	
+	    // move foward of RANDOM bytes
 	    pp = pp + RANDOM;
 	    // check session ID
 	    u_int8_t len_id = 1;
@@ -380,21 +455,21 @@ u_int8_t tls_packet_dissector(const u_char ** payload,
 		    offset += exts_offset;
 		    pp = pp + exts_offset;
 		  }
-		  // search flow and eventually inser new in HT or update old
+		  // search flow and eventually insert new one in HT or update old
 		  // 10 CLI
-		  add_flow(/* HT_Flows, */ flow_key, handshake, CLI, len_id);
-		  more_records = FALSE;
+		  add_flow(flow_key, handshake, CLI, len_id);
+		  more_records = 1;
 		  break;
 		}
 		else {
-		  more_records = FALSE;
+		  more_records = 1;
 		  // search flow and eventually inser new in HT update old
-		  add_flow(/* HT_Flows, */ flow_key, handshake, CLI, len_id);
+		  add_flow(flow_key, handshake, CLI, len_id);
 		  break;
 		}
 		
 		// search flow and eventually inser new in HT update old
-		add_flow(/* HT_Flows, */ flow_key, handshake, CLI, len_id);
+		add_flow(flow_key, handshake, CLI, len_id);
 		
 	      }
 	      else {
@@ -409,15 +484,14 @@ u_int8_t tls_packet_dissector(const u_char ** payload,
 	  }
 	case SERVER_HELLO:
 	  {
-	    // check version
+	    // check version // TODO add TLS 1.3
 	    if(pp[0] != 0x03 && (pp[1] != 0x01 || pp[1] != 0x02 || pp[1] != 0x03)) {
 	      fprintf(stderr, "This is not a valid TLS/SSL packet\n");
 	      return -1;
-	    }	
+	    }
 	    // move foward of 2 bytes
 	    pp = pp + 2;
-	    // copy random bytes move foward
-	    memcpy(handshake->srv_rand, pp, 32);
+	    // move foward of RANDOM bytes
 	    pp = pp + RANDOM;
 	    // check session ID
 	    u_int8_t len_id = 1;
@@ -452,7 +526,7 @@ u_int8_t tls_packet_dissector(const u_char ** payload,
 	      if(offset < size_payload) {
 
 		/**
-		   If Server Hello, if the offset is less than payload,
+		   In Server Hello, if the offset is less than payload,
 		   we can have 3 scenarios:
 		   1) Certificate
 		   2) Change Chiper Spec (pkt after end of Handshake)
@@ -461,12 +535,12 @@ u_int8_t tls_packet_dissector(const u_char ** payload,
 		
 		// 1
 		if(pp[5] == 0x0b) {
-		  more_records = TRUE;
+		  more_records = 0;
 		  break;
 		}
 		// 2
 		else if(pp[5] == 0x14) {
-		  more_records = FALSE;
+		  more_records = 1;
 		  break;
 		}
 	      
@@ -498,21 +572,21 @@ u_int8_t tls_packet_dissector(const u_char ** payload,
 		  pp = pp + exts_offset;
 		}
 		
-		// search flow and eventually inser new in HT update old
-		add_flow(/* HT_Flows, */ flow_key, handshake, SRV, len_id);
+		// search flow and eventually insert new in HT update old
+		add_flow(flow_key, handshake, SRV, len_id);
 		
-		more_records = FALSE;
+		more_records = 1;
 		break;
 	      }
 	      else {
-		// search flow and eventually inser new in HT update old
-		add_flow(/* HT_Flows,  */flow_key, handshake, SRV, len_id);
-		more_records = FALSE;
+		// search flow and eventually insert new in HT update old
+		add_flow(flow_key, handshake, SRV, len_id);
+		more_records = 1;
 		break;
 	      }
 	      
-	      // search flow and eventually inser new in HT update old
-	      add_flow(/* HT_Flows, */ flow_key, handshake, SRV, len_id);
+	      // search flow and eventually insert new in HT update old
+	      add_flow(flow_key, handshake, SRV, len_id);
 	      
 	    }
 	    else {
@@ -523,44 +597,85 @@ u_int8_t tls_packet_dissector(const u_char ** payload,
 	case CERTIFICATE:
 	  {
 	    
-	    u_int16_t hh_len = hand_hdr->len[2] + (hand_hdr->len[1] <<8 ) + (hand_hdr->len[0] << 8);
-	    u_int16_t cert_len = pp[2] + (pp[1] << 8) + (pp[0] << 8);
+	    u_int16_t hh_len = hand_hdr->len[2] + (hand_hdr->len[1] << 8 ) + (hand_hdr->len[0] << 8);
+	    u_int16_t cert_len_total = pp[2] + (pp[1] << 8) + (pp[0] << 8);
 
-	    if((cert_len + 3) != hh_len) {
+	    if((cert_len_total + 3) != hh_len) {
 	      fprintf(stderr, "This is not a valid TLS/SSL packet\n");
 	      return -1;
 	    }
 
-	    if(cert_len > 0) {
-	      
-	      // Copy the Certificate from Server
-	      handshake->certificate_S = malloc(cert_len * sizeof(char));
-	      /* TODO function to split the certificate chain */
-	      memcpy(handshake->certificate_S, pp, cert_len);
+	    pp = pp + 3; // add the 3 bytes for certficates total length
 
+	    u_int16_t subcert_len_total = 0;
+
+	    if(cert_len_total > 0) {
+
+	      /* TODO: SAVE MORE CERTIFICATES IN HANDSHAKE OF A FLOW */
+
+	      do { // more than one certificate
+
+		u_int16_t subcert_len = pp[2] + (pp[1] << 8) + (pp[0] << 8);
+		
+	        unsigned char cert[subcert_len];
+		
+		// Copy the Certificate from Server
+		memcpy(cert, pp + 3, subcert_len);
+		// Save the certificate in a file "cert.der"
+		save_certificate_FILE(cert, subcert_len);
+		/***
+		    --- TODO function to split the certificate chain ---
+		***/
+		//handshake.certificate_S = split_Server_Certificate(cert, cert_len);
+		pp = pp + 3 + subcert_len;
+
+		subcert_len_total += subcert_len + 3;
+		
+	      } while(subcert_len_total < cert_len_total);
 	    }
+	    else
+	      pp = pp + cert_len_total + 3;
 	    
-	    pp = pp + cert_len + 3;
-	    offset = TLS_HEADER_LEN + HANDSK_HEADER_LEN + 3 + cert_len;
+	    offset = TLS_HEADER_LEN + HANDSK_HEADER_LEN + 3 + cert_len_total;
 	    
 	    if(offset < size_payload) {
-	      if(cert_len > 0) {
-		if(pp[5] != 0x0c || pp[5] != 0x16 || pp[5] != 0x10) {
+	      if(cert_len_total > 0) {
+		if(pp[5] != 0x0c && pp[5] != 0x16 && pp[5] != 0x10) {
 		  fprintf(stderr, "This is not a valid TLS/SSL packet\n");
 		  return -1;
 		}
 		else
 		  // search flow and eventually inser new in HT update old
-		  add_flow(/* HT_Flows,  */flow_key, handshake, CERT_S, cert_len);
+		  add_flow(flow_key, handshake, CERT_S, cert_len_total);
 	      }
-	      more_records = TRUE;
+	      more_records = 0;
 	      break;
 	    }
 	    else {
-	      if(cert_len > 0)
+	      if(cert_len_total > 0)
 		// search flow and eventually inser new in HT update old
-		add_flow(/* HT_Flows, */ flow_key, handshake, CERT_S, cert_len);
-	      more_records = FALSE;
+		add_flow(flow_key, handshake, CERT_S, cert_len_total);
+	      more_records = 1;
+	      break;
+	    }
+	  }
+	case CERTIFICATE_STATUS:
+	  {
+	    pp = pp + 1; // Certificate Status Type OCSP (1)
+	    u_int16_t cert_status_len = pp[2] + (pp[1] << 8) + (pp[0] << 8);
+	    is_cert_status = 1;
+	    offset = TLS_HEADER_LEN + HANDSK_HEADER_LEN + 1 + 3 + cert_status_len;
+	    if(offset < size_payload) {
+	      pp = pp + 3 + cert_status_len;
+	      if(pp[5] != 0x0c && pp[5] != 0x16 && pp[5] != 0x10) {
+		fprintf(stderr, "This is not a valid TLS/SSL packet\n");
+		return -1;
+	      }
+	      more_records = 0;
+	      break;
+	    }
+	    else {
+	      more_records = 1;
 	      break;
 	    }
 	  }
@@ -570,34 +685,34 @@ u_int8_t tls_packet_dissector(const u_char ** payload,
 	    struct server_key_exch_tls_12_ECDH s_key_exc = (struct server_key_exch_tls_12_ECDH) pp;
 #endif
 #ifdef DH
-	    struct server_key_exch_tls_12_ECDH s_key_exc = (struct server_key_exch_tls_12_ECDH) pp;
+	    struct server_key_exch_tls_12_DH s_key_exc = (struct server_key_exch_tls_12_DH) pp;
 #endif
-	    int hand_hdr_len = (hand_hdr->len[0] << 8) | (hand_hdr->len[1]) | (hand_hdr->len[2]);
+	    int hand_hdr_len = (hand_hdr->len[2]) + (hand_hdr->len[1] << 8) + (hand_hdr->len[0] << 8);
 	    offset = TLS_HEADER_LEN + HANDSK_HEADER_LEN + hand_hdr_len;
 	    pp = pp + hand_hdr_len;
-	
+	    
 	    if(offset < size_payload) {
-	      if(pp[0] != 0x0e) {
+	      if(pp[5] != 0x0e) {
 		fprintf(stderr, "This is not a valid TLS/SSL packet\n");
 		return -1;
 	      }
-	      more_records = TRUE;
+	      more_records = 0;
 	      break;
 	    }
 	    else {
-	      more_records = FALSE;
+	      more_records = 1;
 	      break;
 	    }
 	  }
 	case CLIENT_KEY_EXCHANGE:
 	  {
-	    int hand_hdr_len = (hand_hdr->len[0] << 8) | (hand_hdr->len[1]) | (hand_hdr->len[2]);
+	    int hand_hdr_len = (hand_hdr->len[2]) + (hand_hdr->len[1] << 8) + (hand_hdr->len[0] << 8);
 	    offset = TLS_HEADER_LEN + HANDSK_HEADER_LEN + hand_hdr_len;
 	    pp = pp + hand_hdr_len;
 	
 	    if(offset < size_payload) {
 	      if(pp[0] == 0x14) {
-		more_records = FALSE;
+		more_records = 1;
 		//extract key
 		break;
 	      }
@@ -605,12 +720,12 @@ u_int8_t tls_packet_dissector(const u_char ** payload,
 		fprintf(stderr, "This is not a valid TLS/SSL packet\n");
 		return -1;
 	      }
-	      more_records = TRUE;
+	      more_records = 0;
 	      //extract key
 	      break;
 	    }
 	    else {
-	      more_records = FALSE;
+	      more_records = 1;
 	      //extract key
 	      break;
 	    }
@@ -620,7 +735,7 @@ u_int8_t tls_packet_dissector(const u_char ** payload,
 	  
 	    struct Cert_Req *cert_req = (struct Cert_Req*) pp;
 
-	    int hand_hdr_len = (hand_hdr->len[0] << 8) | (hand_hdr->len[1]) | (hand_hdr->len[2]);
+	    int hand_hdr_len = (hand_hdr->len[2]) + (hand_hdr->len[1] << 8) + (hand_hdr->len[0] << 8);
 	    pp = pp + hand_hdr_len;
 	    offset = TLS_HEADER_LEN + HANDSK_HEADER_LEN + sizeof(cert_req) + cert_req->dist_name_len;
 	  
@@ -629,31 +744,24 @@ u_int8_t tls_packet_dissector(const u_char ** payload,
 		fprintf(stderr, "This is not a valid TLS/SSL packet\n");
 		return -1;
 	      }
-	      more_records = TRUE;
+	      more_records = 0;
 	      break;
 	    }
 	    else {
-	      more_records = FALSE;
+	      more_records = 1;
 	      break;
 	    }
 	  }
 	case SERVER_DONE:
 	  {
-	    int hand_hdr_len = (hand_hdr->len[0] << 8) | (hand_hdr->len[1]) | (hand_hdr->len[2]);
-	    offset = TLS_HEADER_LEN + HANDSK_HEADER_LEN + hand_hdr_len;
+	    int hand_hdr_len = (hand_hdr->len[2]) + (hand_hdr->len[1] << 8) + (hand_hdr->len[0] << 8);
 	
 	    if(hand_hdr_len != 0) {
 	      fprintf(stderr, "This is not a valid TLS/SSL packet\n");
 	      return -1;
 	    }
-	    if(offset < size_payload) {
-	      fprintf(stderr, "This is not a valid TLS/SSL packet\n");
-	      return -1;
-	    }
-	    else {
-	      more_records = FALSE;
-	      break;
-	    }
+	    more_records = 1;
+	    break;
 	  }
 	case CERTIFICATE_VERIFY:
 	  break;
@@ -673,7 +781,7 @@ u_int8_t tls_packet_dissector(const u_char ** payload,
 	      HASH_REPLACE(hh, HT_Flows, flow_key_hash,
 			   sizeof(struct Flow_key), old, el);
 	    }
-	    more_records = FALSE;
+	    more_records = 1;
 	    break;
 	  }
 	  

@@ -1,21 +1,22 @@
 /**
    Header containing macros and struct for tls/ssl session
    
-   Copyright (C) 2016-2017 Michele Campus
+   Author: 2016-2017 Michele Campus <fci1908@gmail.com>
+   (C) Homer Project 2012-2017 (http://www.sipcapture.org)
    
-   This file is part of captagent.
+   Homer capture agent is free software; you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation; either version 3 of the License, or
+   (at your option) any later version
    
-   decoder is free software: you can redistribute it and/or modify it under the
-   terms of the GNU General Public License as published by the Free Software
-   Foundation, either version 3 of the License, or (at your option) any later
-   version.
+   Homer capture agent is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details.
    
-   decoder is distributed in the hope that it will be useful, but WITHOUT ANY
-   WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-   A PARTICULAR PURPOSE. See the GNU General Public License for more details.
-   
-   You should have received a copy of the GNU General Public License along with
-   decoder. If not, see <http://www.gnu.org/licenses/>.
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, write to the Free Software
+   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 **/
 #ifndef TLS_SSL_H_
 #define TLS_SSL_H_
@@ -24,7 +25,6 @@
 #include <stdlib.h>
 #include <sys/types.h>
 #include <net/ethernet.h>
-
 #include "structures.h"
 
 #ifdef __GNUC__
@@ -98,11 +98,12 @@ struct handshake_header {
    CLIENT_HELLO               1     0x01
    SERVER_HELLO               2     0x02
    CERTIFICATE               11     0x0b
-   SERVER_KEY_EXCHANGE       12     0x0c
+   CERTIFICATE STATUS        22     0x16
    CERTIFICATE_REQUEST       13     0x0d
-   SERVER_DONE               14     0x0e
    CERTIFICATE_VERIFY        15     0x0f
+   SERVER_KEY_EXCHANGE       12     0x0c
    CLIENT_KEY_EXCHANGE       16     0x10
+   SERVER_DONE               14     0x0e
    FINISHED                  20     0x14
 **/
 
@@ -127,13 +128,12 @@ struct client_key_exch {
 /**
    Function to dissect a TLS packet
 **/
-u_int8_t tls_packet_dissector(const u_char ** payload,
-			      const u_int16_t size_payload,
-			      const u_int8_t ip_version,
-			      struct Handshake * handshake,
-			      struct Flow_key * flow_key,
-			      const u_int16_t src_port,
-			      const u_int16_t dst_port,
-			      const u_int8_t proto_id_l3);
+int tls_packet_dissector(const u_char ** payload,
+			 const u_int16_t size_payload,
+			 const u_int8_t ip_version,
+			 struct Flow_key * flow_key,
+			 const u_int16_t src_port,
+			 const u_int16_t dst_port,
+			 const u_int8_t proto_id_l3);
 
 #endif
