@@ -1,9 +1,8 @@
 /**
    Definition of macro and header size
    
-   Copyright (C) 2016-2017 Michele Campus
-   
-   This file is part of captagent.
+   Author: 2016-2017 Michele Campus <fci1908@gmail.com>
+   (C) Homer Project 2012-2017 (http://www.sipcapture.org)
    
    Homer capture agent is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -19,7 +18,6 @@
    along with this program; if not, write to the Free Software
    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 **/
-
 #ifndef DEFINE_H_
 #define DEFINE_H_
 

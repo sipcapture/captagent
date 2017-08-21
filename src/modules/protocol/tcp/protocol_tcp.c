@@ -90,14 +90,13 @@ int is_tls(msg_t *msg) {
   
   /**
      NOTE:
-     I must define Key and Handshake
-     I need to put them in the function called by callback in socket
-     then pass to this function to be check (key) and filled (handshake)
+     Define flow.
+     Put them in the function called by callback in socket
+     Pass to this function to be check (key) and filled (handshake)
   */
 
   /*
   u_int8_t ip_version;
-  struct Handshake * handshake;
   Flow_key * flow_key;
   u_int16_t src_port, dst_port, proto_id_l3
 
@@ -105,7 +104,6 @@ int is_tls(msg_t *msg) {
   return tls_packet_dissector(msg->data,
 			      msg->len,
 			      ip_version,   // check if already inside msg
-			      handshake,
 			      flow_key,
 			      src_port,     //   "
 			      dst_port,     //   "
