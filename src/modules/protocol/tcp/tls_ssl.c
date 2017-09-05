@@ -18,6 +18,8 @@
   along with this program; if not, write to the Free Software
   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 **/
+#ifdef USE_SSL
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -30,6 +32,9 @@
 #include <time.h>
 #include <math.h>
 #include <unistd.h>
+
+
+
 #include "tls_ssl.h"
 #include "structures.h"
 
@@ -807,3 +812,6 @@ int tls_packet_dissector(const u_char ** payload,
   }
   return -1;
 }
+
+
+#endif /* USE_SSL */
