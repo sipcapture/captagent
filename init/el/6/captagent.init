@@ -21,7 +21,7 @@
 . /etc/rc.d/init.d/functions
 
 prog=captagent
-APP_FILE=/usr/local/captagent/bin/$prog
+APP_FILE=/usr/local/captagent/sbin/$prog
 PID_FILE=/var/run/$prog.pid
 LOCK_FILE=/var/lock/subsys/$prog
 RETVAL=0
