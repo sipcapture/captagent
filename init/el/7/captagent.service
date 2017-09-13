@@ -4,7 +4,7 @@ After=network.target
 
 [Service]
 EnvironmentFile=/etc/sysconfig/captagent
-ExecStart=/usr/local/captagent/bin/captagent -f $CFG_FILE -d
+ExecStart=/usr/local/captagent/sbin/captagent -f $CFG_FILE -d
 PIDFile=/var/run/captagent.pid
 Restart=always
 Type=forking
