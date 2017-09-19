@@ -3,7 +3,7 @@
 CaptAgent 6 Project
 =========
 
-#####The Next-Generation capture agent for Sipcapture's [Homer](https://github.com/sipcapture/homer) Project
+### The Next-Generation capture agent for Sipcapture's [Homer](https://github.com/sipcapture/homer) Project
 -------------
 
 Download the latest code from our repository and compile it on your system.
