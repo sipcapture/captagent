@@ -6,10 +6,12 @@ AC_CONFIG_FILES([
 	src/modules/protocol/tcp/Makefile
 	src/modules/protocol/rtcp/Makefile
 	src/modules/protocol/rtcp/captureplan/Makefile
+	src/modules/protocol/rtcpxr/Makefile
+	src/modules/protocol/rtcpxr/captureplan/Makefile
 	src/modules/socket/pcap/Makefile
 	src/modules/socket/raw/Makefile
-	src/modules/socket/rtcpxr/Makefile
-	src/modules/socket/rtcpxr/captureplan/Makefile
+	src/modules/socket/collector/Makefile
+	src/modules/socket/collector/captureplan/Makefile
 	src/modules/socket/tzsp/Makefile
 	src/modules/socket/tzsp/captureplan/Makefile
 	src/modules/transport/hep/Makefile
