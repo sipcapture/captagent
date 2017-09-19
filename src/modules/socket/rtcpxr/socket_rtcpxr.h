@@ -27,13 +27,13 @@
 #define _socket_rtcpxr_H_
 
 #include <captagent/xmlread.h>
-
 #include <uv.h>
+#include "parser_rtcpxr.h"
 
-#define FILTER_LEN 4080
+#define FILTER_LEN   4080
 
 #define PROTO_SIP    0x01
-#define PROTO_REPORT    0x63
+#define PROTO_REPORT 0x63
 
 extern char *global_config_path;
 extern char *global_scripts_path;
@@ -76,8 +76,8 @@ void on_recv(uv_udp_t* handle, ssize_t nread, const uv_buf_t* rcvbuf, const stru
 void _async_callback(uv_async_t *async);
 #endif
 
-                                                     
-
-
+/** Functions for XR **/
+int w_parse_rtcpxr_to_json(msg_t *msg);
+int w_is_rtcpxr(msg_t *msg);
 
 #endif /* _socket_rtcpxr_H_ */
