@@ -26,11 +26,11 @@
 #include <stdio.h>
 #include <captagent/log.h>
 #include <arpa/inet.h>
-#include "parser_rtcp.h"
+#include "parser_rtcpxr.h"
 
 
 // RTCP-XR check version
-int check_rtcpxr_version(const u_char *packet, int size_payload)
+int check_rtcpxr_version(char *packet, int size_payload)
 {
   u_int8_t offset = 0, is_xr = 0;
   
