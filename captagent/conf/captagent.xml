@@ -45,7 +45,7 @@
             	use -D flag for pcap import 
                 use "any" for all interfaces in your system
             -->
-	    <param name="dev"  value="eth0"/>	    
+	    <param name="dev"  value="any"/>	    
 	    <param name="promisc" value="true"/>
 	    <!-- 
 	    	comment it if you want to see all IPProto (tcp/udp)
@@ -76,7 +76,7 @@
 	<configuration name="proto_rtcp.conf" description="RTCP capture">
 	  <settings>
 	    <!-- <param name="portrange" value="5060-5090"/> -->
-	    <param name="dev"  value="eth0"/>	    
+	    <param name="dev"  value="any"/>	    
 	    <param name="promisc" value="true"/>
 	    <param name="debug" value ="false"/>	                
 	    <!-- <param name="rtcp-json" value="false"/> -->
