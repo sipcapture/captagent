@@ -4,10 +4,11 @@ SUBDIRS = \
 	. \
 	modules/socket/pcap \
 	modules/socket/raw \
-	modules/socket/rtcpxr \
+	modules/socket/collector \
 	modules/socket/tzsp \
 	modules/protocol/sip \
 	modules/protocol/rtcp \
+	modules/protocol/rtcpxr \
 	modules/protocol/ss7 \
 	modules/protocol/tcp \
 	modules/transport/hep \

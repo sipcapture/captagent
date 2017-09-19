@@ -60,29 +60,27 @@
 #include <captagent/proto_sip.h>
 #include <captagent/structure.h>
 #include <captagent/modules_api.h>
-#include "socket_rtcpxr.h"
 #include <captagent/modules.h>
 #include <captagent/log.h>
 #include <captagent/action.h>
-#include "socket_rtcpxr.h"
-
-#define JSON_BUFFER_LEN 5000
+#include "socket_collector.h"
 
 profile_socket_t profile_socket[MAX_SOCKETS];
 
 xml_node *module_xml_config = NULL;
-char *module_name = "socket_rtcpxr";
+char *module_name = "socket_collector";
 uint64_t module_serial = 0;
 char *module_description;
 
 uint8_t link_offset = 14;
+
+static socket_rtcpxr_stats_t stats; // general statistic info
 
 uv_loop_t *loop;
 uv_thread_t runthread;
 uv_async_t async_handle;
 static uv_udp_t udp_servers[MAX_SOCKETS];
 int reply_to_rtcpxr = 1;
-static socket_rtcpxr_stats_t stats; // general statistic info
 
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_t call_thread;
@@ -103,13 +101,11 @@ static cmd_export_t cmds[] = {
   {"socket_rtcpxr_bind_api", (cmd_function) bind_api, 1, 0, 0, 0 },
   {"send_rtcpxr_reply", (cmd_function) w_send_rtcpxr_reply_p, 2, 0, 0, 0 },
   {"send_rtcpxr_reply", (cmd_function) w_send_rtcpxr_reply, 0, 0, 0, 0 },
-  {"parse_rtcpxr_to_json", (cmd_function) w_parse_rtcpxr_to_json, 0, 0, 0, 0 },
-  {"is_rtcpxr", (cmd_function) w_is_rtcpxr, 0, 0, 0, 0 },
   { 0, 0, 0, 0, 0, 0 }
 };
 
 struct module_exports exports = {
-  "socket_rtcpxr",
+  "socket_collector",
   cmds,           /* Exported functions */
   load_module,    /* module initialization function */
   unload_module,
@@ -124,68 +120,6 @@ int bind_api(socket_module_api_t* api)
   api->module_name = module_name;
   return 0;
 }
-
-/* parse RTCP-XR */
-int w_parse_rtcpxr_to_json(msg_t *msg) {
-  
-  int json_len;
-  char json_rtcpxr_buffer[JSON_BUFFER_LEN] = {0};
-  
-  msg->mfree = 0;
-
-  // call dissector
-  if((json_len = parse_rtcpxr((u_char *) msg->data, msg->len, json_rtcpxr_buffer, JSON_BUFFER_LEN)) > 0) {
-    /* msg->rcinfo.proto_type = rtcp_proto_type; */
-    msg->data = json_rtcpxr_buffer; // JSON buff --> Msg data
-    msg->len = json_len;
-    msg->mfree = 1;
-  }
-  else {
-    LERR("Error on parameters (data or length)\n");
-    if(msg->corrdata) 
-      {
-	free(msg->corrdata);
-	msg->corrdata = NULL;
-      }
-    return -1;
-  }
-  LERR("JSON RTCP-XR %s\n", json_rtcpxr_buffer);
-  
-  return 0;
-}
-
-/* check if the rtcpxr version is correct */
-int w_is_rtcpxr(msg_t *msg) {
-
-  int ret;
-  ret = check_rtcpxr_version(msg->data, msg->len);
-
-  switch(ret) {
-  case -1:
-    {
-      LDERR("Error on parameters (data or length)\n");
-      return -1;
-    }
-  case -2:
-    {
-      LERR("Wrong version\n");
-      return -2;
-    }
-  case -3:
-    {
-      LERR("Wrong type\n");
-      return -3;
-    }
-  case -4:
-    {
-      LERR("Error: NO RTCP-XR packet found\n");
-      return -4;
-    }
-    
-  }
-   return ret; // 0 TRUE
-}
-
 
 int reload_config (char *erbuf, int erlen) {
 
@@ -252,7 +186,6 @@ int send_sip_rtcpxr_reply(msg_t *_m, int code, char *description)
   return 1;
 }
 
-
 int w_send_rtcpxr_reply_p(msg_t *_m, char *param1, char *param2)
 {
   return send_sip_rtcpxr_reply(_m, atoi(param1), param2);
@@ -262,7 +195,6 @@ int w_send_rtcpxr_reply(msg_t *_m)
 {
   return send_sip_rtcpxr_reply(_m, 200, "OK");
 }
-
 
 #if UV_VERSION_MAJOR == 0                         
 void on_recv(uv_udp_t* handle, ssize_t nread, uv_buf_t rcvbuf, struct sockaddr* addr, unsigned flags)

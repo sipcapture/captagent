@@ -23,43 +23,21 @@
  *
 */
 
-#ifndef PROTOCOL_TCP_H_
-#define PROTOCOL_TCP_H_
-
+#ifndef PROTOCOL_RTCPXR_H_
+#define PROTOCOL_RTCPXR_H_
 
 #include <captagent/xmlread.h>
-#include "uthash.h"
-#include "hash_structure.h"
+#include "parser_rtcpxr.h"
 
-int timer_timeout = 10;
-int timer_loop_stop = 0;
+int bind_api(socket_module_api_t* api);
+int reload_config (char *erbuf, int erlen);
+void free_module_xml_config();
+int load_module_xml_config();
+int close_socket(unsigned int loc_idx);
+void on_send(uv_udp_send_t* req, int status);
 
-//static int global_session_id = 0;
+/** Functions for RTCP-XR **/
+int w_parse_rtcpxr_to_json(msg_t *msg);
+int w_is_rtcpxr(msg_t *msg);
 
-int cin_min = 100;
-int cin_max = 800;
-
-#define MAX_DATABASE 10
-profile_database_t profile_database[MAX_DATABASE];
-
-#define EXPIRE_RTCP_HASH 80
-#define EXPIRE_TIMER_ARRAY 80
-
-typedef struct mediaport {
-  char ipportid[400];
-} mediaport_t;
-
-
-struct ipport_items *ipports = NULL;
-
-bool hash_mode = FALSE;
-
-int bind_api(database_module_api_t* api);
-
-int w_parse_tls(msg_t *msg);
-
-extern char* global_config_path;
-
-/* IPPORTS */
-
-#endif /* PROTOCOL_TCP_H_ */
+#endif /* PROTOCOL_RTCPXR_H_ */
