@@ -38,7 +38,7 @@ int check_rtcpxr_version(char *packet, int size_payload)
   if(!packet || size_payload == 0) return -1;
 
   // pointer used to move through the pkt
-  const u_int8_t *pp = packet;
+  char *pp = packet;
 
   // check RTCP version
   struct rtcp_header_t *rtcp = (struct rtcp_header_t *) packet;
