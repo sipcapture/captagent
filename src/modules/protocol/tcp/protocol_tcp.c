@@ -68,8 +68,7 @@ static uint64_t serial_module(void);
 
 static cmd_export_t cmds[] = {
 		 {"protocol_tcp_bind_api", (cmd_function) bind_api, 1, 0, 0, 0},
-		 {"is_tls",                (cmd_function) is_tls, 0, 0, 0, 0 },
-		// {"extract_hand",          (cmd_function) extract_hand, 0, 0, 0, 0 },
+		 {"parse_tls",             (cmd_function) w_parse_tls, 0, 0, 0, 0 },
 		 {"bind_protocol_tcp",     (cmd_function) bind_protocol_tcp, 0, 0, 0, 0},
          /* ================================ */
 		 {0, 0, 0, 0, 0, 0}
@@ -86,7 +85,7 @@ struct module_exports exports = {
 };
 
 
-int is_tls(msg_t *msg) {
+int w_parse_tls(msg_t *msg) {
   
   /**
      NOTE:

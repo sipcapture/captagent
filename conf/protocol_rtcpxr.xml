@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<document type="captagent_module/xml">
+    <module name="protocol_rtcpxr" description="RTCP-XR Protocol" serial="2014010402">
+	<profile name="proto_rtcpxr" description="PROTO RTCP-XR" enable="true" serial="2014010402">
+	    <settings>
+		<param name="rtcpxr-version" value="2"/>
+	    </settings>
+	</profile>
+    </module>
+</document>

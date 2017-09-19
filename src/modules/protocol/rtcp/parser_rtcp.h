@@ -88,8 +88,7 @@ typedef struct _sender_info
 /*! \brief RTCP Report Block (http://tools.ietf.org/html/rfc3550#section-6.4.1) */
 typedef struct _report_block
 {
-
-	uint32_t ssrc;
+	uint32_t identifier;
 	uint32_t fl_cnpl;
 	uint32_t ext_high_seq_num_rec;
 	uint32_t interarrival_jitter;
@@ -97,8 +96,9 @@ typedef struct _report_block
 	uint32_t delay_snc_last_sr;
 } report_block_t;
 
-#define report_block_get_ssrc(rb) ntohl((rb)->ssrc)
+#define report_block_get_identifier(rb) ntohl((rb)->identifier)
 #define report_block_get_fraction_lost(rb) (((uint32_t)ntohl((rb)->fl_cnpl))>>24)
+
 static inline int32_t report_block_get_cum_packet_loss(const report_block_t * rb)
 {
         int cum_loss = ntohl(rb->fl_cnpl);

@@ -13,9 +13,9 @@
 		</param>
 	    </settings>
 	</profile>
-	<profile name="socketspcap_rtcp" description="RTCP Socket" enable="false" serial="2014010402">
+	<profile name="socketspcap_rtcp" description="RTCP Socket" enable="true" serial="2014010402">
 	    <settings>
-		<param name="dev" value="eth0"/>
+		<param name="dev" value="any"/>
 		<param name="promisc" value="true"/>
 		<param name="reasm" value="false"/>
 		<!-- size in MB -->

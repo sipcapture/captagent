@@ -4,7 +4,7 @@
  *  captagent - Homer capture agent. Modular
  *  Duplicate SIP messages in Homer Encapulate Protocol [HEP] [ipv6 version]
  *
- *  Author: Alexandr Dubovikov <alexandr.dubovikov@gmail.com>
+ *  Author: Michele Campus <fci1908@gmail.com>
  *  (C) Homer Project 2012-2015 (http://www.sipcapture.org)
  *
  * Homer capture agent is free software; you can redistribute it and/or modify
@@ -23,6 +23,10 @@
  *
  */
 
+#include <stdio.h>
+#include <string.h>
+#include <errno.h>
+#include <stdlib.h>
 #include <signal.h>
 #include <time.h>
 #include <pthread.h>
@@ -35,35 +39,33 @@
 #include <captagent/modules_api.h>
 #include <captagent/modules.h>
 #include <captagent/log.h>
-#include "protocol_rtcp.h"
+#include "protocol_rtcpxr.h"
 
 xml_node *module_xml_config = NULL;
-char *module_name="protocol_rtcp";
+char *module_name = "protocol_rtcpxr";
 uint64_t module_serial = 0;
-char *module_description = NULL;
+char *module_description;
 
 static int load_module(xml_node *config);
 static int unload_module(void);
 static int description(char *descr);
 static int statistic(char *buf, size_t len);
-static int free_profile(unsigned int idx);
 static uint64_t serial_module(void);
+static int free_profile(unsigned int idx);
 
 unsigned int profile_size = 0;
 
 
 static cmd_export_t cmds[] = {
-  {"protocol_rtcp_bind_api",  (cmd_function)bind_api,   1, 0, 0, 0},
-  {"parse_rtcp_to_json", (cmd_function) w_parse_rtcp_to_json, 0, 0, 0, 0 },
-  {"is_rtcp", (cmd_function) w_is_rtcp, 0, 0, 0, 0 },
-  {"is_rtcp_or_rtp", (cmd_function) w_is_rtcp_or_rtp, 0, 0, 0, 0 },
-  {"set_rtcp_flag", (cmd_function) w_set_rtcp_flag, 0, 0, 0, 0 },
-  {0, 0, 0, 0, 0, 0}
+  {"protocol_rtcpxr_bind_api", (cmd_function) bind_api, 1, 0, 0, 0 },
+  {"parse_rtcpxr_to_json", (cmd_function) w_parse_rtcpxr_to_json, 0, 0, 0, 0 },
+  {"is_rtcpxr", (cmd_function) w_is_rtcpxr, 0, 0, 0, 0 },
+  { 0, 0, 0, 0, 0, 0 }
 };
 
 struct module_exports exports = {
-  "protocol_rtcp",
-  cmds,        /* Exported functions */
+  "protocol_rtcpxr",
+  cmds,           /* Exported functions */
   load_module,    /* module initialization function */
   unload_module,
   description,
@@ -71,63 +73,77 @@ struct module_exports exports = {
   serial_module
 };
 
-int bind_api(protocol_module_api_t* api)
+int bind_api(socket_module_api_t* api)
 {
   api->reload_f = reload_config;
   api->module_name = module_name;
   return 0;
 }
 
-
-int w_parse_rtcp_to_json(msg_t *_m)
+/* parse RTCP-XR */
+int w_parse_rtcpxr_to_json(msg_t *msg)
 {
   int json_len;
-  char *json_rtcp_buffer;
+  char json_rtcpxr_buffer[JSON_BUFFER_LEN] = {0};
+  
+  msg->mfree = 0;
 
-  _m->mfree = 0;
-  json_rtcp_buffer = malloc(JSON_BUFFER_LEN);	  
-  json_rtcp_buffer[0] = '\0';
-	  
-  if((json_len = capt_parse_rtcp((char *)_m->data, _m->len, json_rtcp_buffer, JSON_BUFFER_LEN)) > 0) {
-    _m->rcinfo.proto_type = rtcp_proto_type;
-    _m->data = json_rtcp_buffer;
-    _m->len = json_len;
-    _m->mfree = 1;
+  // call dissector
+  if((json_len = parse_rtcpxr((u_char *) msg->data, msg->len, json_rtcpxr_buffer, JSON_BUFFER_LEN)) > 0) {
+    /* msg->rcinfo.proto_type = rtcp_proto_type; */
+    msg->data = json_rtcpxr_buffer; // JSON buff --> Msg data
+    msg->len = json_len;
+    msg->mfree = 1;
   }
   else {
-    LDEBUG("GOODBYE or APP MESSAGE. Ignore!\n");
-    if(json_rtcp_buffer) free(json_rtcp_buffer);
-    if(_m->corrdata) 
+    LERR("Error on parameters (data or length)\n");
+    if(msg->corrdata) 
       {
-	free(_m->corrdata);
-	_m->corrdata = NULL;
+	free(msg->corrdata);
+	msg->corrdata = NULL;
       }
     return -1;
   }
-
-  LDEBUG("JSON RTCP %s\n", json_rtcp_buffer);
-
-  return 1;
+  LERR("JSON RTCP-XR %s\n", json_rtcpxr_buffer);
+  
+  return 0;
 }
 
-int w_is_rtcp (msg_t *msg) {
+/* check if the rtcpxr version is correct */
+int w_is_rtcpxr(msg_t *msg)
+{
+  int ret;
+  ret = check_rtcpxr_version(msg->data, msg->len);
 
-  return check_rtcp_version (msg->data, msg->len);
+  switch(ret) {
+  case -1:
+    {
+      LDERR("Error on parameters (data or length)\n");
+      return -1;
+    }
+  case -2:
+    {
+      LERR("Wrong version\n");
+      return -2;
+    }
+  case -3:
+    {
+      LERR("Wrong type\n");
+      return -3;
+    }
+  case -4:
+    {
+      LERR("Error: NO RTCP-XR packet found\n");
+      return -4;
+    }
+    
+  }
+   return ret; // 0 TRUE
 }
 
-int w_is_rtcp_or_rtp (msg_t *msg) {
 
-  return check_rtp_version (msg->data, msg->len);
-}
-
-int w_set_rtcp_flag(msg_t *msg) {
-
-  msg->rcinfo.proto_type = rtcp_proto_type;
-  return 1;
-}
-
-int reload_config (char *erbuf, int erlen) {
-
+int reload_config(char *erbuf, int erlen)
+{
   char module_config_name[500];
   xml_node *config = NULL;
 
@@ -144,8 +160,8 @@ int reload_config (char *erbuf, int erlen) {
   return 0;
 }
 
-int load_module_xml_config() {
-
+int load_module_xml_config()
+{
   char module_config_name[500];
   xml_node *next;
   int i = 0;
@@ -182,8 +198,9 @@ int load_module_xml_config() {
   return 1;
 }
 
-void free_module_xml_config() {
 
+void free_module_xml_config()
+{
   /* now we are free */
   if(module_xml_config) xml_free(module_xml_config);
 }
@@ -196,13 +213,15 @@ static uint64_t serial_module(void)
 }
 
 
-static int load_module(xml_node *config) {
-  xml_node *params, *profile, *settings;
+static int load_module(xml_node *config)
+{
+  xml_node *params, *profile=NULL, *settings;
   char *key, *value = NULL;
 
   LNOTICE("Loaded %s", module_name);
 
   load_module_xml_config();
+
   /* READ CONFIG */
   profile = module_xml_config;
 
@@ -212,6 +231,8 @@ static int load_module(xml_node *config) {
   while (profile) {
 
     profile = xml_get("profile", profile, 1);
+
+    memset(&profile_socket[i], 0, sizeof(profile_socket_t));
 
     if (profile == NULL)
       break;
@@ -229,7 +250,7 @@ static int load_module(xml_node *config) {
     profile_protocol[profile_size].name = strdup(profile->attr[1]);
     profile_protocol[profile_size].description = strdup(profile->attr[3]);
     profile_protocol[profile_size].serial = atoi(profile->attr[7]);
-
+		
     /* SETTINGS */
     settings = xml_get("settings", profile, 1);
 
@@ -262,6 +283,7 @@ static int load_module(xml_node *config) {
 	  if (key == NULL || value == NULL) {
 	    LERR("bad values in the config");
 	    goto nextparam;
+
 	  }
 	  /*
 	    if (!strncmp(key, "ignore", 6))
@@ -271,20 +293,17 @@ static int load_module(xml_node *config) {
 	    else if (!strncmp(key, "dialog-timeout", 14))
 	    profile_protocol[profile_size].dialog_timeout = atoi(value);
 	  */
-
 	}
-
+	
       nextparam: params = params->next;
-
       }
     }
-
     profile_size++;
 
   nextprofile: profile = profile->next;
   }
 
-  /* free it */
+  /* free it */				
   free_module_xml_config();
 
   return 0;
@@ -292,51 +311,41 @@ static int load_module(xml_node *config) {
 
 static int unload_module(void)
 {
-
-  LNOTICE("Unloaded %s", module_name);
-
   unsigned int i = 0;
 
-  for (i = 0; i < profile_size; i++) {
+  LNOTICE("unloaded module %s", module_name);
 
+  for (i = 0; i < profile_size; i++)
     free_profile(i);
-  }
 
   return 0;
 }
 
-static uint64_t serial_module(void)
+
+static int free_profile(unsigned int idx)
 {
-  return module_serial;
-}
-
-
-static int free_profile(unsigned int idx) {
-
   /*free profile chars **/
-
-  if (profile_protocol[idx].name) free(profile_protocol[idx].name);
+  if (profile_protocol[idx].name)	 free(profile_protocol[idx].name);
   if (profile_protocol[idx].description) free(profile_protocol[idx].description);
-  if (profile_protocol[idx].ignore) free(profile_protocol[idx].ignore);
-
+  if (profile_protocol[idx].serial) free(profile_protocol[idx].serial);
+  
   return 1;
 }
 
-
-static int description(char *descr)
-{
-  LNOTICE("Loaded description");
+static int description(char *descr) {
+  LNOTICE("Loaded description of %s", module_name);
   descr = module_description;
   return 1;
 }
 
-static int statistic(char *buf, size_t len)
-{
+static int statistic(char *buf, size_t len) {
+
   int ret = 0;
 
-  ret += snprintf(buf+ret, len-ret, "Total received: [%" PRId64 "]\r\n", stats.received_packets_total);
+    ret += snprintf(buf+ret, len-ret, "Total received: [%" PRId64 "]\r\n", stats.received_packets_total);
   ret += snprintf(buf+ret, len-ret, "Parsed packets: [%" PRId64 "]\r\n", stats.parsed_packets);
   ret += snprintf(buf+ret, len-ret, "Total sent: [%" PRId64 "]\r\n", stats.send_packets);
 
   return 1;
 }
+
