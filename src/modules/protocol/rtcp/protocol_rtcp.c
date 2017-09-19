@@ -190,11 +190,6 @@ void free_module_xml_config() {
 
 
 /* modules external API */
-static uint64_t serial_module(void)
-{
-  return module_serial;
-}
-
 
 static int load_module(xml_node *config) {
   xml_node *params, *profile, *settings;

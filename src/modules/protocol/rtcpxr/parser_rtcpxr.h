@@ -34,6 +34,7 @@
 // Macro to create JSON buffer (fields from RTCP-XR block)
 #define EXTENDED_REPORT_JSON "\"Extended_report_information\":{\"identifier\":%u, \"loss_rate\":%u, \"discard_rate\":%u, \"burst_rate\":%u, \"gap_rate\":%u, \"burst_duration\":%u, \"gap_duration\":%u, \"round_trip_delay\":%u, \"end_sys_delay\":%u, \"signal_lev\":%u, \"noise_lev\":%u, \"RERL\":%u, \"Gmin\":%u, \"R_fact\":%u, \"ext_R_fact\":%u, \"MOS_LQ\":%u, \"MOS_CQ\":%u, \"RX_conf\":[{\"PLC\":%u, \"JB_adapt\":%u, \"JB_rate\":%u}], \"JB_nom\":%u, \"JB_max\":%u, \"JB_abs_max\":%u}"
 
+#define JSON_BUFFER_LEN 5000
 
 typedef enum {
     RTCP_SR   = 200,

@@ -118,7 +118,7 @@ int w_is_rtcpxr(msg_t *msg)
   switch(ret) {
   case -1:
     {
-      LDERR("Error on parameters (data or length)\n");
+      LERR("Error on parameters (data or length)\n");
       return -1;
     }
   case -2:
@@ -232,8 +232,6 @@ static int load_module(xml_node *config)
 
     profile = xml_get("profile", profile, 1);
 
-    memset(&profile_socket[i], 0, sizeof(profile_socket_t));
-
     if (profile == NULL)
       break;
 
@@ -327,8 +325,8 @@ static int free_profile(unsigned int idx)
   /*free profile chars **/
   if (profile_protocol[idx].name)	 free(profile_protocol[idx].name);
   if (profile_protocol[idx].description) free(profile_protocol[idx].description);
-  if (profile_protocol[idx].serial) free(profile_protocol[idx].serial);
-  
+  if (profile_protocol[idx].ignore) free(profile_protocol[idx].ignore);
+
   return 1;
 }
 
@@ -342,7 +340,7 @@ static int statistic(char *buf, size_t len) {
 
   int ret = 0;
 
-    ret += snprintf(buf+ret, len-ret, "Total received: [%" PRId64 "]\r\n", stats.received_packets_total);
+  ret += snprintf(buf+ret, len-ret, "Total received: [%" PRId64 "]\r\n", stats.received_packets_total);
   ret += snprintf(buf+ret, len-ret, "Parsed packets: [%" PRId64 "]\r\n", stats.parsed_packets);
   ret += snprintf(buf+ret, len-ret, "Total sent: [%" PRId64 "]\r\n", stats.send_packets);
 

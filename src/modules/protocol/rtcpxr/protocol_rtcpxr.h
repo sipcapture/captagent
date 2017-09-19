@@ -29,12 +29,21 @@
 #include <captagent/xmlread.h>
 #include "parser_rtcpxr.h"
 
+typedef struct protocol_rtcpxr_stats {
+	uint64_t received_packets_total;
+	uint64_t parsed_packets;
+	uint64_t send_packets;
+} protocol_rtcpxr_stats_t;
+
+static protocol_rtcpxr_stats_t stats;
+
+#define MAX_PROTOCOLS 10
+profile_protocol_t profile_protocol[MAX_PROTOCOLS];
+
 int bind_api(socket_module_api_t* api);
 int reload_config (char *erbuf, int erlen);
 void free_module_xml_config();
 int load_module_xml_config();
-int close_socket(unsigned int loc_idx);
-void on_send(uv_udp_send_t* req, int status);
 
 /** Functions for RTCP-XR **/
 int w_parse_rtcpxr_to_json(msg_t *msg);
