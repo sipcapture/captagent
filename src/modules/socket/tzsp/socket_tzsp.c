@@ -160,7 +160,7 @@ void on_recv(uv_udp_t* handle, ssize_t nread, const uv_buf_t* rcvbuf, const stru
     int action_idx = 0;
     struct run_act_ctx ctx;
     struct sockaddr_in *cliaddr;
-    uint8_t loc_idx;
+    uint8_t loc_idx = 0;
 
     if (nread <= 0 || addr == NULL) 
     {
@@ -172,7 +172,8 @@ void on_recv(uv_udp_t* handle, ssize_t nread, const uv_buf_t* rcvbuf, const stru
     	return;
     }
 
-    loc_idx = *((uint8_t *) handle->data);
+    //loc_idx = *((uint8_t *) handle->data);    
+    //loc_idx = 0;
     
     gettimeofday(&tv, NULL);
 
@@ -286,6 +287,7 @@ int init_socket(unsigned int loc_idx) {
 		LERR( "capture: bind error");
 	        return 2;
 	}
+
 
 	udp_servers[loc_idx].data = (void *) &loc_idx;
 
