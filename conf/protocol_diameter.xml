@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<document type="captagent_module/xml">
+    <module name="protocol_diameter" description="DIAMETER Protocol" serial="2014010402">
+	<profile name="proto_diameter" description="PROTO DIAMETER" enable="true" serial="2014010402">
+	  <settings>
+	    <!-- TO DEFINE -->
+	    <param name="diameter-version" value="1"/>
+	  </settings>
+	</profile>
+    </module>
+</document>

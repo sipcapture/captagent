@@ -25,19 +25,19 @@
  *
 */
 
-#ifndef PROTOCOL_RTCPXR_H_
-#define PROTOCOL_RTCPXR_H_
+#ifndef PROTOCOL_DIAMETER_H_
+#define PROTOCOL_DIAMETER_H_
 
 #include <captagent/xmlread.h>
-#include "parser_rtcpxr.h"
+#include "parser_diameter.h"
 
-typedef struct protocol_rtcpxr_stats {
+typedef struct protocol_diameter_stats {
 	uint64_t received_packets_total;
 	uint64_t parsed_packets;
 	uint64_t send_packets;
-} protocol_rtcpxr_stats_t;
+} protocol_diameter_stats_t;
 
-static protocol_rtcpxr_stats_t stats;
+static protocol_diameter_stats_t stats;
 
 #define MAX_PROTOCOLS 10
 profile_protocol_t profile_protocol[MAX_PROTOCOLS];
@@ -47,8 +47,8 @@ int reload_config (char *erbuf, int erlen);
 void free_module_xml_config();
 int load_module_xml_config();
 
-/** Functions for RTCP-XR **/
-int w_parse_rtcpxr_to_json(msg_t *msg);
-int w_is_rtcpxr(msg_t *msg);
+/** Functions for DIAMETER **/
+int w_parse_diameter_to_json(msg_t *msg);
+int w_is_diameter(msg_t *msg);
 
-#endif /* PROTOCOL_RTCPXR_H_ */
+#endif /* PROTOCOL_DIAMETER_H_ */

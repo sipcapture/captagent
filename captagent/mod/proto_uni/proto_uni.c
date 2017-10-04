@@ -579,7 +579,6 @@ void* proto_collect( void* device ) {
 
         while (pcap_loop(sniffer_proto, 0, (pcap_handler)callback_proto, 0));
 
-
         /* terminate from here */
         handler(1);
 

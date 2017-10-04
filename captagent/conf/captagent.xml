@@ -50,7 +50,7 @@
 	    <!-- 
 	    	comment it if you want to see all IPProto (tcp/udp)
 	    -->
-	    <param name="ip-proto" value="udp"/>	    
+	    <!-- <param name="ip-proto" value="udp"/> -->
 	    <param name="proto-type"  value="sip"/>
 	    <param name="sip-parse"  value="true"/>
 	    <param name="rtcp-tracking"  value="true"/>
@@ -96,4 +96,3 @@
 	</configuration>	
 
 </document>
-

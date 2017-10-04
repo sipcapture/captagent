@@ -1,13 +1,14 @@
 AC_CONFIG_FILES([
-	src/modules/database/hash/Makefile
 	src/modules/protocol/sip/Makefile
 	src/modules/protocol/sip/captureplan/Makefile
 	src/modules/protocol/ss7/Makefile
 	src/modules/protocol/tcp/Makefile
 	src/modules/protocol/rtcp/Makefile
-	src/modules/protocol/rtcpxr/captureplan/Makefile
-	src/modules/protocol/rtcpxr/Makefile
 	src/modules/protocol/rtcp/captureplan/Makefile
+	src/modules/protocol/rtcpxr/Makefile
+	src/modules/protocol/rtcpxr/captureplan/Makefile
+	src/modules/protocol/diameter/Makefile
+	src/modules/protocol/diameter/captureplan/Makefile
 	src/modules/socket/pcap/Makefile
 	src/modules/socket/raw/Makefile
 	src/modules/socket/collector/Makefile
@@ -18,4 +19,5 @@ AC_CONFIG_FILES([
 	src/modules/transport/json/Makefile	
 	src/modules/interface/http/Makefile
 	src/modules/database/redis/Makefile
+	src/modules/database/hash/Makefile
 ])

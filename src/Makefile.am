@@ -9,6 +9,7 @@ SUBDIRS = \
 	modules/protocol/sip \
 	modules/protocol/rtcp \
 	modules/protocol/rtcpxr \
+	modules/protocol/diameter \
 	modules/protocol/ss7 \
 	modules/protocol/tcp \
 	modules/transport/hep \

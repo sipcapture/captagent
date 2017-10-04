@@ -140,7 +140,7 @@ int parse_rtcpxr(u_char *packet, int size_payload, char json_buffer[], int buffe
       break;
     }
   }
-  ret += snprintf(json_buffer + ret -1, buffer_len -ret +1, "}");
+  ret += snprintf(json_buffer + ret - 1, buffer_len - ret + 1, "}");
 
   // update general statistic info **TODO** //
   

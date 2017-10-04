@@ -778,6 +778,8 @@ void* proto_collect(void *arg) {
 		}
 	}
 
+	printf("------- OUT OF CALLBACK PROTO ------\n");
+
 
 	/* free arg */
 	//if(arg) free(arg);
