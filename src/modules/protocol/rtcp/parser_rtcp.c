@@ -42,11 +42,11 @@ int check_rtcp_version (char *packet, int len) {
   if(rtcp->type >= RTCP_SR && rtcp->type <= RTCP_SDES) {
     return 1;
   }
-
+  
   return -3;
 }
 
-int check_rtp_version (char *packet, int len) {
+int check_rtp_version(char *packet, int len) {
 
   if(packet == NULL || len == 0) return -1;
 
@@ -64,28 +64,27 @@ int check_rtp_version (char *packet, int len) {
 
 int capt_parse_rtcp(char *packet, int len, char *json_buffer, int buffer_len) {
 
-
+  // check parameters
   if(packet == NULL || len == 0) return -1;
 
   rtcp_header_t *rtcp = (rtcp_header_t *)packet;
-  int ret=0;
+  int ret = 0, flag = 0;
   char *rptr;
 
-  if(rtcp->version != 2)
-    {
-      LERR("wrong version\n");
-      return -2;
-    }
-
-  ret+=snprintf(json_buffer, buffer_len, "{ ");
+  ret += snprintf(json_buffer, buffer_len, "{ ");
 
   int pno = 0, total = len;
   LDEBUG("Parsing compound packet (total of %d bytes)\n", total);
+  
   while(rtcp) {
+
     pno++;
+    
     switch(rtcp->type) {
-    case RTCP_SR: {
+
       /* SR, sender report */
+    case RTCP_SR: {
+
       LDEBUG("#%d SR (200)\n", pno);
       rtcp_sr_t *sr = (rtcp_sr_t*)rtcp;
 
@@ -108,12 +107,11 @@ int capt_parse_rtcp(char *packet, int len, char *json_buffer, int buffer_len) {
 			report_block_get_last_SR_time(&sr->rb[0]),
 			report_block_get_last_SR_delay(&sr->rb[0]));
       }
-
-
       break;
     }
-    case RTCP_RR: {
       /* RR, receiver report */
+    case RTCP_RR: {
+      
       LDEBUG("#%d RR (201)\n", pno);
       rtcp_rr_t *rr = (rtcp_rr_t*)rtcp;
 
@@ -132,9 +130,11 @@ int capt_parse_rtcp(char *packet, int len, char *json_buffer, int buffer_len) {
       }
       break;
     }
+      /* SDES, source description */
     case RTCP_SDES: {
-      LDEBUG("#%d SDES (202)\n", pno);
 
+      LDEBUG("#%d SDES (202)\n", pno);
+      
       /* if not needed send sdes */
       if(!send_sdes) break;
 
@@ -151,14 +151,14 @@ int capt_parse_rtcp(char *packet, int len, char *json_buffer, int buffer_len) {
 
       while(rptr < end) {
 
-	if (rptr+2<=end) {
+	if (rptr + 2 <= end) {
 
 	  uint8_t chunk_type=rptr[0];
 	  uint8_t chunk_len=rptr[1];
 
 	  if(chunk_len == 0) break;
 
-	  rptr+=2;
+	  rptr += 2;
 
 	  ret += snprintf(json_buffer+ret, buffer_len - ret, SDES_REPORT_INFO_JSON,
 			  chunk_type,
@@ -173,47 +173,57 @@ int capt_parse_rtcp(char *packet, int len, char *json_buffer, int buffer_len) {
 	  break;
 	}
       }
-
       /* cut , off */
-      ret-=1;
+      ret -= 1;
 
       ret += snprintf(json_buffer+ret, buffer_len - ret, SDES_REPORT_END_JSON, sdes_report_count);
 
       break;
     }
+      /* BYE, Goodbye */
     case RTCP_BYE: {
+      
       LDEBUG("#%d BYE (203)\n", pno);
-      ret = 0;
+      flag = 1;
       //rtcp_bye_t *bye = (rtcp_bye_t*)rtcp;
       break;
     }
+      /* APP, Application-defined */
     case RTCP_APP: {
+      
       LDEBUG("#%d APP (204)\n", pno);
-      ret = 0;
+      flag = 1;
       //rtcp_app_t *app = (rtcp_app_t*)rtcp;
       break;
     }
+      
     default:
       break;
     }
-
 
     int length = ntohs(rtcp->length);
     if(length == 0) {
       break;
     }
+    
     total -= length*4+4;
     if(total <= 0) {
       LDEBUG("End of RTCP packet\n");
       break;
     }
+    
     rtcp = (rtcp_header_t *)((uint32_t*)rtcp + length + 1);
   }
-
-  /* bad parsed message */
-  if(ret < 10) return 0;
-
-  ret+=snprintf(json_buffer+ret-1, buffer_len-ret+1, "}");
+  
+  /* Bad parsed message or BYE/APP packet */
+  if(ret < 10) {
+    if(flag == 0) // BAD PARSING
+      return -2;
+    // else: BYE or APP packet
+    return 0;
+  }
+  
+  ret += snprintf(json_buffer + ret - 1, buffer_len - ret + 1, "}");
 
   return ret;
 }
