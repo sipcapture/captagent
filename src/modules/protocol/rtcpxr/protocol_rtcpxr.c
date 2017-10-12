@@ -90,11 +90,11 @@ int w_parse_rtcpxr_to_json(msg_t *msg)
   msg->mfree = 0;
 
   // call dissector
-  if((json_len = parse_rtcpxr((u_char *) msg->data, msg->len, json_rtcpxr_buffer, JSON_BUFFER_LEN)) > 0) {
+  if((json_len = parse_rtcpxr((u_char *) msg->data, msg->len, msg->rcinfo, json_rtcpxr_buffer, JSON_BUFFER_LEN)) > 0) {
     /* msg->rcinfo.proto_type = rtcp_proto_type; */
     msg->data = json_rtcpxr_buffer; // JSON buff --> Msg data
     msg->len = json_len;
-    msg->mfree = 1;
+    msg->mfree = 1;    
   }
   else {
     LERR("Error on parameters (data or length)\n");
