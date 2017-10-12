@@ -38,8 +38,6 @@
 
 #define JSON_BUFFER_LEN 5000
 
-char call_id[500] = {0};  // for corr_id
-
 typedef enum {
     RTCP_SR   = 200,
     RTCP_RR   = 201,
@@ -154,6 +152,6 @@ struct rtcp_xr_t
 // Check version
 int check_rtcpxr_version(char *packet, int size_payload);
 // Parse packet and fill JSON buffer
-int parse_rtcpxr(u_char *packet, int size_payload, rc_info_t rc_info, char *json_buffer, int buffer_len);
+int parse_rtcpxr(char *packet, int size_payload, rc_info_t *rc_info, char *json_buffer, int buffer_len);
 
 #endif

@@ -76,17 +76,16 @@ int check_rtcpxr_version(char *packet, int size_payload)
 
 
 // RTCP-XR Parser
-int parse_rtcpxr(u_char *packet, int size_payload, rc_info_t rc_info, char json_buffer[], int buffer_len)
+int parse_rtcpxr(char *packet, int size_payload, rc_info_t *rc_info, char json_buffer[], int buffer_len)
 {
   u_int8_t offset = 0, is_xr = 0;
-  int call_id_len;
   int ret = 0;
   
   // check param
   if(packet == NULL || size_payload == 0) return -1;
 
   // pointer used to move through the pkt
-  const u_int8_t *pp = packet;
+  char *pp = packet;
   
   // check RTCP version
   struct rtcp_header_t *rtcp = (struct rtcp_header_t *) packet;
@@ -109,17 +108,14 @@ int parse_rtcpxr(u_char *packet, int size_payload, rc_info_t rc_info, char json_
       
     case RTCP_SDES:
       offset = 4*(rtcp_header_get_length(rtcp)+1);
-      const u_int8_t *pp_2 = pp;
+      char *pp_2 = pp;
       pp_2 = pp_2 + 4 + 4;
       
       if(pp_2[0] == 0x01) { // CNAME
 	pp_2 = pp_2 + 1;
-	call_id_len = pp_2[0];
-	pp_2 = pp_2 + 1;
-	memcpy(call_id, pp_2, call_id_len);
 	// fill correlation_id fields
-	rc_info.correlation_id.len = call_id_len;
-	rc_info.correlation_id.s = &call_id;
+	rc_info->correlation_id.len = pp_2[0];
+	rc_info->correlation_id.s = ++pp_2;
       }
       pp = pp + offset;
       rtcp = (struct rtcp_header_t *) pp;
