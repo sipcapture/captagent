@@ -3,7 +3,6 @@ include $(top_srcdir)/common.am
 SUBDIRS = \
 	. \
 	modules/socket/pcap \
-	modules/socket/raw \
 	modules/socket/collector \
 	modules/socket/tzsp \
 	modules/protocol/sip \

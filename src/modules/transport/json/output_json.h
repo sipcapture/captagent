@@ -24,8 +24,8 @@
 */
 
 
-#ifndef _transport_json_H_
-#define _transport_json_H_
+#ifndef _OUTPUT_JSON_H_
+#define _OUTPUT_JSON_H_
 
 #include <captagent/xmlread.h>
 
@@ -52,13 +52,13 @@
 #define MAX_TRANPORTS 10
 profile_transport_t profile_transport[MAX_TRANPORTS];
 
-typedef struct transport_json_stats {
+typedef struct output_json_stats {
 	uint64_t received_packets_total;
 	uint64_t send_packets_total;
 	uint64_t reconnect_total;
 	uint64_t compressed_total;
 	uint64_t errors_total;
-} transport_json_stats_t;
+} output_json_stats_t;
 
 
 #ifdef USE_SSL
@@ -74,7 +74,7 @@ int send_data (void *buf, unsigned int len, unsigned int idx);
 int init_jsonsocket_blocking (unsigned int idx);
 int init_jsonsocket (unsigned int idx);
 int sigPipe(void);
-profile_transport_t* get_profile_by_name(char *name);
+profile_transport_t *get_profile_by_name(char *name);
 unsigned int get_profile_index_by_name(char *name);
 int bind_usrloc(transport_module_api_t *api);
 int send_json(msg_t *msg);
@@ -84,6 +84,4 @@ int reload_config (char *erbuf, int erlen);
 int check_module_xml_config();
 int w_send_json_api(msg_t *_m, char *param1);
 
-
-
-#endif /* _transport_json_H_ */
+#endif /* _OUTPUT_JSON_H_ */

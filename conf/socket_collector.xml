@@ -3,16 +3,16 @@
     <module name="socket_collector" description="Collector Socket" serial="2014010402">
 	<profile name="sockets_collector_rtcpxr" description="RTCPXR local" enable="true" serial="2014010402">
 	    <settings>
-		<!-- <param name="host" value="0.0.0.0"/> -->
-		<!-- <param name="port" value="9070"/> -->
-		<!-- <param name="proto" value="udp"/> -->
-		<!-- <param name="method-publish" value="true"/> -->
-		<!-- <param name="short-report" value="true"/> -->
-		<!-- <param name="reply" value="true"/> -->
-		<!-- <param name="capture-plan" value="rtcpxr_capture_plan.cfg"/> -->
+		<param name="host" value="10.189.27.7"/>
+		<param name="port" value="5005"/>
+		<param name="proto" value="udp"/>
+		<param name="method-publish" value="true"/>
+		<param name="short-report" value="true"/>
+		<param name="reply" value="true"/>
+		<param name="capture-plan" value="rtcpxr_capture_plan.cfg"/>
 	    </settings>
 	</profile>
-		<profile name="sockets_collector_sip_vqmon" description="RTCPXR on SIP_VQMON" enable="true" serial="2014010402">
+		<profile name="sockets_collector_sip_vqmon" description="RTCPXR on SIP_VQMON" enable="false" serial="2014010402">
 	    <settings>
 		<!-- <param name="host" value="0.0.0.0"/> -->
 		<!-- <param name="port" value="9070"/> -->

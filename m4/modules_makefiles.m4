@@ -10,7 +10,6 @@ AC_CONFIG_FILES([
 	src/modules/protocol/diameter/Makefile
 	src/modules/protocol/diameter/captureplan/Makefile
 	src/modules/socket/pcap/Makefile
-	src/modules/socket/raw/Makefile
 	src/modules/socket/collector/Makefile
 	src/modules/socket/collector/captureplan/Makefile
 	src/modules/socket/tzsp/Makefile

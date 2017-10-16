@@ -67,18 +67,17 @@
 #include <captagent/structure.h>
 #include <captagent/modules_api.h>
 #include <captagent/modules.h>
-//#include "../protocol_sip/parser_sip.h"
-#include "transport_json.h"
+#include "output_json.h"
 #include <captagent/log.h>
 
 xml_node *module_xml_config = NULL;
-char *module_name="transport_json";
+char *module_name = "output_json";
 uint64_t module_serial = 0;
 char *module_description = NULL;
-
-static transport_json_stats_t stats;
-
 uint8_t link_offset = 14;
+
+static output_json_stats_t stats;
+
 static int load_module(xml_node *config);
 static int unload_module(void);
 static int description(char *descr);
@@ -91,14 +90,14 @@ unsigned int sslInit = 0;
 unsigned int profile_size = 0;
 
 static cmd_export_t cmds[] = {
-        {"transport_json_bind_api",  (cmd_function)bind_usrloc,   1, 0, 0, 0},
-        {"send_json",  (cmd_function)w_send_json_api,   1, 0, 0, 0},
+        {"output_json_bind_api", (cmd_function) bind_usrloc,   1, 0, 0, 0},
+        {"send_json",  (cmd_function) w_send_json_api,   1, 0, 0, 0},
         {0, 0, 0, 0, 0, 0}
 };
 
 struct module_exports exports = {
-        "transport_json",
-        cmds,        /* Exported functions */
+        "output_json",
+        cmds,           /* Exported functions */
         load_module,    /* module initialization function */
         unload_module,
         description,
@@ -147,7 +146,7 @@ int reload_config (char *erbuf, int erlen) {
 	return 0;
 }
 
-profile_transport_t* get_profile_by_name(char *name) {
+profile_transport_t *get_profile_by_name(char *name) {
 
 	unsigned int i = 0;
 
@@ -179,7 +178,7 @@ unsigned int get_profile_index_by_name(char *name) {
 
 #ifdef USE_SSL
 
-void showCerts(SSL* ssl) {
+void showCerts(SSL *ssl) {
 
         X509 *cert;
         char *line;
@@ -202,14 +201,10 @@ void showCerts(SSL* ssl) {
 int initSSL(unsigned int idx) {
 
         long ctx_options;
-
-        /* if(ssl) SSL_free(ssl);
-        if(ctx) SSL_CTX_free(ctx);
-        */
-
+	
         if(init_jsonsocket_blocking(idx)) {
-                LERR("capture: couldn't init hep socket");
-                return 1;
+	  LERR("capture: couldn't init hep socket");
+	  return 1;
         }
 
         profile_transport[idx].ctx = initCTX();
@@ -219,7 +214,7 @@ int initSSL(unsigned int idx) {
         ctx_options |= SSL_OP_NO_SSLv2;
         SSL_CTX_set_options(profile_transport[idx].ctx, ctx_options);
 
-        /*extra*/
+        /* extra */
         SSL_CTX_ctrl(profile_transport[idx].ctx, BIO_C_SET_NBIO, 1, NULL);
 
         /* create new SSL connection state */
@@ -243,7 +238,7 @@ int initSSL(unsigned int idx) {
 
 #endif /* endif SSL */
 
-int send_json (msg_t *msg) {
+int send_json(msg_t *msg) {
 
         rc_info_t *rcinfo = NULL;
         unsigned int idx = 0;
@@ -367,7 +362,7 @@ int send_json (msg_t *msg) {
 
 
 
-int send_data (void *buf, unsigned int len, unsigned int idx) {
+int send_data(void *buf, unsigned int len, unsigned int idx) {
 
         /* send this packet out of our socket */
         void * p = buf;
@@ -701,10 +696,6 @@ static int load_module(xml_node *config) {
 					else if(!strncmp(key, "payload-compression", 19) && !strncmp(value, "true", 5)) profile_transport[profile_size].compression = 1;
 					else if(!strncmp(key, "version", 7)) profile_transport[profile_size].version = atoi(value);
 					else if(!strncmp(key, "payload-send", 12) && !strncmp(value, "false", 5)) profile_transport[profile_size].flag = 0;
-
-
-					//if (!strncmp(key, "ignore", 6))
-					//	profile_transport[profile_size].ignore = value;
 				}
 
 				nextparam:

@@ -33,8 +33,8 @@
 #endif /* USE_SSL */
 
 
-typedef  struct module_exports* (*module_register)(void);
-typedef  int (*cmd_function)(msg_t*, char* param1, char* param2);
+typedef struct module_exports* (*module_register)(void);
+typedef int (*cmd_function)(msg_t*, char* param1, char* param2);
 typedef int (*fixup_function)(void** param, int param_no);
 
 typedef struct cmd_export_ {
@@ -76,37 +76,37 @@ typedef int (*count_db_t)(char *query, const db_msg_t *msg);
 
 typedef struct socket_module_api {
 
-        int           	use_domain; /*! use_domain module parameter */
-        char			*module_name;
-        int         	db_mode;    /*! db_mode module parameter */
-        unsigned int  	nat_flag;   /*! nat_flag module parameter */
-        reload_t        reload_f;
-        apply_filter_t  apply_filter_f;
+        int           	           use_domain; /*! use_domain module parameter */
+        char			   *module_name;
+        int         	           db_mode;    /*! db_mode module parameter */
+        unsigned int  	           nat_flag;   /*! nat_flag module parameter */
+        reload_t                   reload_f;
+        apply_filter_t             apply_filter_f;
         ul_set_keepalive_timeout_t set_keepalive_timeout;
 
 } socket_module_api_t;
 
 typedef struct protocol_module_api {
 
-        int           use_domain; /*! use_domain module parameter */
-        char		  *module_name;
-        int           db_mode;    /*! db_mode module parameter */
-        unsigned int  nat_flag;   /*! nat_flag module parameter */
-        parse_message_t parse_f;
-        parse_only_message_t parse_only_f;
-        reload_t        reload_f;
+        int                        use_domain; /*! use_domain module parameter */
+        char		           *module_name;
+        int                        db_mode;    /*! db_mode module parameter */
+        unsigned int               nat_flag;   /*! nat_flag module parameter */
+        parse_message_t            parse_f;
+        parse_only_message_t       parse_only_f;
+        reload_t                   reload_f;
         ul_set_keepalive_timeout_t set_keepalive_timeout;
 
 } protocol_module_api_t;
 
 typedef struct transport_module_api {
 
-        int           use_domain; /*! use_domain module parameter */
-        char		  *module_name;
-        int           db_mode;    /*! db_mode module parameter */
-        unsigned int  nat_flag;   /*! nat_flag module parameter */
+        int            use_domain; /*! use_domain module parameter */
+        char	       *module_name;
+        int            db_mode;    /*! db_mode module parameter */
+        unsigned int   nat_flag;   /*! nat_flag module parameter */
         send_message_t send_f;
-        reload_t        reload_f;
+        reload_t       reload_f;
         ul_set_keepalive_timeout_t set_keepalive_timeout;
 
 } transport_module_api_t;
@@ -114,23 +114,23 @@ typedef struct transport_module_api {
 typedef struct statistic_module_api {
 
         int           use_domain; /*! use_domain module parameter */
-        char		  *module_name;
+        char	      *module_name;
         int           db_mode;    /*! db_mode module parameter */
         unsigned int  nat_flag;   /*! nat_flag module parameter */
         send_stats_t  send_stats_f;
-        reload_t        reload_f;
+        reload_t      reload_f;
 } statistic_module_api_t;
 
 typedef struct database_module_api {
         int           db_mode;    /*! db_mode module parameter */
-        char		  *module_name;
+        char	      *module_name;
         update_db_t   update;
         delete_db_t   delete;
         insert_db_t   insert;
         select_db_t   select;
         count_db_t    count;
         query_db_t    raw_query;
-        reload_t        reload_f;
+        reload_t      reload_f;
 } database_module_api_t;
 
 typedef int (*bind_socket_module_api_t)(socket_module_api_t* api);
