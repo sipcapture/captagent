@@ -369,9 +369,7 @@ static int load_module(xml_node *config) {
 	while (profile) {
 
 		profile = xml_get("profile", profile, 1);
-
-		memset(&profile_socket[i], 0, sizeof(profile_socket_t));
-
+		
 		if (profile == NULL)
 			break;
 
@@ -385,6 +383,7 @@ static int load_module(xml_node *config) {
 		}
 
 		/* set values */
+		memset(&profile_socket[profile_size], 0, sizeof(profile_socket_t));
 		profile_socket[profile_size].name = strdup(profile->attr[1]);
 		profile_socket[profile_size].description = strdup(profile->attr[3]);
 		profile_socket[profile_size].serial = atoi(profile->attr[7]);
