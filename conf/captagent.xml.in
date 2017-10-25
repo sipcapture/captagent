@@ -25,8 +25,11 @@
 		<load module="database_hash" register="local"/>
 		<load module="protocol_rtcp" register="local"/>	
 		<load module="socket_pcap" register="local"/>
-	<!--
-		<load module="socket_rtcpxr" register="local"/>
+		
+		<!-- required for RTCPXR socket and RTCPXR protocol -->
+		<!-- <load module="socket_collector" register="local"/> -->
+		<!-- <load module="protocol_rtcpxr" register="local"/> -->
+	    	<!--
 		<load module="socket_tzsp" register="local"/>
 		<load module="protocol_ss7" register="local"/>
 		<load module="protocol_tcp" register="local"/>
@@ -35,7 +38,7 @@
 		<load module="interface_http" register="local"/>
 		<load module="database_redis" register="local"/>
 		<load module="socket_pfring" register="local"/>
-	    -->
-	    </modules>
+	    	-->
+	</modules>
 	</configuration>
 </document>
