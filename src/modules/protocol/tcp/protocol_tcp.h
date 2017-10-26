@@ -31,35 +31,23 @@
 #include "uthash.h"
 #include "hash_structure.h"
 
-int timer_timeout = 10;
-int timer_loop_stop = 0;
+typedef struct protocol_tcp_stats {
+  uint64_t received_packets_total;
+  uint64_t parsed_packets;
+  uint64_t send_packets;
+} protocol_tcp_stats_t;
 
-//static int global_session_id = 0;
+static protocol_tcp_stats_t stats;
 
-int cin_min = 100;
-int cin_max = 800;
+#define MAX_PROTOCOLS 10
+profile_protocol_t profile_protocol[MAX_PROTOCOLS];
 
-#define MAX_DATABASE 10
-profile_database_t profile_database[MAX_DATABASE];
+int bind_api(socket_module_api_t* api);
+int reload_config(char *erbuf, int erlen);
+void free_module_xml_config();
+int load_module_xml_config();
 
-#define EXPIRE_RTCP_HASH 80
-#define EXPIRE_TIMER_ARRAY 80
-
-typedef struct mediaport {
-  char ipportid[400];
-} mediaport_t;
-
-
-struct ipport_items *ipports = NULL;
-
-bool hash_mode = FALSE;
-
-int bind_api(database_module_api_t* api);
-
+/** Functions for TCP **/
 int w_parse_tls(msg_t *msg);
-
-extern char* global_config_path;
-
-/* IPPORTS */
 
 #endif /* PROTOCOL_TCP_H_ */

@@ -172,16 +172,18 @@ typedef struct profile_socket {
 
 /* profile protocol */
 typedef struct profile_protocol {
-		char *name;
-		char *description;
-		uint32_t serial;
-		uint16_t dialog_timeout;
-		uint8_t dialog_type;
-		uint8_t rtcp_tracking;
-		uint8_t type;
-		int action;
-		char *ignore;
-        struct profile_protocol *next;
+  char *name;
+  char *description;
+  uint32_t serial;
+  uint16_t dialog_timeout;
+  uint8_t dialog_type;
+  uint8_t rtcp_tracking;
+  uint8_t type;
+  int action;
+  char *ignore;
+  char *pvt_key_path;
+  char *pub_key_path;
+  struct profile_protocol *next;
 } profile_protocol_t;
 
 

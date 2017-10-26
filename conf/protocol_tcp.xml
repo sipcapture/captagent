@@ -3,7 +3,9 @@
     <module name="protocol_tcp" description="TCP Protocol" serial="2014010402">
 	<profile name="proto_tcp" description="TCP PROTO" enable="true" serial="2014010402">
 	    <settings>
-		<param name="flow-timeout" value="180"/>
+	      <param name="flow-timeout" value="180"/>
+	      <param name="private-key-path" value="path-pvt-Key"/>
+	      <param name="public-key-path" value="path-pub-Key"/>
 	    </settings>
 	</profile>
     </module>
