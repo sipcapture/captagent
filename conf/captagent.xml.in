@@ -26,9 +26,12 @@
 		<load module="protocol_rtcp" register="local"/>	
 		<load module="socket_pcap" register="local"/>
 		
-		<!-- required for RTCPXR socket and RTCPXR protocol -->
-		<!-- <load module="socket_collector" register="local"/> -->
-		<!-- <load module="protocol_rtcpxr" register="local"/> -->
+		<!-- NOTE: Block required for RTCPXR socket + RTCPXR protocol -->
+		<!-- 
+			<load module="protocol_rtcpxr" register="local"/>
+			<load module="socket_collector" register="local"/> 
+		-->
+
 	    	<!--
 		<load module="socket_tzsp" register="local"/>
 		<load module="protocol_ss7" register="local"/>
