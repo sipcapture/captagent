@@ -47,6 +47,7 @@
 #include "localapi.h"
 #include "protocol_tcp.h"
 #include "parser_tls.h"
+#include "structures.h"
 
 pthread_rwlock_t ipport_lock;
 
@@ -61,7 +62,6 @@ static int load_module(xml_node *config);
 static int unload_module(void);
 static int description(char *descr);
 static int statistic(char *buf, size_t len);
-static int reload_config (char *erbuf, int erlen);
 static uint64_t serial_module(void);
 
 
@@ -87,12 +87,12 @@ int w_parse_tls(msg_t *msg) {
 
   int json_len;
   char json_tls_buffer[JSON_BUFFER_LEN] = {0};
-  Flow_key * flow_key;
+  struct Flow_key * flow_key;
   
   msg->mfree = 0;
 
   // call dissector
-  if((json_len = parse_tls((char *) &msg->data, msg->len, json_tls_buffer, JSON_BUFFER_LEN, msg->rc_info->ip_family, msg->rc_info->src_port, msg->rc_info->dst_port, msg->rc_info->ip_proto, flow_key)) > 0) {
+  if((json_len = parse_tls((char *) &msg->data, msg->len, json_tls_buffer, JSON_BUFFER_LEN, msg->rcinfo.ip_family, msg->rcinfo.src_port, msg->rcinfo.dst_port, msg->rcinfo.ip_proto, flow_key)) > 0) {
     
     msg->data = json_tls_buffer; // JSON buff --> Msg data
     msg->len = json_len;
@@ -242,7 +242,7 @@ static int load_module(xml_node *config) {
       break;
     }
 
-    memset(&profile_database[profile_size], 0, sizeof(profile_database_t));
+    memset(&profile_protocol[profile_size], 0, sizeof(profile_database_t));
 
     /* set values */
     profile_protocol[profile_size].name = strdup(profile->attr[1]);
@@ -318,7 +318,6 @@ static int unload_module(void) {
   unsigned int i = 0;
 
   LNOTICE("unloaded module %s", module_name);
-  timer_loop_stop = 0;
 
   for (i = 0; i < profile_size; i++) {
     free_profile(i);

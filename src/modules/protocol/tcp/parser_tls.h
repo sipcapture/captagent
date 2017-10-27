@@ -28,6 +28,7 @@
 #include "structures.h"
 #include "decription.h"
 
+#define JSON_BUFFER_LEN 5000
 
 /****************************************************
  *  NOTE:
@@ -140,16 +141,6 @@ char * read_file(char *name) {
   FILE *file;
   unsigned long fileLen;
   char *buffer;
-  char bufpath[PATH_MAX + 1];
-  
-  if(realpath(name, bufpath)){
-    if(strncmp(bufpath, global_config_path, strlen(global_config_path))) {
-      return NULL;
-    }
-  }
-  else {
-    return NULL;
-  }
   
   // Open file
   file = fopen(name, "rb");
