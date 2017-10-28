@@ -42,7 +42,7 @@ static protocol_tcp_stats_t stats;
 #define MAX_PROTOCOLS 10
 profile_protocol_t profile_protocol[MAX_PROTOCOLS];
 
-int bind_api(socket_module_api_t* api);
+int bind_api(protocol_module_api_t* api);
 int reload_config(char *erbuf, int erlen);
 void free_module_xml_config();
 int load_module_xml_config();

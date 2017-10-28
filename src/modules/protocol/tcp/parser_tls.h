@@ -123,7 +123,7 @@ struct client_key_exch {
 /**
    Function to dissect a TLS packet
 **/
-int parse_tls(char ** payload,
+int parse_tls(char * payload,
 	      int size_payload,
 	      char json_buffer[],
 	      int buffer_len,

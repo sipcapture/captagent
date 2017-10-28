@@ -39,6 +39,7 @@
 #include <time.h>
 #include <pthread.h>
 
+#include <captagent/globals.h>
 #include <captagent/api.h>
 #include <captagent/structure.h>
 #include <captagent/modules_api.h>
@@ -83,11 +84,22 @@ struct module_exports exports = {
 };
 
 
+
+/* ### CAPTAGENT FUNCTIONS ### */
+
+int bind_api(protocol_module_api_t* api)
+{
+  api->reload_f = reload_config;
+  api->module_name = module_name;
+
+  return 0;
+}
+
 int w_parse_tls(msg_t *msg) {
 
   int json_len;
   char json_tls_buffer[JSON_BUFFER_LEN] = {0};
-  struct Flow_key * flow_key;
+  struct Flow_key * flow_key = NULL;
   
   msg->mfree = 0;
 
@@ -128,17 +140,6 @@ int w_parse_tls(msg_t *msg) {
   return 0;
 }
 
-
-
-/* ### CAPTAGENT FUNCTIONS ### */
-
-int bind_api(database_module_api_t* api)
-{
-  api->reload_f = reload_config;
-  api->module_name = module_name;
-
-  return 0;
-}
 
 int reload_config (char *erbuf, int erlen) {
 
@@ -282,11 +283,14 @@ static int load_module(xml_node *config) {
 	    LERR("bad values in the config");
 	    goto nextparam;
 	  }
-	  /* set param value for private or public key */
+	  
+	  /**
+	     Set param value for private or public key 
+	  **/
 	  if(strncmp(params->attr[1], "private-key-path", 16))
 	    profile_protocol[profile_size].pvt_key_path = strdup(profile->attr[1]);
 	  else
-	    profile_protocol[profile_size].pub_key_pub = strdup(profile->attr[3]);
+	    profile_protocol[profile_size].pub_key_path = strdup(profile->attr[3]);
 	}
 	
       nextparam: params = params->next;
@@ -307,8 +311,8 @@ static int load_module(xml_node *config) {
 
 static int free_profile(unsigned int idx) {
   
-  if (profile_database[idx].name)	 free(profile_database[idx].name);
-  if (profile_database[idx].description) free(profile_database[idx].description);
+  if (profile_protocol[idx].name)	 free(profile_protocol[idx].name);
+  if (profile_protocol[idx].description) free(profile_protocol[idx].description);
   
   return 1;
 }

@@ -73,7 +73,7 @@ struct module_exports exports = {
   serial_module
 };
 
-int bind_api(socket_module_api_t* api)
+int bind_api(protocol_module_api_t* api)
 {
   api->reload_f = reload_config;
   api->module_name = module_name;
