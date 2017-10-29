@@ -28,7 +28,7 @@
 #include "structures.h"
 #include "decription.h"
 
-#define JSON_BUFFER_LEN 5000
+#define DECR_LEN 5000
 
 /****************************************************
  *  NOTE:
@@ -125,8 +125,8 @@ struct client_key_exch {
 **/
 int parse_tls(char * payload,
 	      int size_payload,
-	      char json_buffer[],
-	      int buffer_len,
+	      char decrypted_buff[],
+	      int decr_len,
 	      u_int8_t ip_family,
 	      u_int16_t src_port,
 	      u_int16_t dst_port,

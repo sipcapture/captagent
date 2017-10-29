@@ -4,7 +4,7 @@
 	<profile name="proto_tcp" description="TCP PROTO" enable="true" serial="2014010402">
 	    <settings>
 	      <param name="flow-timeout" value="180"/>
-	      <param name="private-key-path" value="path-pvt-Key"/>
+	      <!-- the value of public key refers to the absolute path of the key -->
 	      <param name="public-key-path" value="path-pub-Key"/>
 	    </settings>
 	</profile>

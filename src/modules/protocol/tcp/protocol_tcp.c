@@ -97,27 +97,29 @@ int bind_api(protocol_module_api_t* api)
 
 int w_parse_tls(msg_t *msg) {
 
-  int json_len;
-  char json_tls_buffer[JSON_BUFFER_LEN] = {0};
+  /* int json_len; */
+  /* char json_tls_buffer[JSON_BUFFER_LEN] = {0}; */
+  int ret_len = 0;
+  char decripted_buffer[DECR_LEN] = {0};
   struct Flow_key * flow_key = NULL;
   
   msg->mfree = 0;
 
   // call dissector
-  if((json_len = parse_tls((char *) &msg->data, msg->len, json_tls_buffer, JSON_BUFFER_LEN, msg->rcinfo.ip_family, msg->rcinfo.src_port, msg->rcinfo.dst_port, msg->rcinfo.ip_proto, flow_key)) > 0) {
+  if((ret_len = parse_tls((char *) &msg->data, msg->len, decripted_buffer, DECR_LEN, msg->rcinfo.ip_family, msg->rcinfo.src_port, msg->rcinfo.dst_port, msg->rcinfo.ip_proto, flow_key)) > 0) {
     
-    msg->data = json_tls_buffer; // JSON buff --> Msg data
-    msg->len = json_len;
+    msg->data = decripted_buffer; // JSON buff --> Msg data
+    msg->len = ret_len;
     msg->mfree = 1;
   }
-  else if(json_len == -3) {
+  else if(ret_len == -3) {
     LERR("Error on malloc for handshake\n");
     if(msg->corrdata) 
       {
 	free(msg->corrdata);
 	msg->corrdata = NULL;
       }
-    else if(json_len == -2) {
+    else if(ret_len == -2) {
       LERR("Error on decription packet\n");
       if(msg->corrdata) 
 	{
@@ -135,7 +137,7 @@ int w_parse_tls(msg_t *msg) {
     }
     return -1;
   }
-  LERR("JSON TLS %s\n", json_tls_buffer);
+  LDEBUG("DECRIPTED BUFFER TLS %s\n", decripted_buffer);
   
   return 0;
 }

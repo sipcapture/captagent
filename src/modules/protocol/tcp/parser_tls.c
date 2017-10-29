@@ -295,15 +295,15 @@ static void add_flow(struct Flow_key *key, struct Handshake *handshake, u_int8_t
 
 
 // Function to dissect TLS/SSL
-int tls_packet_dissector(char ** payload,
-			 int size_payload,
-			 char json_buffer[],
-			 int buffer_len,
-			 u_int8_t ip_family,
-			 u_int16_t src_port,
-			 u_int16_t dst_port,
-			 u_int8_t proto_id_l3,
-			 struct Flow_key * flow_key)
+int parse_tls(char * payload,
+	      int size_payload,
+	      char decrypted_buff[],
+	      int decr_len,
+	      u_int8_t ip_family,
+	      u_int16_t src_port,
+	      u_int16_t dst_port,
+	      u_int8_t proto_id_l3,
+	      struct Flow_key * flow_key)
 {
   struct Hash_Table *el;
   struct Handshake * handshake;
@@ -815,7 +815,7 @@ int tls_packet_dissector(char ** payload,
       unsigned char decrypted[4096];
       char key_path_buff[4096];
       u_int16_t len = 0;
-      int is_pvt_key = 0; // 1 PVT 0 PUB
+      int is_pub_key = 0; // 1 PUB 0 PVT
       int count = 0, decrypted_length = 0, index = 0, js_ret = 0;
       char *Key;
 
@@ -825,27 +825,22 @@ int tls_packet_dissector(char ** payload,
       memset(key_path, '\0', sizeof(key_path));
 
       /** PREPARE THE KEY **/
-      while(profile_protocol[index] == NULL)
+      while(profile_protocol[index] == NULL) // search the profile protocol TLS
 	index++;
-      // set flag is_pvt_key 
-      if(profile_protocol[index].pvt_key_path){
-	is_pvt_key = 1;
+      // set flag is_pub_key 
+      if(profile_protocol[index].pub_key_path){
+	is_pub_key = 1;
 	// copy the key path to buffer key_path_buff
-	memcpy(key_path_buff, profile_protocol[index].pvt_key_path, sizeof(key_path));
+	memcpy(key_path_buff, profile_protocol[index].pub_key_path, sizeof(key_path));
       }
       else
 	// copy the key path to buffer key_path_buff
-	memcpy(key_path_buff, profile_protocol[index].pub_key_path, sizeof(key_path));
+	memcpy(key_path_buff, profile_protocol[index].pvt_key_path, sizeof(key_path));
 	
-      // call read_file to get the string from key
+      // call READ_FILE to get the string from key
       Key = read_file(key_path_buff);
 
       /* ***** */
-
-      /**
-	 Create json buffer for decripted data
-      **/
-      js_ret += snprintf((json_buffer + js_ret), buffer_len, "{ \"Decripted TLS Application Data\":{ ");
 
       /* CHECK -- FIND SOLUTION IF THERE ARE MORE APP DATA IN THE SAME PKT */
       do {
@@ -860,15 +855,7 @@ int tls_packet_dissector(char ** payload,
 	
 	/* --- DECRYPTION OF PAYLOAD DATA --- */
 
-	if(is_pvt_key) { // decrypt using PVT KEY
-	  decrypted_length = private_decrypt(encrypted, len, Key, decrypted);
-	  if(decrypted_length == -1)
-	    {
-	      printLastError("Private Decrypt failed ");
-	      return -2; // Error on decription
-	    }
-	}
-	else { // decrypt using PUB KEY
+	if(is_pub_key) { // decrypt using PUB KEY
 	  decrypted_length = public_decrypt(encrypted, len, Key, decrypted);
 	  if(decrypted_length == -1)
 	    {
@@ -876,18 +863,22 @@ int tls_packet_dissector(char ** payload,
 	      return -2; // Error on decription
 	    }
 	}
-
-	// put decrypted data in JSON buffer
-	js_ret += snprintf((json_buffer + js_ret), buffer_len - js_ret,
-			   "%s ", decrypted);
+	else { // decrypt using PVT KEY
+	  decrypted_length = private_decrypt(encrypted, len, Key, decrypted);
+	  if(decrypted_length == -1)
+	    {
+	      printLastError("Private Decrypt failed ");
+	      return -2; // Error on decription
+	    }
+	}
 	
 	pp = pp + len;
 	
       } while(count < size_payload);
     }
-    
-    js_ret += snprintf((json_buffer + js_ret - 2), (buffer_len - js_ret + 1), "}");
-    return strlen(json_buffer); // it's TLS
+    // it's TLS and return the len of decripted payload
+    memcpy(decrypted_buff, decrypted, decrypted_length);
+    return strlen(decrypted_buff);
   }
   return -2;
 }
