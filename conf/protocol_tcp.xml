@@ -5,7 +5,7 @@
 	    <settings>
 	      <param name="flow-timeout" value="180"/>
 	      <!-- the value of public key refers to the absolute path of the key -->
-	      <param name="public-key-path" value="path-pub-Key"/>
+	      <param name="public-key-path" value="/path/to/pub.key"/>
 	    </settings>
 	</profile>
     </module>
