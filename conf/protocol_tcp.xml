@@ -1,12 +1,12 @@
 <?xml version="1.0"?>
 <document type="captagent_module/xml">
-    <module name="protocol_tcp" description="TCP Protocol" serial="2014010402">
-	<profile name="proto_tcp" description="TCP PROTO" enable="true" serial="2014010402">
-	    <settings>
-	      <param name="flow-timeout" value="180"/>
-	      <!-- the value of public key refers to the absolute path of the key -->
-	      <param name="public-key-path" value="/path/to/pub.key"/>
-	    </settings>
-	</profile>
-    </module>
+  <module name="protocol_tcp" description="TCP Protocol" serial="2014010402">
+    <profile name="proto_tcp" description="TCP PROTO" enable="true" serial="2014010402">
+      <settings>
+	<param name="flow-timeout" value="180"/>
+	<!-- the value of private key refers to the absolute path of the key (used for decription) -->
+	<param name="private-key-path" value="/path/to/pvt.key"/>
+      </settings>
+    </profile>
+  </module>
 </document>
