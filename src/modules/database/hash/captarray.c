@@ -81,7 +81,7 @@ int gather_data_run()
 	timer_queue_t *pos, *lpos;
 	unsigned int mycount = 0;
 
-	while (timer_loop_stop) {
+	while (!timer_loop_stop) {
 
 		list_for_each_entry_safe(pos, lpos, &g_queue_head, node)
 		{
