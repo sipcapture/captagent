@@ -3,9 +3,9 @@ include $(top_srcdir)/modules.am
 SUBDIRS = \
 	.
 
-noinst_HEADERS = protocol_tcp.h localapi.h uthash.h tls_ssl.h structures.h define.h hash_structure.h
+noinst_HEADERS = protocol_tcp.h localapi.h uthash.h parser_tls.h structures.h define.h hash_structure.h decription.h
 #
-protocol_tcp_la_SOURCES = protocol_tcp.c localapi.c tls_ssl.c
+protocol_tcp_la_SOURCES = protocol_tcp.c localapi.c parser_tls.c decription.c
 protocol_tcp_la_CFLAGS = -Wall ${MODULE_CFLAGS} ${EXPAT_LIBS}
 protocol_tcp_la_LDFLAGS = -module -avoid-version
 protocol_tcp_la_LIBSSL  = -I/usr/include/openssl -lcrypto

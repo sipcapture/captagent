@@ -7,6 +7,7 @@ SUBDIRS = \
 	modules/socket/tzsp \
 	modules/protocol/sip \
 	modules/protocol/rtcp \
+	modules/protocol/tcp \
 	modules/protocol/rtcpxr \
 	modules/protocol/diameter \
 	modules/protocol/ss7 \
