@@ -45,6 +45,9 @@ RSA * createRSA(unsigned char * key, int public)
       rsa = PEM_read_bio_RSA_PUBKEY(keybio, &rsa, NULL, NULL);
   else
       rsa = PEM_read_bio_RSAPrivateKey(keybio, &rsa, NULL, NULL);
+  // if not works, try this
+  /*  X509_free(rsa); */
+  /* rsa = PEM_read_bio_X509(bp, NULL, 0, NULL); */
 
   if(rsa == NULL)
     printf("Failed to create RSA");
@@ -53,20 +56,20 @@ RSA * createRSA(unsigned char * key, int public)
 }
 
 // PRIVATE ENCRIPTION
-int private_encrypt(unsigned char * data, int data_len, unsigned char * key, unsigned char *encrypted)
-{
-    RSA * rsa = createRSA(key, 0);
-    int result = RSA_private_encrypt(data_len, data, encrypted, rsa, padding);
-    return result;
-}
+/* int private_encrypt(unsigned char * data, int data_len, unsigned char * key, unsigned char *encrypted) */
+/* { */
+/*     RSA * rsa = createRSA(key, 0); */
+/*     int result = RSA_private_encrypt(data_len, data, encrypted, rsa, padding); */
+/*     return result; */
+/* } */
 
 // PUBLIC ENCRIPTION
-int public_encrypt(unsigned char * data, int data_len, unsigned char * key, unsigned char *encrypted)
-{
-  RSA * rsa = createRSA(key, 1);
-  int result = RSA_public_encrypt(data_len, data, encrypted, rsa, padding);
-  return result;
-}
+/* int public_encrypt(unsigned char * data, int data_len, unsigned char * key, unsigned char *encrypted) */
+/* { */
+/*   RSA * rsa = createRSA(key, 1); */
+/*   int result = RSA_public_encrypt(data_len, data, encrypted, rsa, padding); */
+/*   return result; */
+/* } */
 
 // PRIVATE DECRIPTION
 int private_decrypt(unsigned char * enc_data, int data_len, unsigned char * key, unsigned char *decrypted)
