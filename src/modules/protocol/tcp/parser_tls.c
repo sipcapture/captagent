@@ -101,6 +101,41 @@ enum {
 
 
 /** ###### FunctionS to save and split the certificate(s) ###### **/
+/**
+   Function to read FILE and return string
+**/
+static char * read_file(char *name) {
+  FILE *file;
+  unsigned long fileLen;
+  char *buffer;
+  
+  // Open file
+  file = fopen(name, "rb");
+  if (!file) {
+    fprintf(stderr, "Unable to open file %s", name);
+    return NULL;
+  }
+  
+  // Get file length
+  fseek(file, 0, SEEK_END);
+  fileLen = ftell(file);
+  fseek(file, 0, SEEK_SET);
+  
+  // Allocate memory
+  buffer = (char *) malloc(fileLen + 1);
+  if (!buffer) {
+    fprintf(stderr, "Memory error!");
+    fclose(file);
+    return NULL;
+  }
+  
+  // Read file contents into buffer
+  fread(buffer, fileLen, 1, file);
+  fclose(file);
+  
+  return buffer;
+  
+}
 
 // SAVE CERTIFICATE AS .DER FILE
 static void save_certificate_FILE(const unsigned char * cert, u_int16_t cert_len)
@@ -850,12 +885,13 @@ int parse_tls(char * payload,
 	pp = pp + TLS_HEADER_LEN;
 	len = ntohs(hdr_tls_rec->len);
 	count = count + TLS_HEADER_LEN + len;
-	
-	memcpy(encrypted, pp, len); // copy the ENCRIPTED application data
+
+	// copy the ENCRIPTED application data into "encrypted" buffer
+	memcpy(encrypted, pp, len);
 	
 	/* --- DECRYPTION OF PAYLOAD DATA --- */
 
-	if(is_pub_key) { // decrypt using PUB KEY
+	if(is_pub_key == 1) { // decrypt using PUB KEY
 	  decrypted_length = public_decrypt(encrypted, len, Key, decrypted);
 	  if(decrypted_length == -1)
 	    {
@@ -875,9 +911,9 @@ int parse_tls(char * payload,
 	pp = pp + len;
 	
       } while(count < size_payload);
+      // it's TLS and return the len of decripted payload
+      memcpy(decrypted_buff, decrypted, decrypted_length);
     }
-    // it's TLS and return the len of decripted payload
-    memcpy(decrypted_buff, decrypted, decrypted_length);
     return strlen(decrypted_buff);
   }
   return -2;
