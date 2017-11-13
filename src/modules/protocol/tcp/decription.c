@@ -28,8 +28,8 @@
 #include "decription.h"
 
 /* #define PADDING RSA_PKCS1_OAEP_PADDING */
-/* #define PADDING RSA_PKCS1_PADDING */
-#define PADDING RSA_NO_PADDING
+/* #define PADDING RSA_NO_PADDING */
+#define PADDING RSA_PKCS1_PADDING
  
 RSA * createRSA(unsigned char * key, int public)
 {
@@ -47,10 +47,6 @@ RSA * createRSA(unsigned char * key, int public)
       rsa = PEM_read_bio_RSA_PUBKEY(keybio, &rsa, NULL, NULL);
   else
       rsa = PEM_read_bio_RSAPrivateKey(keybio, &rsa, NULL, NULL);
-  // if not works, try this
-  /*  X509_free(rsa); */
-  /* rsa = PEM_read_bio_X509(bp, NULL, 0, NULL); */
-
   if(rsa == NULL)
     printf("Failed to create RSA");
  

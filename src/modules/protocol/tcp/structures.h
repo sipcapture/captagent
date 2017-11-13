@@ -239,29 +239,28 @@ struct flow_callback_proto
 };
 
 
-
 // Handshake struct for the Flow (to put in Hashtable)
 /* 
+   - pre-master secret
    - random val (C-S)
    - session ID (C-S)
-   - certificate_server
+   - certificate
+   - chipher suite from server (RSA only)
 */
 struct Handshake
 {
-  u_int8_t *enc_pre_master_secret; // Pre-Master Secret (encrypted)
-  u_int8_t *pubkey;                // Public Key CLI Key Exch (TLS1.2)
-  u_int8_t *public_key_cert;       // Public Key Cert (TLS1)
+  /* u_int8_t *enc_pre_master_secret; // Encrypted Pre-Master Secret */
+  u_int8_t pre_master_secret[48];  // Pre-Master Secret
   u_int8_t cli_rand[32];           // Client random num
   u_int8_t srv_rand[32];           // Server random num
   u_int8_t *sessID_c;              // Client session ID
   u_int8_t *sessID_s;              // Server session ID
   u_int8_t *certificate_S;         // Server Certificate
-  u_int8_t *certificate_C;         // [Opt] Client Certificate
   u_int8_t chiph_serv[2];          // Chipher Suite Server
 };
 
-/* struct containing the fields used as the key in the hashmap for a flow */
-struct Flow_key
+/* struct containing the fields used for a flow */
+struct Flow
 {
   // IPV4
   u_int32_t ip_src;
@@ -278,8 +277,9 @@ struct Flow_key
 /** HASH TABLE **/
 struct Hash_Table
 {
-  struct Flow_key flow_key_hash; // Key
+  struct Flow flow;
   struct Handshake *handshake;
+  int KEY; // Key
   u_int8_t is_handsk_fin;
   UT_hash_handle hh;
 };
