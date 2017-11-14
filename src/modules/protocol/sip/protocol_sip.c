@@ -108,8 +108,7 @@ int w_send_reply(msg_t *_m)
 }
 
 int w_parse_sip(msg_t *_m)
-{
-  printf("PARSE SIP\n\n");
+{  
   return parse_sip(_m, 1);
 
 }
