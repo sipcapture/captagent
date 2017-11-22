@@ -905,7 +905,7 @@ static int load_module(xml_node *config) {
 		profile_socket[profile_size].action = -1;
 		profile_socket[profile_size].ring_buffer = 12;
 		profile_socket[profile_size].snap_len = 3200;
-		profile_socket[profile_size].promisc = 1;
+		profile_socket[profile_size].promisc = 0;
 		profile_socket[profile_size].timeout = 100;
 		profile_socket[profile_size].full_packet = 0;
 		profile_socket[profile_size].reasm = 0;         		                
