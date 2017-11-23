@@ -94,6 +94,7 @@ int w_send_reply(msg_t *_m);
 int send_sip_reply(msg_t *_m, int code, char *description);
 int w_is_flag_set(msg_t *_m, char *param1, char *param2);
                                     
-
+int endswith(str *str, const char *suffix);
+int startwith(str *str, const char *suffix);
 
 #endif /* _PROTOCOL_SIP_H_ */
