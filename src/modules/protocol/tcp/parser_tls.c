@@ -29,97 +29,208 @@
 #include <arpa/inet.h>
 #include <openssl/x509.h>
 #include <openssl/x509v3.h>
+#include <gcrypt.h>
 #include <time.h>
 #include <math.h>
 #include <unistd.h>
+#include "tls_ssl.h"
+#include "decription.h"
 
-
-#include "protocol_tcp.h"
-#include "parser_tls.h"
-#include "structures.h"
-
-
-#define SERVER_NAME_LEN   256
-#define TLS_HEADER_LEN      5
-#define HANDSK_HEADER_LEN   4
-#define RANDOM             32
-
-#ifndef MIN
-#define MIN(X, Y) ((X) < (Y) ? (X) : (Y))
-#endif
-
-#ifndef MAX
-#define MAX(X, Y) ((X) > (Y) ? (X) : (Y))
-#endif
-
-// Version values
-#define TLS1    0x0301
-#define TLS11   0x0302
-#define TLS12   0x0303
-
-// Record Type values
-enum {
-  CHANGE_CIPHER_SPEC = 20,
-  ALERT              = 21,
-  HANDSHAKE          = 22,
-  APPLICATION_DATA   = 23
-} Record_Type;
-
-// Handshake Type values
-enum {
-  HELLO_REQUEST       = 0,
-  CLIENT_HELLO        = 1,
-  SERVER_HELLO        = 2,
-  CERTIFICATE         = 11,
-  CERTIFICATE_REQUEST = 13,
-  CERTIFICATE_STATUS  = 22,
-  SERVER_KEY_EXCHANGE = 12,
-  SERVER_DONE         = 14,
-  CERTIFICATE_VERIFY  = 15,
-  CLIENT_KEY_EXCHANGE = 16,
-  FINISHED            = 20
-} Handshake_Type;
-
-// Client Certificate types for Certificate Request
-enum {
-  RSA_SIGN                  = 1,
-  DSS_SIGN                  = 2,
-  RSA_FIXED_DH              = 3,
-  DSS_FIXED_DH              = 4,
-  RSA_EPHEMERAL_DH_RESERVED = 5,
-  DSS_EPHEMERAL_DH_RESERVED = 6,
-  FORTEZZA_DMS_RESERVED     = 20
-} Client_Certificate_Type;
-
-// Value used in dissection
-#define SHA_256_RSA_ENCR   0x2a864886f70d01010b
-#define RSA_ENCR           0x2a864886f70d010101
-
-// Chipher Suite availlable for decription
-#define TLS_RSA_WITH_AES_256_GCM_SHA384   0x009d
-#define TLS_RSA_WITH_AES_128_GCM_SHA256   0x009c
-
-#define TLS_RSA_WITH_AES_256_CBC_SHA256   0x003d
-#define TLS_RSA_WITH_AES_128_CBC_SHA256   0x003c
-
-#define TLS_RSA_WITH_AES_256_CBC_SHA      0x0035
-#define TLS_RSA_WITH_AES_128_CBC_SHA      0x002f
-
-#define TLS_EMPTY_RENEGOTIATION_INFO_SCSV 0x00ff
-//
-
-#define TRUE  0
-#define FALSE 1
-
-#define CLI     1
-#define SRV     2
-#define CERT_S  11
-#define CKE     16
-
+#define IMPLICIT_NONCE_LEN  4
+#define EXPLICIT_NONCE_LEN  8
 
 /** ###### FunctionS for the HASH TABLE (uthash) ###### **/
 struct Hash_Table *HT_Flows = NULL; // # HASH TABLE
 
+static u_int32_t client_IP;
+static u_int32_t server_IP;
+
+
+// PRF function to reproduce the Master Secret or Key BLock
+static int PRF(struct Handshake *handshake, unsigned char *PMS, const char *master_string, unsigned char *MS, int out_len)
+{
+  int ret;
+
+  // SHA384
+  if(handshake->cipher_suite.number == SHA384) {
+    if(strncmp(master_string, "master secret", 13) == 0)
+      ret = tls12_prf(GCRY_MD_SHA384, PMS, master_string, handshake->cli_rand, handshake->srv_rand, MS, out_len);
+    else
+      ret = tls12_prf(GCRY_MD_SHA384, PMS, master_string, handshake->srv_rand, handshake->cli_rand, MS, out_len);
+  }
+  // SHA286
+  else {
+    if(strncmp(master_string, "master secret", 13) == 0)
+      ret = tls12_prf(GCRY_MD_SHA256, PMS, master_string, handshake->cli_rand, handshake->srv_rand, MS, out_len);
+    else
+      ret = tls12_prf(GCRY_MD_SHA256, PMS, master_string, handshake->srv_rand, handshake->cli_rand, MS, out_len);
+  }
+  
+  if(ret == -1)
+    return -1;
+  return 0;
+}
+
+
+// Function to perform the decryption
+static int tls_decrypt_aead_record(struct Handshake *h, const unsigned char *in,
+				   u_int16_t inl, unsigned char *out_str,
+				   u_int8_t *outl, u_int8_t direction) {
+  /**
+     in = data encrypted
+     inl = data encrypted length
+     out_str = place for data decrypted
+     outl = data decrypted length
+     direction = 0 (from client to server) 
+               = 1 (from server to client)
+  */
+  
+  gcry_error_t err;
+  const unsigned char *explicit_nonce = NULL, *ciphertext;
+  u_int32_t ciphertext_len, auth_tag_len;
+  unsigned char nonce[12];
+  const ssl_cipher_mode_t cipher_mode = h->cipher_suite.mode;
+  
+  switch(cipher_mode) {
+  case MODE_GCM:
+  case MODE_CCM:
+  case MODE_POLY1305:
+    auth_tag_len = 16;
+    break;
+  case MODE_CCM_8:
+    auth_tag_len = 8;
+    break;
+  default:
+    fprintf(stderr, "unsupported cipher!\n");
+    return FALSE;
+  }
+
+  /* Parse input into explicit nonce (TLS 1.2 only), ciphertext and tag. */
+  if(cipher_mode != MODE_POLY1305) {
+    if(inl < EXPLICIT_NONCE_LEN + auth_tag_len) {
+      fprintf(stderr, "Input %d is too small for explicit nonce %d and auth tag %d\n", inl, EXPLICIT_NONCE_LEN, auth_tag_len);
+      return -1;
+    }
+    explicit_nonce = in;
+    ciphertext = explicit_nonce + EXPLICIT_NONCE_LEN;
+    ciphertext_len = inl - EXPLICIT_NONCE_LEN - auth_tag_len;
+  } else {
+    fprintf(stderr, "Unexpected TLS cipher_mode %#x\n", cipher_mode);
+    return -1;
+  }
+
+  /*
+   * Nonce construction is version-specific. Note that AEAD_CHACHA20_POLY1305
+   * (RFC 7905) uses a nonce construction similar to TLS 1.3.
+   */
+  if(cipher_mode != MODE_POLY1305) {
+      /* Implicit (4) and explicit (8) part of nonce. */
+    /* IV in our case is 4 bytes */
+    if(direction == 0)
+      memcpy(nonce, h->ssl_decoder_cli.iv, IMPLICIT_NONCE_LEN);
+    else
+      memcpy(nonce, h->ssl_decoder_srv.iv, IMPLICIT_NONCE_LEN);
+    
+    memcpy(nonce + IMPLICIT_NONCE_LEN, explicit_nonce, EXPLICIT_NONCE_LEN);
+
+  }
+
+  /* Set nonce and additional authentication data */
+  if(direction == 0) {
+    gcry_cipher_reset(h->ssl_decoder_cli.evp);
+    err = gcry_cipher_setiv(h->ssl_decoder_cli.evp, nonce, 12);
+    if(err) {
+      fprintf(stderr, "Failed to set nonce: %s\n", gcry_strerror(err));
+      return -1;
+    }
+  }
+  else {
+    gcry_cipher_reset(h->ssl_decoder_srv.evp);
+    err = gcry_cipher_setiv(h->ssl_decoder_srv.evp, nonce, 12);
+    if(err) {
+      fprintf(stderr, "Failed to set nonce: %s\n", gcry_strerror(err));
+      return -1;
+    }
+  }
+
+  /* --- DECRYPTION --- */
+  if(direction == 0) {
+    err = gcry_cipher_decrypt(h->ssl_decoder_cli.evp, out_str, (size_t) outl, ciphertext, ciphertext_len);
+    if(err) {
+      fprintf(stderr, "Decrypt failed: %s\n", gcry_strerror(err));
+      return -1;
+    }
+  }
+  else {
+    err = gcry_cipher_decrypt(h->ssl_decoder_srv.evp, out_str, (size_t) outl, ciphertext, ciphertext_len);
+    if(err) {
+      fprintf(stderr, "Decrypt failed: %s\n", gcry_strerror(err));
+      return -1;
+    }
+  }
+  
+  printf("Plaintext = %s of len %d\n\n", out_str, ciphertext_len);
+  *outl = ciphertext_len;
+  return 0;
+}
+
+
+/* Initialize a cipher handle */
+static int ssl_cipher_init(gcry_cipher_hd_t *cipher, int algo, unsigned char *sk,
+			   unsigned char *iv, int mode)
+{
+  if(algo == -1) {
+    /* NULL mode */
+    *(cipher) = (gcry_cipher_hd_t)-1;
+    return 0;
+  }
+
+  int err;
+  /**
+     This function creates the context handle required for most of the other cipher functions and returns a handle to it in `hd'. 
+     In case of an error, an according error code is returned.
+     The ID of algorithm to use must be specified via algo
+  */
+    err = gcry_cipher_open(cipher, algo, GCRY_CIPHER_MODE_GCM, 0);
+    if(err != 0)
+      return -1;
+  
+  err = gcry_cipher_setkey(*(cipher), sk, gcry_cipher_get_algo_keylen(algo));
+  if(err != 0)
+    return -1;
+  
+  /* AEAD cipher suites will set the nonce later */
+
+  if(mode == MODE_CBC) {
+    err = gcry_cipher_setiv(*(cipher), iv, gcry_cipher_get_algo_blklen(algo));
+    if (err != 0)
+      return -1;
+  }
+  
+  return 0;
+}
+
+/* Create context for the decoding (ONLY FOR MODE_GCM) */
+static int ssl_create_decoder(struct _SslDecoder *dec,
+			      int cipher_algo, u_int8_t *sk,
+			      u_int8_t *iv, ssl_cipher_mode_t mode)
+{
+  int ret;
+
+  struct _SslDecoder *d = calloc(1, sizeof(struct _SslDecoder));
+
+  // MODE_GCM
+  ret = ssl_cipher_init(&d->evp, cipher_algo, sk, iv, mode);
+  if(ret < 0) {
+    fprintf(stderr, "Can't create cipher id: %d mode: %d\n", cipher_algo, mode);
+    free(d);
+    return -1;
+  }
+
+  dec->evp = d->evp;
+  
+  return 0;
+}
 
 /**
    Function to read FILE and return string
@@ -157,7 +268,7 @@ static unsigned char * read_file(char *name) {
   
 }
 
-/** ###### FunctionS to save and split the certificate(s) ###### **/
+/** ###### FunctionS to save the certificate(s) ###### **/
 
 // SAVE CERTIFICATE AS .DER FILE
 static void save_certificate_FILE(const unsigned char *cert, u_int16_t cert_len)
@@ -203,7 +314,6 @@ static void save_certificate_FILE(const unsigned char *cert, u_int16_t cert_len)
     fprintf(stderr, "Error on opening file descriptor fw\n");
     return;
   }
-
   // function to convert raw data (DER) to PEM certificate (good for parsing with openssl)
   i2d_X509_fp(fw, x_cert);
 
@@ -212,139 +322,117 @@ static void save_certificate_FILE(const unsigned char *cert, u_int16_t cert_len)
   fclose(fw);
 }
 
-// SPLIT CERTIFICATE FUNCTION
-/* static struct Certificate split_Server_Certificate(char * certificate, u_int16_t cert_len) */
-/* {  */
-/* } */
-
-/* // ADD CLI ID */
-/* static void add_cli_id(struct Hash_Table **flow_in, struct Handshake **handshake, u_int8_t len_id) */
-/* { */
-/*   // copy cli_rand */
-/*   memcpy((*flow_in)->handshake->cli_rand, (*handshake)->cli_rand, 32); */
-/*   // copy sessID_c */
-/*   if(len_id > 1) { */
-/*     (*flow_in)->handshake->sessID_c = malloc(sizeof(char) * len_id); */
-/*     memcpy((*flow_in)->handshake->sessID_c, (*handshake)->sessID_c, len_id); */
-/*   } */
-/*   else */
-/*     (*flow_in)->handshake->sessID_c = NULL; */
-/* } */
-
-/* // ADD SRV ID */
-/* static void add_srv_id(struct Hash_Table **flow_in, struct Handshake **handshake, u_int8_t len_id) */
-/* { */
-/*   // copy srv_rand */
-/*   memcpy((*flow_in)->handshake->srv_rand, (*handshake)->srv_rand, 32); */
-/*   // copy sessID_c */
-/*   if(len_id > 1) { */
-/*     (*flow_in)->handshake->sessID_s = malloc(sizeof(char) * len_id); */
-/*     memcpy((*flow_in)->handshake->sessID_s, (*handshake)->sessID_s, len_id); */
-/*   } */
-/*   else */
-/*     (*flow_in)->handshake->sessID_s = NULL; */
-/* } */
 
 // UPDATE CERT (used o update the certificate)
-static void update_cert(struct Hash_Table **flow_in, struct Handshake **handshake, u_int8_t len_cert, u_int8_t cc)
+static void update_cert(struct Hash_Table **elem_flow, struct Handshake **handshake, u_int8_t len_cert, u_int8_t cc)
 {
   // copy certificate_S
   if(len_cert > 1) {
     if(cc == CERT_S) {
-      (*flow_in)->handshake->certificate_S = malloc(sizeof(unsigned char) * len_cert);
-      memcpy((*flow_in)->handshake->certificate_S, (*handshake)->certificate_S, len_cert);
+      (*elem_flow)->handshake->certificate_S = malloc(sizeof(unsigned char) * len_cert);
+      memcpy((*elem_flow)->handshake->certificate_S, (*handshake)->certificate_S, len_cert);
     }
   }
   else
-    (*flow_in)->handshake->sessID_s = NULL;
+    (*elem_flow)->handshake->sessID_s = NULL;
 }
 
 
 // ADD FLOW
 static void add_flow(struct Flow *flow, int KEY, struct Handshake *handshake, u_int8_t flag, u_int8_t len_id)
 {
-  struct Hash_Table * flow_in;
+  struct Hash_Table * elem_flow;
 
   /* key already in the hash? */
-  HASH_FIND_INT(HT_Flows, &KEY, flow_in);
+  HASH_FIND_INT(HT_Flows, &KEY, elem_flow);
   
   /* new flow: add the flow if the key is not used */
-  if(!flow_in) {
+  if(!elem_flow) {
     /**
        NOTE: we consider a new flow just if we process a Client Hello pkt;
        if another pkt arrived for a new flow
        discard it because the handshake will be incomplete
-     */
+    */
     if(flag == CLI) {
 
       // alloc mem for new elem
-      flow_in = malloc(sizeof(struct Hash_Table));
+      elem_flow = malloc(sizeof(struct Hash_Table));
       // set memory to 0 
-      memset(flow_in, 0, sizeof(struct Hash_Table));
+      memset(elem_flow, 0, sizeof(struct Hash_Table));
       // alloc mem for handshake field of flow
-      flow_in->handshake = malloc(sizeof(struct Handshake));
+      elem_flow->handshake = malloc(sizeof(struct Handshake));
       
       // set FLOW
-      flow_in->flow = *flow;
+      elem_flow->flow = *flow;
 
       // set KEY
-      flow_in->KEY = KEY;
+      elem_flow->KEY = KEY;
       
       // set handshake fin to FALSE
-      flow_in->is_handsk_fin = FALSE;
+      elem_flow->is_handsk_fin = FALSE;
       
       /* // se cli hello -> ADD_CLI_ID */
       /* add_cli_id(&flow_in, &handshake, len_id); */
       
       // if cli hello -> ADD_CLI_RAND
-      memcpy(&flow_in->handshake->cli_rand, handshake->cli_rand, 32);
+      memcpy(&elem_flow->handshake->cli_rand, handshake->cli_rand, 32);
       
       // add new elem in Hash Table
-      HASH_ADD_INT(HT_Flows, KEY, flow_in);
+      HASH_ADD_INT(HT_Flows, KEY, elem_flow);
     }
   }
   /* update flow or discard */
   else {
 
     /* the handshake is not complete, so it must be fill with new value(s) */
-    if(flow_in->is_handsk_fin == FALSE) {
+    if(elem_flow->is_handsk_fin == FALSE) {
       
       // if cli hello -> ADD_CLI_RAND
-      if(flag == CLI)
-	memcpy(&flow_in->handshake->cli_rand, handshake->cli_rand, 32);
-	/* add_cli_id(&flow_in, &handshake, len_id); */
+      if(flag == CLI) {
+	memcpy(&elem_flow->handshake->cli_rand, handshake->cli_rand, 32);
+	elem_flow->handshake->cli_rand[32] = '\0';
+      }
+      /* add_cli_id(&flow_in, &handshake, len_id); */
 
       // if serv hello -> ADD_SRV_RAND
       else if(flag == SRV) {
-	memcpy(&flow_in->handshake->srv_rand, handshake->srv_rand, 32);
-	memcpy(&flow_in->handshake->chiph_serv, handshake->chiph_serv, 2);
+	memcpy(&elem_flow->handshake->srv_rand, handshake->srv_rand, 32);
+	elem_flow->handshake->srv_rand[32] = '\0';
+	/* memcpy(&elem_flow->handshake->cipher_suite, handshake->cipher_suite, 2); */
+	elem_flow->handshake->cipher_suite = handshake->cipher_suite;
       }
-	/* add_srv_id(&flow_in, &handshake, len_id); */
+      /* add_srv_id(&flow_in, &handshake, len_id); */
 
       // if cert hello -> UPDATE_CERT
       else if(flag == CERT_S) {
-	update_cert(&flow_in, &handshake, len_id, flag);
+	update_cert(&elem_flow, &handshake, len_id, flag);
 	// set handshake fin to TRUE
-	flow_in->is_handsk_fin = TRUE;
+        elem_flow->is_handsk_fin = TRUE;
       }
-      // if Client Key Exch -> encrypted Pre-Master secret
-      else if(flag == CKE) {
-	memcpy(&flow_in->handshake->pre_master_secret, handshake->pre_master_secret, len_id);
+      // if Client Key Exch -> (Pre)Master secret
+      else if(flag == CKE_PMS) {
+	memcpy(&elem_flow->handshake->pre_master_secret, handshake->pre_master_secret, len_id);
+	elem_flow->handshake->pre_master_secret[48] = '\0';
+      }
+      else if(flag == CKE_MS) {
+	memcpy(&elem_flow->handshake->master_secret, handshake->master_secret, len_id);
+	elem_flow->handshake->pre_master_secret[48] = '\0';
       }
     }
  
     /* THE HANDSHAKE FOR THIS KEY IS COMPLETE */
-    else if (flow_in->is_handsk_fin == TRUE) {
+    else if(elem_flow->is_handsk_fin == TRUE) {
       
       /* if the pkt is a Client Hello, open a new flow for handshake */
       if(flag == CLI) {
-	memcpy(&flow_in->handshake->cli_rand, handshake->cli_rand, 32);
+	memcpy(&elem_flow->handshake->cli_rand, handshake->cli_rand, 32);
+	elem_flow->handshake->cli_rand[32] = '\0';
 	/* add_cli_id(&flow_in, &handshake, len_id); */
 	
 	/* **** IMPORTANT!!! CHECK IF FLOW IS OVERWRITTEN **** */
 	
 	// add new elem in Hash Table
-	HASH_ADD_INT(HT_Flows, KEY, flow_in);
+	HASH_ADD_INT(HT_Flows, KEY, elem_flow);
       }
       else {
 	/* discard pkt */
@@ -360,19 +448,19 @@ static void add_flow(struct Flow *flow, int KEY, struct Handshake *handshake, u_
 
 
 // Function to dissect TLS/SSL
-int tls_packet_dissector(const u_char **payload,
-			 const u_int16_t size_payload,
-			 const u_int8_t ip_version,
-			 struct Flow *flow,
-			 int KEY,
-			 const u_int16_t src_port,
-			 const u_int16_t dst_port,
-			 const u_int8_t proto_id_l3,
-			 u_int8_t s
-			 /* struct Hash_Table ** HT_Flows */)
+int parse_tls(char *payload,
+	      int size_payload,
+	      char decrypted_buff[],
+	      int decr_len,
+	      u_int8_t ip_family,
+	      u_int16_t src_port,
+	      u_int16_t dst_port,
+	      const u_int8_t proto_id_l3,
+	      struct Flow *flow,
+	      int KEY)
 {
-  struct Hash_Table *el;
-  struct Handshake *handshake;
+  struct Hash_Table *el = NULL;
+  struct Handshake *handshake = NULL;
   const u_int8_t *pp = *payload;
 
   /**
@@ -388,9 +476,10 @@ int tls_packet_dissector(const u_char **payload,
   
   /**
      NOTE:
-     port 443 is for HTTP over TLS/SSL
-     port 636 is for LDAP proto tunneling on SSL (or TLSv1
-     port 389 is for LDAP proto tunneling on TLS (>= TLSv1.2)
+     port 443 is for HTTP over TLS
+     port 636 is for LDAP proto tunneling on TLSv1
+     port 389 is for LDAP proto tunneling on TLSv1.2
+     port 5061 and 5081 is for SIP protocol over TLS
   */
   if(proto_id_l3 == IPPROTO_TCP &&
      ((src_port == 443 || dst_port == 443) ||
@@ -399,7 +488,7 @@ int tls_packet_dissector(const u_char **payload,
       (src_port == 5061 || dst_port == 5061) ||
       (src_port == 5081 || dst_port == 5081))) {
 
-    /** dissect the packet **/
+    /** DISSECT THE PACKET **/
   
     struct header_tls_record *hdr_tls_rec = (struct header_tls_record*)(*payload);
       
@@ -451,7 +540,11 @@ int tls_packet_dissector(const u_char **payload,
 	switch(hand_hdr->msg_type) {
       
 	case CLIENT_HELLO:
-	  {	    
+	  {
+	    // set client and server ip address (need for decryption)
+	    client_IP = flow->ip_src;
+	    server_IP = flow->ip_dst;
+	    
 	    // check version  
 	    if(pp[0] != 0x03 && (pp[1] != 0x01 || pp[1] != 0x02 || pp[1] != 0x03)) {
 	      fprintf(stderr, "This is not a valid TLS/SSL packet\n");
@@ -461,6 +554,7 @@ int tls_packet_dissector(const u_char **payload,
 	    pp = pp + 2;
 	    // copy cli random bytes
 	    memcpy(handshake->cli_rand, pp, 32);
+	    handshake->cli_rand[32] = '\0';
 	    // move forward
 	    pp = pp + RANDOM;
 	    // check session ID
@@ -492,9 +586,7 @@ int tls_packet_dissector(const u_char **payload,
 	      pp = pp + compression_len + 1;
 
 	      if(offset < size_payload) {
-		/* ******* */
-		//extensions_len = pp[0];
-		/* ******* */
+
 		u_int16_t extensions_len =  pp[1] + (pp[0] << 8);
 
 		offset += extensions_len + 2;
@@ -570,6 +662,7 @@ int tls_packet_dissector(const u_char **payload,
 	    pp = pp + 2;
 	    // copy serv random bytes
 	    memcpy(handshake->srv_rand, pp, 32);
+	    handshake->cli_rand[32] = '\0';
 	    // move foward
 	    pp = pp + RANDOM;
 	    // check session ID
@@ -586,18 +679,17 @@ int tls_packet_dissector(const u_char **payload,
 	    // check cipher suite
 	    u_int16_t cipher_len = 2;
 	    if(pp[0] != 0x00 && (pp[1] != 0x9d ||
-				 pp[1] != 0x9c ||
-				 pp[1] != 0x3d ||
-				 pp[1] != 0x3c ||
-				 pp[1] != 0x35 ||
-				 pp[1] != 0x2f ||
-				 pp[1] != 0xff)) {
+				 pp[1] != 0x9c)) {
 	      fprintf(stderr, "Invalid Chipher Suite. No DHE/EDH availlable for decription\n");
-	      return -1;	      
+	      return -9;
 	    }
 
 	    // add Chipher Suite Server to handshake
-	    memcpy(handshake->chiph_serv, pp, 2);
+	    /* memcpy(handshake->cipher_suite, pp, 2); */
+	    if(pp[1] == 0x9d)
+	      handshake->cipher_suite = cipher_suites[1];
+	    else
+	      handshake->cipher_suite = cipher_suites[0];
 
 	    // set the offset correct value till here
 	    offset = TLS_HEADER_LEN + HANDSK_HEADER_LEN + 2 + RANDOM + len_id + cipher_len;
@@ -613,7 +705,6 @@ int tls_packet_dissector(const u_char **payload,
 
 	      pp = pp + extensions_len + 2;
 
-	      /* *** TO CHECK *** */
 	      if(offset < size_payload) {
 
 		/**
@@ -705,7 +796,10 @@ int tls_packet_dissector(const u_char **payload,
 
 	    if(cert_len_total > 0) {
 
-	      /* TODO: SAVE MORE CERTIFICATES IN HANDSHAKE OF A FLOW */
+	      /* 
+		 TODO: SAVE MORE CERTIFICATES IN HANDSHAKE OF A FLOW
+		 check if the first certificate is not overwritten
+	      */
 
 	      do { // more than one certificate
 
@@ -718,10 +812,9 @@ int tls_packet_dissector(const u_char **payload,
 		// Save the certificate in a file "cert.der"
 		if(s == 1)
 		  save_certificate_FILE(cert, subcert_len);
-		/***
-		    --- TODO function to split the certificate chain ---
-		***/
-		//handshake.certificate_S = split_Server_Certificate(cert, cert_len);
+		/*
+		  TODO function to split the certificate chain
+		*/
 		pp = pp + 3 + subcert_len;
 
 		subcert_len_total += subcert_len + 3;
@@ -744,8 +837,8 @@ int tls_packet_dissector(const u_char **payload,
 		  more_records = 1;
 		  break;
 		}
-		  // search flow and eventually inser new in HT update old
-		  add_flow(flow, KEY, handshake, CERT_S, cert_len_total);
+		// search flow and eventually inser new in HT update old
+		add_flow(flow, KEY, handshake, CERT_S, cert_len_total);
 	      }
 	      more_records = 0;
 	      break;
@@ -781,20 +874,22 @@ int tls_packet_dissector(const u_char **payload,
 	case CLIENT_KEY_EXCHANGE:
 	  {
 	    int hand_hdr_len = (hand_hdr->len[2]) + (hand_hdr->len[1] << 8) + (hand_hdr->len[0] << 8);
+	    // variable for (Pre) Master Secret
 	    int enc_pms_len;
-	    int pms_len;
-
+	    int pms_len, ms_ret;
+	    // variable for keys
+	    int ret, needed = 0, cipher_algo = 0;
+	    unsigned char *key_block = NULL, *ptr;
+	    unsigned int encr_key_len, write_iv_len = 0;
+	    // PVT KEY path
+	    char *pvtkey_path;
+	    struct _SslDecoder SslDecoder_Client;
+	    struct _SslDecoder SslDecoder_Server;
+	    
+	    
 	    if(hand_hdr_len > 33) {
-
-	      /** PREPARE THE KEY **/
-	      while(profile_protocol[index] == NULL) // search the profile protocol TLS
-		index++;
-	      is_pub_key = 0;
-	      // copy the key path to buffer key_path_buff
-	      memcpy(pvtkey_path_buff, profile_protocol[index].pvt_key_path, sizeof(key_path));
-	      
 	      /**
-		 1) RSA: the server's key is of type RSA. 
+		 - RSA: the server's key is of type RSA. 
 		 The client generates a random value (the "pre-master secret" of 48 bytes, out of which 46 are random) and encrypts it with the server's public key.
 		 There is no ServerKeyExchange.
 	      */
@@ -804,42 +899,182 @@ int tls_packet_dissector(const u_char **payload,
 	      // save the enc_pre-master secret
 	      memcpy(enc_pre_master_secret, pp + 2, enc_pms_len);
 	      
-	      /** DECRYPT PRE-MASTER SECRET USING SERVER PVT KEY **/
-	      /* char *pvtkey_path_buff = "cakey.pem"; */
-	      unsigned char *pvtkey = read_file(pvtkey_path_buff);
-	      unsigned char PMS[48];
+	      /**
+		 1) DECRYPT PRE-MASTER SECRET USING SERVER PVT KEY
+		 2) CALCULATION OF MASTER SECRET
+		 3) DERIVE KEYS NEEDED FROM MASTER SECRET
+	      **/
+
+	      /** PREPARE THE KEY **/
+	      while(profile_protocol[index] == NULL) // search the profile protocol TLS
+		index++;
+	      // copy the key path to buffer key_path_buff
+	      memcpy(pvtkey_path, profile_protocol[index].pvt_key_path, sizeof(pvtkey_path));
 	      
+	      // PVT KEY buffer
+	      unsigned char *pvtkey = read_file(pvtkey_path);
+	      // PRE-MASTER SECRET buffer
+	      unsigned char PMS[MS_LENGTH+1] = {0}; // 48 + 1
+	      // MASTER SECRET buffer
+	      unsigned char MS[MS_LENGTH+1] = {0};  // 48 + 1
+	      // "master secret" name
+	      const char *master_string = "master secret";
+	      // "key expansion" name
+	      const char *key_string = "key expansion";
+	      
+	      /**
+		 Decription of ENCRYPTED PRE-MASTER SECRET 
+	      */
 	      pms_len = private_decrypt(enc_pre_master_secret, enc_pms_len, pvtkey, PMS);
-	      if(pms_len != 48)
+	      if(pms_len != MS_LENGTH)
 		{
 		  printLastError("Private Decrypt failed for PreMaster Secret ");
 		  return -2; // Error on decription PMS
 		}
 	      // copy pre_master_secret in flow
 	      memcpy(handshake->pre_master_secret, PMS, pms_len);
-	      add_flow(flow, KEY, handshake, CKE, pms_len);
-	    }
-	    	    
+	      handshake->pre_master_secret[48] = '\0';
+	      add_flow(flow, KEY, handshake, CKE_PMS, pms_len);
+
+	      /* key already in the hash? */
+	      HASH_FIND_INT(HT_Flows, &KEY, el);
+	      if(el == NULL) {
+		fprintf(stderr, "error! No open flow found\n");
+		return -1;
+	      }
+
+	      /**
+		 calculate the MASTER SECRET from PRE-MASTER SECRET
+	      */
+	      ms_ret = PRF(el->handshake, PMS, master_string, MS, MS_LENGTH);
+	      if(ms_ret == 0) {
+		printf("MASTER SECRET = %s\n", MS);
+		// copy master_secret in flow
+		memcpy(handshake->master_secret, MS, MS_LENGTH);
+		handshake->master_secret[48] = '\0';
+		add_flow(flow, KEY, handshake, CKE_MS, MS_LENGTH);
+	      }
+	      else {
+		fprintf(stderr, "error on Master Secret\n");
+		return -1;
+	      }
+	      
+	      /**
+		 Calculate KEYS from MASTER SECRET 
+	      */
+	      const char *cipher_name = NULL;
+	      /* Find the Libgcrypt cipher algorithm for the given SSL cipher suite ID */
+	      if(el->handshake->cipher_suite.enc != ENC_NULL) {
+		if(el->handshake->cipher_suite.enc == ENC_AES256)
+		  cipher_name = ciphers[1]; /* AES256 */
+		else
+		  cipher_name = ciphers[0]; /* AES */
+		
+		cipher_algo = gcry_cipher_map_name(cipher_name);
+		if(cipher_algo == 0) {
+		  fprintf(stderr, "error on find cipher %s\n", cipher_name);
+		  return -1;
+		}
+	      }
+
+	      // enc key length
+	      encr_key_len = (unsigned int) gcry_cipher_get_algo_keylen(cipher_algo);
+	      // block IV len
+	      if(el->handshake->cipher_suite.mode == MODE_GCM ||
+		 el->handshake->cipher_suite.mode == MODE_CCM ||
+		 el->handshake->cipher_suite.mode == MODE_CCM_8)
+		write_iv_len = 4;
+
+	      /**
+		 Compute the key block. First figure out how much data we need
+	      */
+	      
+	      needed = ssl_cipher_suite_dig(&el->handshake->cipher_suite)->len * 2; /* MAC key */
+	      needed += 2 * encr_key_len;                                           /* encryption key */
+	      needed += 2 * write_iv_len;                                           /* write IV */
+
+	      // alloc memory for key_block
+	      key_block = calloc(needed+1, sizeof(unsigned char));
+	      ret = PRF(el->handshake, MS, key_string, key_block, needed);
+	      if(ret == -1) {
+		fprintf(stderr, "Can't generate key_block\n");
+		return -1;
+	      }
+	      printf("key expansion = %s\n", key_block);
+
+	      /* alloc memory for write keys and IVs */
+	      SslDecoder_Client.w_key = calloc(encr_key_len + 1, sizeof(unsigned char));
+	      SslDecoder_Server.w_key = calloc(encr_key_len + 1, sizeof(unsigned char));
+	      SslDecoder_Client.iv = calloc(write_iv_len + 1, sizeof(unsigned char));
+	      SslDecoder_Server.iv = calloc(write_iv_len + 1, sizeof(unsigned char));
+	      
+	      ptr = key_block;
+	      /* client/server write encryption key */
+	      memcpy(SslDecoder_Client.w_key, ptr, encr_key_len);
+	      /* c_wk = ptr; */ ptr += encr_key_len;
+	      memcpy(SslDecoder_Server.w_key, ptr, encr_key_len);
+	      /* s_wk = ptr; */ ptr += encr_key_len;
+
+	      /**
+		 client/server write IV (used as IV (for CBC) or salt (for AEAD))
+	      */
+	      
+	      if (write_iv_len > 0) {
+		memcpy(SslDecoder_Client.iv, ptr, write_iv_len);
+		/* c_iv = ptr; */ ptr += write_iv_len;
+		memcpy(SslDecoder_Server.iv, ptr, write_iv_len);
+		/* s_iv = ptr; */ /* ptr += write_iv_len; */
+	      }
+	      
+	      /* show key material info */
+	      printf("Client Write key = %s of len %d\n", SslDecoder_Client.w_key, encr_key_len);
+	      printf("Server Write key = %s of len %d\n", SslDecoder_Server.w_key, encr_key_len);
+	      /* used as IV for CBC mode and the AEAD implicit nonce (salt) */
+	      if (write_iv_len > 0) {
+	        printf("Client Write IV = %s of len %d\n", SslDecoder_Client.iv, write_iv_len);
+	        printf("Server Write IV = %s of len %d\n", SslDecoder_Server.iv, write_iv_len);
+	      }
+
+	      /* CREATE DECODER CLIENT */
+	      ret = ssl_create_decoder(&SslDecoder_Client, cipher_algo, SslDecoder_Client.w_key, SslDecoder_Client.iv, el->handshake->cipher_suite.mode);
+	      if(ret < 0) {
+		fprintf(stderr, "Can't create DECODER CLIENT !\n");
+		return -1;
+	      }
+
+	      /* CREATE DECODER SERVER */
+	      ret = ssl_create_decoder(&SslDecoder_Server, cipher_algo, SslDecoder_Server.w_key, SslDecoder_Server.iv, el->handshake->cipher_suite.mode);
+	      if(ret < 0) {
+		fprintf(stderr, "Can't create DECODER SERVER !\n");
+		return -1;
+	      }
+
+	      // Assign SSL DECODER to Handshake
+	      el->handshake->ssl_decoder_cli = SslDecoder_Client;
+	      el->handshake->ssl_decoder_srv = SslDecoder_Server;
+	      
+	      /* ******* */
+	    }	    
+	    
 	    offset = TLS_HEADER_LEN + HANDSK_HEADER_LEN + hand_hdr_len;
 	    pp = pp + hand_hdr_len;
 	
 	    if(offset < size_payload) {
 	      if(pp[0] == 0x14) {
 		more_records = 1;
-		//extract key
-		break;
+		/* break; */
 	      }
-	      if (pp[0] != 0x0f) {
+	      else if (pp[0] != 0x0f) {
 		fprintf(stderr, "This is not a valid TLS/SSL packet\n");
 		return -1;
 	      }
-	      more_records = 0;
-	      //extract key
-	      break;
+	      else {
+		more_records = 0;
+		break;
+	      }
 	    }
 	    else {
 	      more_records = 1;
-	      //extract key
 	      break;
 	    }
 	  }
@@ -884,7 +1119,6 @@ int tls_packet_dissector(const u_char **payload,
 	    old = malloc(sizeof(struct Hash_Table));
 
 	    memcpy(&old->flow, flow, sizeof(struct Flow));
-	    /* old->flow = flow_key; */
 	    
 	    // set handshake fin to TRUE
 	    HASH_FIND_INT(HT_Flows, &KEY, old);
@@ -895,6 +1129,10 @@ int tls_packet_dissector(const u_char **payload,
 	    more_records = 1;
 	    break;
 	  }
+
+	default:
+	  more_records = 1;
+	  break;
 	  
 	} // switch
       } while(more_records == 0);
@@ -915,78 +1153,72 @@ int tls_packet_dissector(const u_char **payload,
     }
     else if(type == APPLICATION_DATA) {
 
-      /* unsigned char encrypted[4098]; // CHECK if dimension is too short */
-      /* unsigned char decrypted[4098]; */
-      /* char *key_path_buff = "cakey.pem"; */
-      /* u_int16_t len = 0; */
-      /* int is_pub_key = 0; // 1 PUB 0 PVT */
-      /* int count = 0, decrypted_length = 0; */
-      /* unsigned char *Key; */
-
-      /* // init buffers */
-      /* memset(encrypted, '\0', sizeof(encrypted)); */
-      /* memset(decrypted, '\0', sizeof(decrypted)); */
-      /* /\* memset(key_path, '\0', sizeof(key_path)); *\/ */
-
-      /* /\** PREPARE THE KEY **\/ */
-      /* while(profile_protocol[index] == NULL) // search the profile protocol TLS */
-      /* 	index++; */
-      /* // set flag is_pub_key */
-      /* if(profile_protocol[index].pub_key_path) { */
-      /* 	is_pub_key = 1; */
-      /* 	// copy the key path to buffer key_path_buff */
-      /* 	memcpy(key_path_buff, profile_protocol[index].pub_key_path, sizeof(key_path)); */
-      /* } */
-      /* else */
-      /* 	// copy the key path to buffer key_path_buff */
-      /* 	memcpy(key_path_buff, profile_protocol[index].pvt_key_path, sizeof(key_path)); */
+      /* key already in the hash? */
+      HASH_FIND_INT(HT_Flows, &KEY, el);
       
-      /* // call READ_FILE to get the string from key */
-      /* Key = read_file(key_path_buff); */
-
-      /* /\* ***** *\/ */
-
-      /* /\* CHECK -- FIND SOLUTION IF THERE ARE MORE APP DATA IN THE SAME PKT *\/ */
-      /* do { */
-      /* 	if(count != 0) */
-      /* 	  hdr_tls_rec = (struct header_tls_record*)((*payload)+count); */
-      /* 	// move the pointer everytime part of the payload is detected */
-      /* 	pp = pp + TLS_HEADER_LEN; */
-      /* 	len = ntohs(hdr_tls_rec->len); */
-      /* 	count = count + TLS_HEADER_LEN + len; */
-
-      /* 	// copy the ENCRIPTED application data into "encrypted" buffer */
-      /* 	memcpy(encrypted, pp, len); */
+      if(el) {
+	unsigned char *encrypted = NULL;
+	unsigned char *decrypted = NULL;
+	char *pvtkey_path_buff;
+	u_int16_t len = 0;
+	u_int8_t decr_len = 0;
+	u_int8_t direction = 0; // 0 -> Client/Server  1 -> Server/Client
+	int count = 0;
+	unsigned char *Key;
 	
-      /* 	/\* --- DECRYPTION OF PAYLOAD DATA --- *\/ */
+	/* memset(key_path, '\0', sizeof(key_path)); */
 
-      /* 	if(is_pub_key == 1) { // decrypt using PUB KEY */
-      /* 	  decrypted_length = public_decrypt(encrypted, len, Key, decrypted); */
-      /* 	  if(decrypted_length == -1) */
-      /* 	    { */
-      /* 	      printLastError("Public Decrypt failed "); */
-      /* 	      return -2; // Error on decription */
-      /* 	    } */
-      /* 	} */
-      /* 	else { // decrypt using PVT KEY */
-      /* 	  decrypted_length = private_decrypt(encrypted, len, Key, decrypted); */
-      /* 	  if(decrypted_length == -1) */
-      /* 	    { */
-      /* 	      printLastError("Private Decrypt failed "); */
-      /* 	      return -2; // Error on decription */
-      /* 	    } */
-      /* 	} */
+	/** PREPARE THE KEY **/
+	while(profile_protocol[index] == NULL) // search the profile protocol TLS
+	  index++;
+	// copy the key path to buffer pvtkey_path_buff
+	memcpy(pvtkey_path_buff, profile_protocol[index].pvt_key_path, sizeof(pvtkey_key_path));
 	
-      /* 	pp = pp + len; */
+	// call READ_FILE to get the string from key
+	Key = read_file(pvtkey_path_buff);
 	
-      /* } while(count < size_payload); */
-      /* // it's TLS and return the len of decripted payload */
-      /* memcpy(decrypted, decrypted, decrypted_length); */
-      /* for (int i = 0; i < decrypted_length; i++) */
-      /*   printf(" %02x", decrypted[i]); */
-      /* printf("decrypted buffer = %s\n\n", decrypted); */
-    } 
-    return 0; // it it's TLS
+	/* ***** */
+	
+	/* CHECK -- FIND SOLUTION IF THERE ARE MORE APP DATA IN THE SAME PKT */
+	do {
+	  if(count != 0)
+	    hdr_tls_rec = (struct header_tls_record*)((*payload)+count);
+	  // move the pointer everytime part of the payload is detected
+	  pp = pp + TLS_HEADER_LEN;
+	  len = ntohs(hdr_tls_rec->len);
+	  count = count + TLS_HEADER_LEN + len;
+
+	  // allocate space for encryption and decryption buffers
+	  encrypted = calloc(size_payload+1, sizeof(unsigned char));
+	  decrypted = calloc(size_payload+1, sizeof(unsigned char));
+	  
+	  // copy the ENCRIPTED application data into "encrypted" buffer
+	  memcpy(encrypted, pp, len);
+	  
+	  /* --- DECRYPTION OF PAYLOAD DATA --- */
+
+	  // determine the direction of the data
+	  if(flow->ip_src == client_IP) direction = 0;
+	  else direction = 1;
+	  
+	  /**
+	     TO PERFORM DECRIPTION WE NEED TO USE THIS FUNCTION
+	     INTERNALLY IT IS USED FUNCTION OF GCRYPT LIBRARY
+	  **/
+	  if(tls_decrypt_aead_record(el->handshake, encrypted, len, decrypted, &decr_len, direction) == -1) {
+	    /* decryption failed */
+	    return -1;
+	  }
+
+	  /* copy decrypted buffer to decrypted_buff */
+	  memcpy(decrypted_buff, decrypted, sizeof(decrypted));
+	     
+	  pp = pp + len;
+	  
+	} while(count < size_payload);
+      }
+      return 0; // it's TLS
+    }
   }
   return -1;
 }

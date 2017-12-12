@@ -101,12 +101,19 @@ int w_parse_tls(msg_t *msg) {
   /* char json_tls_buffer[JSON_BUFFER_LEN] = {0}; */
   int ret_len = 0;
   char decripted_buffer[DECR_LEN] = {0};
-  struct Flow_key * flow_key = NULL;
+  struct Flow * flow = NULL;
+  int Key_Hash = 0;
   
   msg->mfree = 0;
 
+  /**
+     # KEY #
+     prepare the key (ip_src + ip_dst + proto_id_l3)
+  */
+  // TODO Key_Hash = src_addr + dst_addr + ip_proto;
+
   // call dissector
-  if((ret_len = parse_tls((char *) &msg->data, msg->len, decripted_buffer, DECR_LEN, msg->rcinfo.ip_family, msg->rcinfo.src_port, msg->rcinfo.dst_port, msg->rcinfo.ip_proto, flow_key)) > 0) {
+  if((ret_len = parse_tls((char *) &msg->data, msg->len, decripted_buffer, DECR_LEN, msg->rcinfo.ip_family, msg->rcinfo.src_port, msg->rcinfo.dst_port, msg->rcinfo.ip_proto, flow, Key_Hash)) > 0) {
     
     msg->data = decripted_buffer; // JSON buff --> Msg data
     msg->len = ret_len;
