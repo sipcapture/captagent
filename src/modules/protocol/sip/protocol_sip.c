@@ -108,8 +108,7 @@ int w_send_reply(msg_t *_m)
 }
 
 int w_parse_sip(msg_t *_m)
-{
-  printf("PARSE SIP\n\n");
+{  
   return parse_sip(_m, 1);
 
 }
@@ -178,6 +177,34 @@ int w_sip_check(msg_t *_m, char *param1, char *param2)
                     ret = 1;             
              }             
         }
+        else if(!strncmp("from_user_suffix", param1, strlen("from_user_suffix")))
+        {                     
+             if(endswith(&_m->sip.fromUser, param2))
+             {             
+                    ret = 1;             
+             }                          
+        }
+        else if(!strncmp("to_user_suffix", param1, strlen("to_user_suffix")))
+        {                     
+             if(endswith(&_m->sip.toUser, param2))
+             {             
+                    ret = 1;             
+             }                          
+        }
+        else if(!strncmp("from_user_prefix", param1, strlen("from_user_prefix")))
+        {                     
+             if(startwith(&_m->sip.fromUser, param2))
+             {             
+                    ret = 1;             
+             }                          
+        }
+        else if(!strncmp("to_user_prefix", param1, strlen("to_user_prefix")))
+        {                     
+             if(startwith(&_m->sip.toUser, param2))
+             {             
+                    ret = 1;             
+             }                          
+        }       
         else if(!strncmp("response", param1, strlen("response")))
         {                   
              if(param2 != NULL) intval = atoi(param2);                               
@@ -196,11 +223,28 @@ int w_sip_check(msg_t *_m, char *param1, char *param2)
         else {
             LERR("unknown variable [%s]\n", param1);
         }
-                
-        
+                        
         return ret;
 }
 
+
+int endswith(str *str, const char *suffix)
+{
+    if (!str->s || !suffix) return 0;
+    if (str->len == 0) return 0;
+    size_t lensuffix = strlen(suffix);
+    if (lensuffix >  str->len) return 0;
+    return strncmp(str->s + str->len - lensuffix, suffix, lensuffix) == 0;
+}
+
+int startwith(str *str, const char *suffix)
+{
+    if (!str->s || !suffix) return 0;
+    if (str->len == 0) return 0;
+    size_t lensuffix = strlen(suffix);
+    if (lensuffix >  str->len) return 0;
+    return strncmp(str->s, suffix, lensuffix) == 0;
+}
 
 int send_sip_reply(msg_t *_m, int code, char *description)
 {
@@ -220,8 +264,6 @@ int send_sip_reply(msg_t *_m, int code, char *description)
                                                           _m->sip.cSeq.len, _m->sip.cSeq.s
         );
         
-        //LERR("XXXXXXX: [%d] [%s]", *_m->rcinfo.socket, reply);
-        
         cliaddr.sin_family = _m->rcinfo.ip_family;
         cliaddr.sin_port = htons(_m->rcinfo.dst_port);
         cliaddr.sin_addr.s_addr = inet_addr(_m->rcinfo.dst_ip);        
@@ -239,8 +281,7 @@ int w_proto_check_size(msg_t *_m, char *param1, char *param2)
 
         int ret = 0;
         int intval = 0;
-        
-        
+                
         if(!strncmp("size", param1, 4))
         {
              if(param2 != NULL) intval = atoi(param2);                  
@@ -255,7 +296,21 @@ int w_proto_check_size(msg_t *_m, char *param1, char *param2)
                     ret = 1;             
              }
         }
+        else if(!strncmp("source_ip", param1, strlen("source_ip")))
+        {                     
+             if(param2 != NULL && !strncmp(_m->rcinfo.src_ip, param2, strlen(param2)))
+             {             
+                    ret = 1;             
+             }
+        }
         else if(!strncmp("destination_ip", param1, strlen("destination_ip")))
+        {                     
+             if(param2 != NULL && !strncmp(_m->rcinfo.dst_ip, param2, strlen(param2)))
+             {             
+                    ret = 1;             
+             }
+        }
+        else if(!strncmp("dst_ip", param1, strlen("dst_ip")))
         {                     
              if(param2 != NULL && !strncmp(_m->rcinfo.dst_ip, param2, strlen(param2)))
              {             
@@ -296,7 +351,6 @@ int w_proto_check_size(msg_t *_m, char *param1, char *param2)
             LERR("unknown variable [%s]\n", param1);
         }
                 
-
         return ret;
 }
                 
