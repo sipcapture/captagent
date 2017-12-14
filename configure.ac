@@ -93,9 +93,14 @@ AC_MSG_RESULT([$REDIS])
 AC_SUBST([REDIS])
 
 useLIBUV=yes
-
 AC_MSG_RESULT([$LIBUV])
 AC_SUBST([LIBUV])
+
+AC_MSG_RESULT([$GCRYPT])
+AC_SUBST([GCRYPT])
+
+AC_MSG_RESULT([$CRYPTO])
+AC_SUBST([CRYPTO])
 
 enableExtraModules=no
 AC_ARG_ENABLE(extramodules,
@@ -270,19 +275,25 @@ fi
 dnl
 dnl check for gcrypt library
 dnl
+
+if test "$GCRYPT" = "yes"; then
    AC_CHECKING([for gcrypt Library and Header files])
    AC_CHECK_HEADER(gcrypt.h,,[AC_MSG_ERROR([ gcrypt.h headers not found.])])
    AC_CHECK_LIB(gcrypt, gcry_control, [ GCRYPT_LIBS="-lgcrypt" ], [AC_MSG_ERROR([$PACKAGE_NAME requires but cannot find lgcrypt])])
    AC_DEFINE(USE_GCRYPT, 1, [Use GCRYPT library])
    AC_SUBST(GCRYPT_LIBS)
+fi
 
 dnl
 dnl check for gcrypt library
 dnl
+
+if test "$CRYPTO" = "yes"; then
    AC_CHECKING([for crypto Library and Header files])
    AC_CHECK_LIB(crypto, CRYPTO_new_ex_data, [CRYPTO_LIBS="-lcrypto"], [AC_MSG_ERROR([library 'crypto' is required for OpenSSL])])
    AC_DEFINE(USE_GCRYPTO, 1, [Use CRYPTO library])
    AC_SUBST(CRYPTO_LIBS)
+fi
 
 
 dnl
