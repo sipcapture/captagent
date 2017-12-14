@@ -11,7 +11,6 @@ SUBDIRS = \
 	modules/protocol/rtcpxr \
 	modules/protocol/diameter \
 	modules/protocol/ss7 \
-	modules/protocol/tcp \
 	modules/transport/hep \
 	modules/transport/json \
 	modules/database/hash \
