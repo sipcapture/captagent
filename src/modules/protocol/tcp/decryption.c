@@ -90,20 +90,20 @@ RSA *createRSA(unsigned char * key, int public)
 }
 
 // PRIVATE ENCRIPTION
-int private_encrypt(unsigned char * data, int data_len, unsigned char * key, unsigned char *encrypted)
-{
-    RSA * rsa = createRSA(key, 0);
-    int result = RSA_private_encrypt(data_len, data, encrypted, rsa, PADDING);
-    return result;
-}
+/* int private_encrypt(unsigned char * data, int data_len, unsigned char * key, unsigned char *encrypted) */
+/* { */
+/*     RSA * rsa = createRSA(key, 0); */
+/*     int result = RSA_private_encrypt(data_len, data, encrypted, rsa, PADDING); */
+/*     return result; */
+/* } */
 
-// PUBLIC ENCRIPTION
-int public_encrypt(unsigned char * data, int data_len, unsigned char * key, unsigned char *encrypted)
-{
-  RSA * rsa = createRSA(key, 1);
-  int result = RSA_public_encrypt(data_len, data, encrypted, rsa, PADDING);
-  return result;
-}
+/* // PUBLIC ENCRIPTION */
+/* int public_encrypt(unsigned char * data, int data_len, unsigned char * key, unsigned char *encrypted) */
+/* { */
+/*   RSA * rsa = createRSA(key, 1); */
+/*   int result = RSA_public_encrypt(data_len, data, encrypted, rsa, PADDING); */
+/*   return result; */
+/* } */
 
 // PRIVATE DECRIPTION
 int private_decrypt(unsigned char * enc_data, int data_len, unsigned char * key, unsigned char *decrypted)
@@ -114,12 +114,12 @@ int private_decrypt(unsigned char * enc_data, int data_len, unsigned char * key,
 }
 
 // PUBLIC DECRIPTION
-int public_decrypt(unsigned char * enc_data, int data_len, unsigned char * key, unsigned char *decrypted)
-{
-    RSA * rsa = createRSA(key, 1);
-    int  result = RSA_public_decrypt(data_len, enc_data, decrypted, rsa, PADDING);
-    return result;
-}
+/* int public_decrypt(unsigned char * enc_data, int data_len, unsigned char * key, unsigned char *decrypted) */
+/* { */
+/*     RSA * rsa = createRSA(key, 1); */
+/*     int  result = RSA_public_decrypt(data_len, enc_data, decrypted, rsa, PADDING); */
+/*     return result; */
+/* } */
 /* ************************************************************************************************* */
 
 /******************** FUNCTIONS FOR TLS_HASH ********************/
