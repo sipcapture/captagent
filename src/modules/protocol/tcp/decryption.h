@@ -55,16 +55,16 @@
 RSA *createRSA(unsigned char * key, int public);
 
 // PRIVATE ENCRIPTION
-int private_encrypt(unsigned char * data, int data_len, unsigned char * key, unsigned char *encrypted);
+/* int private_encrypt(unsigned char * data, int data_len, unsigned char * key, unsigned char *encrypted); */
 
-// PUBLIC ENCRIPTION
-int public_encrypt(unsigned char * data, int data_len, unsigned char * key, unsigned char *encrypted);
+/* // PUBLIC ENCRIPTION */
+/* int public_encrypt(unsigned char * data, int data_len, unsigned char * key, unsigned char *encrypted); */
 
 // PRIVATE DECRIPTION
 int private_decrypt(unsigned char * enc_data, int data_len, unsigned char * key, unsigned char *decrypted);
 
 // PUBLIC DECRIPTION
-int public_decrypt(unsigned char * enc_data, int data_len, unsigned char * key, unsigned char *decrypted);
+/* int public_decrypt(unsigned char * enc_data, int data_len, unsigned char * key, unsigned char *decrypted); */
 
 /* **************************** */
 
