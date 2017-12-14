@@ -5,7 +5,7 @@
  *  Duplicate SIP messages in Homer Encapulate Protocol [HEP] [ipv6 version]
  *
  *  Author: Alexandr Dubovikov <alexandr.dubovikov@gmail.com>
- *  (C) Homer Project 2012-2015 (http://www.sipcapture.org)
+ *  (C) QXIP BV 2012-2017 (http://qxip.net)
  *
  * Homer capture agent is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,10 +22,8 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
 */
-
 #ifndef PROTOCOL_TCP_H_
 #define PROTOCOL_TCP_H_
-
 
 #include <captagent/xmlread.h>
 #include "uthash.h"

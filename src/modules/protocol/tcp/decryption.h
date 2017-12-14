@@ -1,6 +1,7 @@
 /**
    decoder - decode TLS/SSL traffic - save handshake and extract certificate
    Copyright (C) 2016-2017 Michele Campus <fci1908@gmail.com>
+             (C) QXIP BV 2012-2017 (http://qxip.net)
    
    This file is part of decoder.
    
@@ -43,6 +44,7 @@
 #define MAX_KEY_SIZE   32
 
 // for cipher suite
+#define KEX_RSA        0x1e
 #define ENC_AES        0x35
 #define ENC_AES256     0x36
 #define ENC_NULL       0x3B
@@ -50,22 +52,22 @@
 #define DIG_SHA384     0x43
 
 /* Create a RSA structure */
-RSA *createRSA(unsigned char * key, int public);
+/* RSA *createRSA(unsigned char * key, int public); */
 
-// PRIVATE ENCRIPTION
-int private_encrypt(unsigned char * data, int data_len, unsigned char * key, unsigned char *encrypted);
+/* // PRIVATE ENCRIPTION */
+/* int private_encrypt(unsigned char * data, int data_len, unsigned char * key, unsigned char *encrypted); */
 
-// PUBLIC ENCRIPTION
-int public_encrypt(unsigned char * data, int data_len, unsigned char * key, unsigned char *encrypted);
+/* // PUBLIC ENCRIPTION */
+/* int public_encrypt(unsigned char * data, int data_len, unsigned char * key, unsigned char *encrypted); */
 
-// PRIVATE DECRIPTION
-int private_decrypt(unsigned char * enc_data, int data_len, unsigned char * key, unsigned char *decrypted);
+/* // PRIVATE DECRIPTION */
+/* int private_decrypt(unsigned char * enc_data, int data_len, unsigned char * key, unsigned char *decrypted); */
 
-// PUBLIC DECRIPTION
-int public_decrypt(unsigned char * enc_data, int data_len, unsigned char * key, unsigned char *decrypted);
+/* // PUBLIC DECRIPTION */
+/* int public_decrypt(unsigned char * enc_data, int data_len, unsigned char * key, unsigned char *decrypted); */
 
-// Print error
-void printLastError(char *msg);
+/* // Print error */
+/* void printLastError(char *msg); */
 
 /* **************************** */
 

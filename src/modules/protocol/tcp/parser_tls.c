@@ -34,7 +34,7 @@
 #include <math.h>
 #include <unistd.h>
 #include "tls_ssl.h"
-#include "decription.h"
+#include "decryption.h"
 
 #define IMPLICIT_NONCE_LEN  4
 #define EXPLICIT_NONCE_LEN  8
@@ -452,7 +452,6 @@ int parse_tls(char *payload,
 	      int size_payload,
 	      char decrypted_buff[],
 	      int decr_len,
-	      u_int8_t ip_family,
 	      u_int16_t src_port,
 	      u_int16_t dst_port,
 	      const u_int8_t proto_id_l3,
@@ -928,7 +927,7 @@ int parse_tls(char *payload,
 	      pms_len = private_decrypt(enc_pre_master_secret, enc_pms_len, pvtkey, PMS);
 	      if(pms_len != MS_LENGTH)
 		{
-		  printLastError("Private Decrypt failed for PreMaster Secret ");
+		  fprintf(stderr, "Private Decrypt failed for PreMaster Secret\n");
 		  return -2; // Error on decription PMS
 		}
 	      // copy pre_master_secret in flow

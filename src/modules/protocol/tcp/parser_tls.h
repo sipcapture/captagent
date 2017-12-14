@@ -26,7 +26,7 @@
 #include <stdlib.h>
 #include <endian.h>
 #include <net/ethernet.h>
-#include "decription.h"
+#include "decryption.h"
 
 #define DECR_LEN 5000
 
@@ -87,9 +87,6 @@ enum {
 #define TLS_RSA_WITH_AES_128_CBC_SHA      0x002f
 
 //
-#define TRUE    0
-#define FALSE   1
-
 #define CLI     1
 #define SRV     2
 #define CERT_S  11
@@ -183,7 +180,6 @@ int parse_tls(char *payload,
 	      int size_payload,
 	      char decrypted_buff[],
 	      int decr_len,
-	      u_int8_t ip_family,
 	      u_int16_t src_port,
 	      u_int16_t dst_port,
 	      const u_int8_t proto_id_l3,

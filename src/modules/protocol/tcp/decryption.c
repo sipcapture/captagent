@@ -1,6 +1,7 @@
 /**
    decoder - decode TLS/SSL traffic - save handshake and extract certificate
    Copyright (C) 2016-2017 Michele Campus <fci1908@gmail.com>
+             (C) QXIP BV 2012-2017 (http://qxip.net)
    
    This file is part of decoder.
    
@@ -26,7 +27,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
-#include "decription.h"
+#include "decryption.h"
 
 #ifndef MIN
 #define MIN(X, Y) ((X) < (Y) ? (X) : (Y))
@@ -120,15 +121,6 @@ int public_decrypt(unsigned char * enc_data, int data_len, unsigned char * key, 
     return result;
 }
 /* ************************************************************************************************* */
-
-void printLastError(char *msg)
-{
-  char * err = malloc(130);
-  ERR_load_crypto_strings();
-  ERR_error_string(ERR_get_error(), err);
-  printf("%s ERROR: %s\n", msg, err);
-  free(err);
-}
 
 /******************** FUNCTIONS FOR TLS_HASH ********************/
 

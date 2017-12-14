@@ -5,7 +5,7 @@
  *  Duplicate SIP messages in Homer Encapulate Protocol [HEP] [ipv6 version]
  *
  *  Author: Alexandr Dubovikov <alexandr.dubovikov@gmail.com>
- *  (C) Homer Project 2012-2015 (http://www.sipcapture.org)
+ *  (C) QXIP BV 2012-2017 (http://qxip.net)
  *
  * Homer capture agent is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -48,7 +48,8 @@
 #include "localapi.h"
 #include "protocol_tcp.h"
 #include "parser_tls.h"
-#include "structures.h"
+#include "decryption.h"
+#include "define.h"
 
 pthread_rwlock_t ipport_lock;
 
@@ -108,12 +109,16 @@ int w_parse_tls(msg_t *msg) {
 
   /**
      # KEY #
-     prepare the key (ip_src + ip_dst + proto_id_l3)
+     prepare the key (port_src + port_dst + proto_id_l3)
+     TODO: CHECK IF IP IS BETTER THAN PORT
   */
-  // TODO Key_Hash = src_addr + dst_addr + ip_proto;
+  if(msg->rcinfo.ip_family == IPv4)
+    Key_Hash = (int) (msg->rcinfo.src_port + msg->rcinfo.dst_port + msg->rcinfo.ip_proto);
+  // ELSE IPV6 TODO
+    
 
   // call dissector
-  if((ret_len = parse_tls((char *) &msg->data, msg->len, decripted_buffer, DECR_LEN, msg->rcinfo.ip_family, msg->rcinfo.src_port, msg->rcinfo.dst_port, msg->rcinfo.ip_proto, flow, Key_Hash)) > 0) {
+  if((ret_len = parse_tls((char *) &msg->data, msg->len, decripted_buffer, DECR_LEN, msg->rcinfo.src_port, msg->rcinfo.dst_port, msg->rcinfo.ip_proto, flow, Key_Hash)) > 0) {
     
     msg->data = decripted_buffer; // JSON buff --> Msg data
     msg->len = ret_len;
@@ -144,7 +149,7 @@ int w_parse_tls(msg_t *msg) {
     }
     return -1;
   }
-  LDEBUG("DECRIPTED BUFFER TLS %s\n", decripted_buffer);
+  LDEBUG("DECRIPTED BUFFER TLS = %s\n", decripted_buffer);
   
   return 0;
 }
