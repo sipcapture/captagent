@@ -448,15 +448,15 @@ static void add_flow(struct Flow *flow, int KEY, struct Handshake *handshake, u_
 
 
 // Function to dissect TLS/SSL
-int parse_tls(char *payload,
-	      int size_payload,
-	      char decrypted_buff[],
-	      int decr_len,
-	      u_int16_t src_port,
-	      u_int16_t dst_port,
-	      const u_int8_t proto_id_l3,
-	      struct Flow *flow,
-	      int KEY)
+int dissector_tls(char *payload,
+		  int size_payload,
+		  char decrypted_buff[],
+		  int decr_len,
+		  u_int16_t src_port,
+		  u_int16_t dst_port,
+		  const u_int8_t proto_id_l3,
+		  struct Flow *flow,
+		  int KEY)
 {
   struct Hash_Table *el = NULL;
   struct Handshake *handshake = NULL;

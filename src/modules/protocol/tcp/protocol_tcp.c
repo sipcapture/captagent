@@ -118,7 +118,7 @@ int w_parse_tls(msg_t *msg) {
     
 
   // call dissector
-  if((ret_len = parse_tls((char *) &msg->data, msg->len, decripted_buffer, DECR_LEN, msg->rcinfo.src_port, msg->rcinfo.dst_port, msg->rcinfo.ip_proto, flow, Key_Hash)) > 0) {
+  if((ret_len = dissector_tls((char *) &msg->data, msg->len, decripted_buffer, DECR_LEN, msg->rcinfo.src_port, msg->rcinfo.dst_port, msg->rcinfo.ip_proto, flow, Key_Hash)) > 0) {
     
     msg->data = decripted_buffer; // JSON buff --> Msg data
     msg->len = ret_len;

@@ -176,14 +176,14 @@ struct client_key_exch {
 /**
    Function to dissect a TLS packet
 **/
-int parse_tls(char *payload,
-	      int size_payload,
-	      char decrypted_buff[],
-	      int decr_len,
-	      u_int16_t src_port,
-	      u_int16_t dst_port,
-	      const u_int8_t proto_id_l3,
-	      struct Flow *flow,
-	      int KEY);
+int dissector_tls(char *payload,
+		  int size_payload,
+		  char decrypted_buff[],
+		  int decr_len,
+		  u_int16_t src_port,
+		  u_int16_t dst_port,
+		  const u_int8_t proto_id_l3,
+		  struct Flow *flow,
+		  int KEY);
 
 #endif
