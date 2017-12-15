@@ -286,7 +286,7 @@ static int load_module(xml_node *config) {
 	/* free */
 	free_module_xml_config();
 
-	timer_init();
+	//timer_init();
 
 	return 0;
 }
