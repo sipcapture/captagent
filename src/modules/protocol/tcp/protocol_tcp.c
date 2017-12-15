@@ -315,6 +315,7 @@ static int load_module(xml_node *config) {
 
   nextprofile: profile = profile->next;
   }
+  //timer_init();
 
   /* free */
   free_module_xml_config();
