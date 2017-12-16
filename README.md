@@ -1,10 +1,21 @@
-![](http://i.imgur.com/3kEIR.png)
+<!-- ![](http://i.imgur.com/3kEIR.png) -->
+<img src="http://i.imgur.com/3kEIR.png" width=200 />
 
-CaptAgent 6 Project
+CaptAgent
 =========
 
-### The Next-Generation capture agent for Sipcapture's [Homer](https://github.com/sipcapture/homer) Project
+### The Next-Generation HEP Capture Agent for [Homer](https://github.com/sipcapture/homer)
 -------------
+
+![HEP](https://img.shields.io/badge/proto-hep_eep-blue.svg)
+![HEP](https://img.shields.io/badge/proto-sip-brightgreen.svg)
+![HEP](https://img.shields.io/badge/proto-rtcp-brightgreen.svg)
+![HEP](https://img.shields.io/badge/proto-rtcp_xr-brightgreen.svg)
+![HEP](https://img.shields.io/badge/proto-rtp_stats-brightgreen.svg)
+![HEP](https://img.shields.io/badge/proto-ss7_isup-brightgreen.svg)
+![HEP](https://img.shields.io/badge/proto-epan-orange.svg)
+![HEP](https://img.shields.io/badge/proto-diameter-orange.svg)
+![HEP](https://img.shields.io/badge/text-tls_rsa-orange.svg)
 
 Download the latest code from our repository and compile it on your system.
 
