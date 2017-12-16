@@ -397,5 +397,6 @@ echo Build with MySQL............ : $useMysql
 echo Build with PCRE............. : $usePCRE
 echo Build with LibUV............ : $useLIBUV
 echo Build with EPAN............. : $useEpan
+echo Build with TLS.............. : $useTLS
 echo
 
