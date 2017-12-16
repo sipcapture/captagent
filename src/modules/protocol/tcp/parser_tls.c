@@ -18,7 +18,7 @@
   along with this program; if not, write to the Free Software
   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 **/
-#ifdef USE_SSL
+
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -27,6 +27,10 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <arpa/inet.h>
+#include "config.h"
+
+#ifdef USE_SSL
+
 #include <openssl/x509.h>
 #include <openssl/x509v3.h>
 #include <gcrypt.h>

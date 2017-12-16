@@ -39,6 +39,8 @@
 #include <time.h>
 #include <pthread.h>
 
+#include "config.h"
+
 #include <captagent/globals.h>
 #include <captagent/api.h>
 #include <captagent/structure.h>
@@ -100,6 +102,8 @@ int w_parse_tls(msg_t *msg) {
 
   /* int json_len; */
   /* char json_tls_buffer[JSON_BUFFER_LEN] = {0}; */
+#ifdef USE_SSL
+
   int ret_len = 0;
   char decripted_buffer[DECR_LEN] = {0};
   struct Flow * flow = NULL;
@@ -150,6 +154,9 @@ int w_parse_tls(msg_t *msg) {
     return -1;
   }
   LDEBUG("DECRIPTED BUFFER TLS = %s\n", decripted_buffer);
+#else
+  LERR("TLS has been not enabled. Please reconfigure captagent with param --enable-ssl and --enable-tls\n");                                  
+#endif
   
   return 0;
 }
