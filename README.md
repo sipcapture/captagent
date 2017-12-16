@@ -1,12 +1,11 @@
 <!-- ![](http://i.imgur.com/3kEIR.png) -->
-<img src="http://i.imgur.com/3kEIR.png" width=200 />
+<img src="http://i.imgur.com/3kEIR.png" width=150 />
 
 CaptAgent
 =========
 
 ### The Next-Generation HEP Capture Agent for [Homer](https://github.com/sipcapture/homer)
 -------------
-
 ![HEP](https://img.shields.io/badge/proto-hep_eep-blue.svg)
 ![HEP](https://img.shields.io/badge/proto-sip-brightgreen.svg)
 ![HEP](https://img.shields.io/badge/proto-rtcp-brightgreen.svg)
@@ -17,9 +16,13 @@ CaptAgent
 ![HEP](https://img.shields.io/badge/proto-diameter-orange.svg)
 ![HEP](https://img.shields.io/badge/proto-tls_rsa-orange.svg)
 
-Download the latest code from our repository and compile it on your system.
 
-Full instructions are available on the [wiki](https://github.com/sipcapture/captagent/wiki/Installation)
+### Status
+[![Build Status](https://travis-ci.org/sipcapture/captagent.svg?branch=master)](https://travis-ci.org/sipcapture/captagent)
+
+### Get Started
+Setup & Configuration instructions are available on the Project [Wiki](https://github.com/sipcapture/captagent/wiki/Installation)
+
 
 ## Configuration
 
