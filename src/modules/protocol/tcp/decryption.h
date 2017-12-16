@@ -279,11 +279,7 @@ extern const SslDigestAlgo digests[];
 // get index digest index
 extern const SslDigestAlgo *ssl_cipher_suite_dig(const SslCipherSuite *cs);
 
-static const char *ciphers[] = {
-  "AES",
-  "AES256",
-  "*UNKNOWN*"
-};
+extern const char *ciphers[];
 
 struct _SslDecoder {
   u_int8_t *iv;

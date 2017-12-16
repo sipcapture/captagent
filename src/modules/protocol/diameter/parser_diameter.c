@@ -36,9 +36,6 @@ int is_diameter(char *packet, int size_payload)
   // check param
   if(!packet || size_payload == 0) return -1;
 
-  // pointer used to move through the pkt
-  char *pp = packet;
-
   // cast to diameter header
   struct diameter_header_t *diameter = (struct diameter_header_t *) packet;
 

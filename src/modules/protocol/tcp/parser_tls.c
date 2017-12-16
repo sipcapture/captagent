@@ -18,8 +18,6 @@
   along with this program; if not, write to the Free Software
   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 **/
-
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -47,6 +45,13 @@ struct Hash_Table *HT_Flows = NULL; // # HASH TABLE
 
 static u_int32_t client_IP;
 static u_int32_t server_IP;
+
+// ciphers
+const char *ciphers[] = {
+  "AES",
+  "AES256",
+  "*UNKNOWN*"
+};
 
 
 // PRF function to reproduce the Master Secret or Key BLock
