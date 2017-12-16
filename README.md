@@ -15,7 +15,7 @@ CaptAgent
 ![HEP](https://img.shields.io/badge/proto-ss7_isup-brightgreen.svg)
 ![HEP](https://img.shields.io/badge/proto-epan-orange.svg)
 ![HEP](https://img.shields.io/badge/proto-diameter-orange.svg)
-![HEP](https://img.shields.io/badge/text-tls_rsa-orange.svg)
+![HEP](https://img.shields.io/badge/proto-tls_rsa-orange.svg)
 
 Download the latest code from our repository and compile it on your system.
 
