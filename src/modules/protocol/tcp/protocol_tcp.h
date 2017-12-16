@@ -35,7 +35,7 @@ typedef struct protocol_tcp_stats {
   uint64_t send_packets;
 } protocol_tcp_stats_t;
 
-static protocol_tcp_stats_t stats;
+// static protocol_tcp_stats_t stats;
 
 #define MAX_PROTOCOLS 10
 profile_protocol_t profile_protocol[MAX_PROTOCOLS];

@@ -86,7 +86,7 @@ struct module_exports exports = {
   serial_module
 };
 
-
+#define PATH_MAX  4096
 
 /* ### CAPTAGENT FUNCTIONS ### */
 
@@ -104,10 +104,11 @@ int w_parse_tls(msg_t *msg) {
   /* char json_tls_buffer[JSON_BUFFER_LEN] = {0}; */
 #ifdef USE_SSL
 
-  int ret_len = 0;
-  char decripted_buffer[DECR_LEN] = {0};
+  int ret_len = 0, index = 0;
+  char decrypted_buffer[DECR_LEN] = {0};
   struct Flow * flow = NULL;
   int Key_Hash = 0;
+  char pvtkey_path[PATH_MAX];   // PVT KEY path buff
   
   msg->mfree = 0;
 
@@ -119,12 +120,18 @@ int w_parse_tls(msg_t *msg) {
   if(msg->rcinfo.ip_family == IPv4)
     Key_Hash = (int) (msg->rcinfo.src_port + msg->rcinfo.dst_port + msg->rcinfo.ip_proto);
   // ELSE IPV6 TODO
-    
+
+  /** PREPARE THE KEY **/
+  while(profile_protocol[index].pvt_key_path == NULL) // search the profile protocol TLS
+    index++;
+  // copy the key path to buffer key_path_buff
+  memcpy(pvtkey_path, profile_protocol[index].pvt_key_path, sizeof(pvtkey_path));
+  
 
   // call dissector
-  if((ret_len = dissector_tls((char *) &msg->data, msg->len, decripted_buffer, DECR_LEN, msg->rcinfo.src_port, msg->rcinfo.dst_port, msg->rcinfo.ip_proto, flow, Key_Hash)) > 0) {
+  if((ret_len = dissector_tls((char *) msg->data, msg->len, decrypted_buffer, DECR_LEN, msg->rcinfo.src_port, msg->rcinfo.dst_port, msg->rcinfo.ip_proto, flow, Key_Hash, pvtkey_path)) > 0) {
     
-    msg->data = decripted_buffer; // JSON buff --> Msg data
+    msg->data = decrypted_buffer; // JSON buff --> Msg data
     msg->len = ret_len;
     msg->mfree = 1;
   }
@@ -153,7 +160,7 @@ int w_parse_tls(msg_t *msg) {
     }
     return -1;
   }
-  LDEBUG("DECRIPTED BUFFER TLS = %s\n", decripted_buffer);
+  LDEBUG("DECRIPTED BUFFER TLS = %s\n", decrypted_buffer);
 #else
   LERR("TLS has been not enabled. Please reconfigure captagent with param --enable-ssl and --enable-tls\n");                                  
 #endif
@@ -310,8 +317,7 @@ static int load_module(xml_node *config) {
 	  **/
 	  if(strncmp(params->attr[1], "private-key-path", 16))
 	    profile_protocol[profile_size].pvt_key_path = strdup(profile->attr[1]);
-	  else
-	    profile_protocol[profile_size].pub_key_path = strdup(profile->attr[3]);
+	  else profile_protocol[profile_size].pvt_key_path = NULL;
 	}
 	
       nextparam: params = params->next;

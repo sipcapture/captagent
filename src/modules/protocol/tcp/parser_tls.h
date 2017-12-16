@@ -28,6 +28,10 @@
 #include <net/ethernet.h>
 #include "decryption.h"
 
+
+#define T  0
+#define F  1
+
 #define DECR_LEN 5000
 
 #define SERVER_NAME_LEN   256
@@ -179,11 +183,12 @@ struct client_key_exch {
 int dissector_tls(char *payload,
 		  int size_payload,
 		  char decrypted_buff[],
-		  int decr_len,
+		  int msg_len,
 		  u_int16_t src_port,
 		  u_int16_t dst_port,
 		  const u_int8_t proto_id_l3,
 		  struct Flow *flow,
-		  int KEY);
+		  int KEY,
+		  char *pvtkey_path);
 
 #endif

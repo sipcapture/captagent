@@ -37,8 +37,7 @@
 #include <time.h>
 #include <math.h>
 #include <unistd.h>
-#include "tls_ssl.h"
-#include "decryption.h"
+#include "parser_tls.h"
 
 #define IMPLICIT_NONCE_LEN  4
 #define EXPLICIT_NONCE_LEN  8
@@ -79,7 +78,7 @@ static int PRF(struct Handshake *handshake, unsigned char *PMS, const char *mast
 // Function to perform the decryption
 static int tls_decrypt_aead_record(struct Handshake *h, const unsigned char *in,
 				   u_int16_t inl, unsigned char *out_str,
-				   u_int8_t *outl, u_int8_t direction) {
+				   int *outl, u_int8_t direction) {
   /**
      in = data encrypted
      inl = data encrypted length
@@ -91,7 +90,7 @@ static int tls_decrypt_aead_record(struct Handshake *h, const unsigned char *in,
   
   gcry_error_t err;
   const unsigned char *explicit_nonce = NULL, *ciphertext;
-  u_int32_t ciphertext_len, auth_tag_len;
+  int ciphertext_len, auth_tag_len;
   unsigned char nonce[12];
   const ssl_cipher_mode_t cipher_mode = h->cipher_suite.mode;
   
@@ -106,7 +105,7 @@ static int tls_decrypt_aead_record(struct Handshake *h, const unsigned char *in,
     break;
   default:
     fprintf(stderr, "unsupported cipher!\n");
-    return FALSE;
+    return F;
   }
 
   /* Parse input into explicit nonce (TLS 1.2 only), ciphertext and tag. */
@@ -372,8 +371,8 @@ static void add_flow(struct Flow *flow, int KEY, struct Handshake *handshake, u_
       // set KEY
       elem_flow->KEY = KEY;
       
-      // set handshake fin to FALSE
-      elem_flow->is_handsk_fin = FALSE;
+      // set handshake fin to F
+      elem_flow->is_handsk_fin = F;
       
       /* // se cli hello -> ADD_CLI_ID */
       /* add_cli_id(&flow_in, &handshake, len_id); */
@@ -389,7 +388,7 @@ static void add_flow(struct Flow *flow, int KEY, struct Handshake *handshake, u_
   else {
 
     /* the handshake is not complete, so it must be fill with new value(s) */
-    if(elem_flow->is_handsk_fin == FALSE) {
+    if(elem_flow->is_handsk_fin == F) {
       
       // if cli hello -> ADD_CLI_RAND
       if(flag == CLI) {
@@ -410,8 +409,8 @@ static void add_flow(struct Flow *flow, int KEY, struct Handshake *handshake, u_
       // if cert hello -> UPDATE_CERT
       else if(flag == CERT_S) {
 	update_cert(&elem_flow, &handshake, len_id, flag);
-	// set handshake fin to TRUE
-        elem_flow->is_handsk_fin = TRUE;
+	// set handshake fin to T
+        elem_flow->is_handsk_fin = T;
       }
       // if Client Key Exch -> (Pre)Master secret
       else if(flag == CKE_PMS) {
@@ -425,7 +424,7 @@ static void add_flow(struct Flow *flow, int KEY, struct Handshake *handshake, u_
     }
  
     /* THE HANDSHAKE FOR THIS KEY IS COMPLETE */
-    else if(elem_flow->is_handsk_fin == TRUE) {
+    else if(elem_flow->is_handsk_fin == T) {
       
       /* if the pkt is a Client Hello, open a new flow for handshake */
       if(flag == CLI) {
@@ -455,17 +454,24 @@ static void add_flow(struct Flow *flow, int KEY, struct Handshake *handshake, u_
 int dissector_tls(char *payload,
 		  int size_payload,
 		  char decrypted_buff[],
-		  int decr_len,
+		  int msg_len,
 		  u_int16_t src_port,
 		  u_int16_t dst_port,
 		  const u_int8_t proto_id_l3,
 		  struct Flow *flow,
-		  int KEY)
+		  int KEY,
+		  char *pvtkey_path)
 {
   struct Hash_Table *el = NULL;
   struct Handshake *handshake = NULL;
-  const u_int8_t *pp = *payload;
+  char *pp = payload;
+  unsigned char *PVTkey; // PVT KEY path
+  int decrLen = 0;
 
+
+  // call READ_FILE to get the string from key
+  PVTkey = read_file(pvtkey_path);
+  
   /**
      # HANDSHAKE #
      initialize the handshake structure
@@ -493,7 +499,7 @@ int dissector_tls(char *payload,
 
     /** DISSECT THE PACKET **/
   
-    struct header_tls_record *hdr_tls_rec = (struct header_tls_record*)(*payload);
+    struct header_tls_record *hdr_tls_rec = (struct header_tls_record*)(payload);
       
     u_int16_t type = 0;
     u_int8_t more_records = 0;
@@ -538,7 +544,6 @@ int dissector_tls(char *payload,
 	struct handshake_header * hand_hdr = (struct handshake_header*) pp;
 	pp = pp + HANDSK_HEADER_LEN;
 	int offset = 0;
-	u_int8_t is_cert_status = 0;
 
 	switch(hand_hdr->msg_type) {
       
@@ -813,7 +818,6 @@ int dissector_tls(char *payload,
 		// Copy the Certificate from Server
 		memcpy(cert, pp + 3, subcert_len);
 		// Save the certificate in a file "cert.der"
-		if(s == 1)
 		  save_certificate_FILE(cert, subcert_len);
 		/*
 		  TODO function to split the certificate chain
@@ -858,7 +862,6 @@ int dissector_tls(char *payload,
 	  {
 	    pp = pp + 1; // Certificate Status Type OCSP (1)
 	    u_int16_t cert_status_len = pp[2] + (pp[1] << 8) + (pp[0] << 8);
-	    is_cert_status = 1;
 	    offset = TLS_HEADER_LEN + HANDSK_HEADER_LEN + 1 + 3 + cert_status_len;
 	    if(offset < size_payload) {
 	      pp = pp + 3 + cert_status_len;
@@ -884,8 +887,6 @@ int dissector_tls(char *payload,
 	    int ret, needed = 0, cipher_algo = 0;
 	    unsigned char *key_block = NULL, *ptr;
 	    unsigned int encr_key_len, write_iv_len = 0;
-	    // PVT KEY path
-	    char *pvtkey_path;
 	    struct _SslDecoder SslDecoder_Client;
 	    struct _SslDecoder SslDecoder_Server;
 	    
@@ -908,14 +909,6 @@ int dissector_tls(char *payload,
 		 3) DERIVE KEYS NEEDED FROM MASTER SECRET
 	      **/
 
-	      /** PREPARE THE KEY **/
-	      while(profile_protocol[index] == NULL) // search the profile protocol TLS
-		index++;
-	      // copy the key path to buffer key_path_buff
-	      memcpy(pvtkey_path, profile_protocol[index].pvt_key_path, sizeof(pvtkey_path));
-	      
-	      // PVT KEY buffer
-	      unsigned char *pvtkey = read_file(pvtkey_path);
 	      // PRE-MASTER SECRET buffer
 	      unsigned char PMS[MS_LENGTH+1] = {0}; // 48 + 1
 	      // MASTER SECRET buffer
@@ -928,7 +921,7 @@ int dissector_tls(char *payload,
 	      /**
 		 Decription of ENCRYPTED PRE-MASTER SECRET 
 	      */
-	      pms_len = private_decrypt(enc_pre_master_secret, enc_pms_len, pvtkey, PMS);
+	      pms_len = private_decrypt(enc_pre_master_secret, enc_pms_len, PVTkey, PMS);
 	      if(pms_len != MS_LENGTH)
 		{
 		  fprintf(stderr, "Private Decrypt failed for PreMaster Secret\n");
@@ -1123,10 +1116,10 @@ int dissector_tls(char *payload,
 
 	    memcpy(&old->flow, flow, sizeof(struct Flow));
 	    
-	    // set handshake fin to TRUE
+	    // set handshake fin to T
 	    HASH_FIND_INT(HT_Flows, &KEY, old);
 	    if(old) {
-	      old->is_handsk_fin = TRUE;
+	      old->is_handsk_fin = T;
 	      HASH_REPLACE_INT(HT_Flows, KEY, old, el);
 	    }
 	    more_records = 1;
@@ -1162,30 +1155,15 @@ int dissector_tls(char *payload,
       if(el) {
 	unsigned char *encrypted = NULL;
 	unsigned char *decrypted = NULL;
-	char *pvtkey_path_buff;
 	u_int16_t len = 0;
-	u_int8_t decr_len = 0;
 	u_int8_t direction = 0; // 0 -> Client/Server  1 -> Server/Client
 	int count = 0;
-	unsigned char *Key;
-	
-	/* memset(key_path, '\0', sizeof(key_path)); */
 
-	/** PREPARE THE KEY **/
-	while(profile_protocol[index] == NULL) // search the profile protocol TLS
-	  index++;
-	// copy the key path to buffer pvtkey_path_buff
-	memcpy(pvtkey_path_buff, profile_protocol[index].pvt_key_path, sizeof(pvtkey_key_path));
-	
-	// call READ_FILE to get the string from key
-	Key = read_file(pvtkey_path_buff);
-	
-	/* ***** */
 	
 	/* CHECK -- FIND SOLUTION IF THERE ARE MORE APP DATA IN THE SAME PKT */
 	do {
 	  if(count != 0)
-	    hdr_tls_rec = (struct header_tls_record*)((*payload)+count);
+	    hdr_tls_rec = (struct header_tls_record*)(payload+count);
 	  // move the pointer everytime part of the payload is detected
 	  pp = pp + TLS_HEADER_LEN;
 	  len = ntohs(hdr_tls_rec->len);
@@ -1208,19 +1186,19 @@ int dissector_tls(char *payload,
 	     TO PERFORM DECRIPTION WE NEED TO USE THIS FUNCTION
 	     INTERNALLY IT IS USED FUNCTION OF GCRYPT LIBRARY
 	  **/
-	  if(tls_decrypt_aead_record(el->handshake, encrypted, len, decrypted, &decr_len, direction) == -1) {
+	  if(tls_decrypt_aead_record(el->handshake, encrypted, len, decrypted, &decrLen, direction) == -1) {
 	    /* decryption failed */
 	    return -1;
 	  }
 
 	  /* copy decrypted buffer to decrypted_buff */
-	  memcpy(decrypted_buff, decrypted, sizeof(decrypted));
+	  memcpy(decrypted_buff, decrypted, decrLen);
 	     
 	  pp = pp + len;
 	  
 	} while(count < size_payload);
       }
-      return 0; // it's TLS
+      return decrLen; // it's TLS
     }
   }
   return -1;

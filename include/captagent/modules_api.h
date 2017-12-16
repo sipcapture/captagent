@@ -182,7 +182,6 @@ typedef struct profile_protocol {
   int action;
   char *ignore;
   char *pvt_key_path;
-  char *pub_key_path;
   struct profile_protocol *next;
 } profile_protocol_t;
 

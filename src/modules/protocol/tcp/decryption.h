@@ -255,12 +255,6 @@ typedef struct {
   unsigned int len;
 } SslDigestAlgo;
 
-static const char *ciphers[] = {
-  "AES",
-  "AES256",
-  "*UNKNOWN*"
-};
-
 /* SSL Cipher Suite modes */
 typedef enum {
   MODE_CBC,               /* GenericBlockCipher */
@@ -284,6 +278,12 @@ extern const SslCipherSuite cipher_suites[];
 extern const SslDigestAlgo digests[];
 // get index digest index
 extern const SslDigestAlgo *ssl_cipher_suite_dig(const SslCipherSuite *cs);
+
+static const char *ciphers[] = {
+  "AES",
+  "AES256",
+  "*UNKNOWN*"
+};
 
 struct _SslDecoder {
   u_int8_t *iv;
