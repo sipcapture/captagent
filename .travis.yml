@@ -7,7 +7,7 @@ matrix:
     # TLS Agent
     - os: linux
       env:
-        - CONFIGURE="--enable-tls"      
+        - CONFIGURE="--enable-tls --enable-ssl"      
     # SSL Agent
     - os: linux
       env:
