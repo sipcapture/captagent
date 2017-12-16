@@ -16,6 +16,7 @@ CaptAgent
 ![HEP](https://img.shields.io/badge/proto-diameter-orange.svg)
 ![HEP](https://img.shields.io/badge/proto-tls_rsa-orange.svg)
 
+Captagent is a powerful, flexible, completely modular HEP packet capture and mirroring framework for RTC, ready for _(virtually)_ any kind of IP protocol and encapsulation method - past, present - and future.
 
 ### Status
 [![Build Status](https://travis-ci.org/sipcapture/captagent.svg?branch=master)](https://travis-ci.org/sipcapture/captagent)
