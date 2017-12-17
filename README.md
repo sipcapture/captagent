@@ -24,13 +24,6 @@ Captagent is a powerful, flexible, completely modular HEP packet capture and mir
 ### Get Started
 Setup & Configuration instructions are available on the Project [Wiki](https://github.com/sipcapture/captagent/wiki/Installation)
 
-
-## Configuration
-
-Captagent 6 provides a modular configuration structure supporting includes.
-To get familiar with the new configuration please use the projects [wiki](https://github.com/sipcapture/captagent/wiki)
-
-
 -------------
 
 ### Support
