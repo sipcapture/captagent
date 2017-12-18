@@ -239,6 +239,7 @@ static int load_module(xml_node *config) {
 
   xml_node *params, *profile = NULL, *settings;
   char *key, *value = NULL;
+  int r;
 
   LNOTICE("Loaded %s", module_name);
 
@@ -315,8 +316,9 @@ static int load_module(xml_node *config) {
 	  /**
 	     Set param value for private or public key 
 	  **/
-	  if(strncmp(params->attr[1], "private-key-path", 16))
-	    profile_protocol[profile_size].pvt_key_path = strdup(profile->attr[1]);
+	  r = strncmp(params->attr[1], "private-key-path", 16);
+	  if(r == 0)
+	    profile_protocol[profile_size].pvt_key_path = strdup(params->attr[3]);
 	  else profile_protocol[profile_size].pvt_key_path = NULL;
 	}
 	
