@@ -117,7 +117,7 @@ int w_parse_tls(msg_t *msg) {
      prepare the key (port_src + port_dst + proto_id_l3)
      TODO: CHECK IF IP IS BETTER THAN PORT
   */
-  if(msg->rcinfo.ip_family == IPv4)
+  if(msg->rcinfo.ip_family == AF_INET)
     Key_Hash = (int) (msg->rcinfo.src_port + msg->rcinfo.dst_port + msg->rcinfo.ip_proto);
   // ELSE IPV6 TODO
 
