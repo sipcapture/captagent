@@ -113,6 +113,17 @@ int w_parse_tls(msg_t *msg) {
   msg->mfree = 0;
 
   /**
+     # FLOW #
+     define the Flow (allocate memory)
+  */
+  flow = malloc(sizeof(struct Flow));
+  memset(flow, 0, sizeof(struct Flow));
+
+  flow->src_port = msg->rcinfo.src_port;     // src port
+  flow->dst_port = msg->rcinfo.dst_port;     // dst port
+  flow->proto_id_l3 = msg->rcinfo.ip_proto;  // l3 proto
+  
+  /**
      # KEY #
      prepare the key (port_src + port_dst + proto_id_l3)
      TODO: CHECK IF IP IS BETTER THAN PORT
@@ -130,7 +141,8 @@ int w_parse_tls(msg_t *msg) {
 
   // call dissector
   if((ret_len = dissector_tls((char *) msg->data, msg->len, decrypted_buffer, DECR_LEN, msg->rcinfo.src_port, msg->rcinfo.dst_port, msg->rcinfo.ip_proto, flow, Key_Hash, pvtkey_path)) > 0) {
-    
+
+    LDEBUG("DECRIPTED BUFFER TLS = %s\n", decrypted_buffer);
     msg->data = decrypted_buffer; // JSON buff --> Msg data
     msg->len = ret_len;
     msg->mfree = 1;
@@ -160,7 +172,6 @@ int w_parse_tls(msg_t *msg) {
     }
     return -1;
   }
-  LDEBUG("DECRIPTED BUFFER TLS = %s\n", decrypted_buffer);
 #else
   LERR("TLS has been not enabled. Please reconfigure captagent with param --enable-ssl and --enable-tls\n");                                  
 #endif

@@ -25,6 +25,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <arpa/inet.h>
+#include <captagent/log.h>
 #include "config.h"
 
 #ifdef USE_SSL
@@ -43,8 +44,7 @@
 /** ###### FunctionS for the HASH TABLE (uthash) ###### **/
 struct Hash_Table *HT_Flows = NULL; // # HASH TABLE
 
-static u_int32_t client_IP;
-static u_int32_t server_IP;
+static u_int16_t client_;
 
 // ciphers
 const char *ciphers[] = {
@@ -247,11 +247,19 @@ static unsigned char * read_file(char *name) {
   FILE *file;
   unsigned long fileLen;
   unsigned char *buffer;
+
+  char path[1000];
+
+  if(getcwd(path, 1000) == NULL)
+    LERR("GETCWD ERROR -> wrong path resolution");
+
+  strcat(path, "/");
+  strcat(path, name);
   
   // Open file
   file = fopen(name, "rb");
   if (!file) {
-    fprintf(stderr, "Unable to open file %s", name);
+    LERR("Unable to open file %s", name);
     return NULL;
   }
   
@@ -263,7 +271,7 @@ static unsigned char * read_file(char *name) {
   // Allocate memory
   buffer = malloc(fileLen + 1);
   if (!buffer) {
-    fprintf(stderr, "Memory error!");
+    LERR("Memory error!");
     fclose(file);
     return NULL;
   }
@@ -554,9 +562,8 @@ int dissector_tls(char *payload,
       
 	case CLIENT_HELLO:
 	  {
-	    // set client and server ip address (need for decryption)
-	    client_IP = flow->ip_src;
-	    server_IP = flow->ip_dst;
+	    // set client port direction (need for decryption)
+	    client_ = flow->src_port;
 	    
 	    // check version  
 	    if(pp[0] != 0x03 && (pp[1] != 0x01 || pp[1] != 0x02 || pp[1] != 0x03)) {
@@ -1184,7 +1191,7 @@ int dissector_tls(char *payload,
 	  /* --- DECRYPTION OF PAYLOAD DATA --- */
 
 	  // determine the direction of the data
-	  if(flow->ip_src == client_IP) direction = 0;
+	  if(flow->src_port == client_) direction = 0;
 	  else direction = 1;
 	  
 	  /**
@@ -1203,8 +1210,9 @@ int dissector_tls(char *payload,
 	  
 	} while(count < size_payload);
       }
-      return decrLen; // it's TLS
     }
+    if(el != NULL)
+      return decrLen; // it's TLS  
   }
   return -1;
 }

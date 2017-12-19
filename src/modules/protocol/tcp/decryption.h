@@ -322,12 +322,12 @@ struct Handshake
 /* struct containing the fields used for a flow */
 struct Flow
 {
-  // IPV4
-  u_int32_t ip_src;
-  u_int32_t ip_dst;
-  // IPV6
-  struct ipv6_addr ipv6_src;
-  struct ipv6_addr ipv6_dst;
+  /* // IPV4 */
+  /* u_int32_t ip_src; */
+  /* u_int32_t ip_dst; */
+  /* // IPV6 */
+  /* struct ipv6_addr ipv6_src; */
+  /* struct ipv6_addr ipv6_dst; */
   // Ports
   u_int16_t src_port;
   u_int16_t dst_port;
