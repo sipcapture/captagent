@@ -1,8 +1,8 @@
 /**
   This TLS dissector parse the pkt and extract the handshake (if present)
   
-  Author: 2016-2017 Michele Campus <fci1908@gmail.com>
-  (C) Homer Project 2012-2017 (http://www.sipcapture.org)
+  Copyright (C) 2016-2017 Michele Campus <fci1908@gmail.com>
+            (C) QXIP BV 2012-2017 (http://qxip.net)
    
   Homer capture agent is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -480,6 +480,7 @@ int dissector_tls(char *payload,
   char *pp = payload;
   unsigned char *PVTkey; // PVT KEY path
   int decrLen = 0;
+  int is_tls = 0;
 
 
   // call READ_FILE to get the string from key
@@ -562,6 +563,8 @@ int dissector_tls(char *payload,
       
 	case CLIENT_HELLO:
 	  {
+	    is_tls = 1;
+	    
 	    // set client port direction (need for decryption)
 	    client_ = flow->src_port;
 	    
@@ -673,6 +676,8 @@ int dissector_tls(char *payload,
 	  }
 	case SERVER_HELLO:
 	  {
+	    is_tls = 1;
+	    
 	    // check version
 	    if(pp[0] != 0x03 && (pp[1] != 0x01 || pp[1] != 0x02 || pp[1] != 0x03)) {
 	      fprintf(stderr, "This is not a valid TLS/SSL packet\n");
@@ -801,7 +806,9 @@ int dissector_tls(char *payload,
 	    };
 	  }
 	case CERTIFICATE:
-	  {	    
+	  {
+	    is_tls = 1;
+	    
 	    u_int16_t hh_len = hand_hdr->len[2] + (hand_hdr->len[1] << 8 ) + (hand_hdr->len[0] << 8);
 	    u_int16_t cert_len_total = pp[2] + (pp[1] << 8) + (pp[0] << 8);
 
@@ -872,6 +879,8 @@ int dissector_tls(char *payload,
 	  }
 	case CERTIFICATE_STATUS:
 	  {
+	    is_tls = 1;
+	    
 	    pp = pp + 1; // Certificate Status Type OCSP (1)
 	    u_int16_t cert_status_len = pp[2] + (pp[1] << 8) + (pp[0] << 8);
 	    offset = TLS_HEADER_LEN + HANDSK_HEADER_LEN + 1 + 3 + cert_status_len;
@@ -891,6 +900,8 @@ int dissector_tls(char *payload,
 	  }
 	case CLIENT_KEY_EXCHANGE:
 	  {
+	    is_tls = 1;
+	    
 	    int hand_hdr_len = (hand_hdr->len[2]) + (hand_hdr->len[1] << 8) + (hand_hdr->len[0] << 8);
 	    // variable for (Pre) Master Secret
 	    int enc_pms_len;
@@ -1087,7 +1098,9 @@ int dissector_tls(char *payload,
 	    }
 	  }
 	case CERTIFICATE_REQUEST:
-	  {	  
+	  {
+	    is_tls = 1;
+	    
 	    struct Cert_Req *cert_req = (struct Cert_Req*) pp;
 
 	    int hand_hdr_len = (hand_hdr->len[2]) + (hand_hdr->len[1] << 8) + (hand_hdr->len[0] << 8);
@@ -1109,6 +1122,8 @@ int dissector_tls(char *payload,
 	  }
 	case SERVER_DONE:
 	  {
+	    is_tls = 1;
+	    
 	    int hand_hdr_len = (hand_hdr->len[2]) + (hand_hdr->len[1] << 8) + (hand_hdr->len[0] << 8);
 	
 	    if(hand_hdr_len != 0) {
@@ -1119,10 +1134,13 @@ int dissector_tls(char *payload,
 	    break;
 	  }
 	case CERTIFICATE_VERIFY:
+	  is_tls = 1;
 	  break;
 	  
 	case FINISHED:
 	  {
+	    is_tls = 1;
+	    
 	    struct Hash_Table *old; 
 	    old = malloc(sizeof(struct Hash_Table));
 
@@ -1150,6 +1168,7 @@ int dissector_tls(char *payload,
        CHANGE_CIPHER_SPEC = 20
     **/
     else if(type == CHANGE_CIPHER_SPEC) {
+      is_tls = 1;
       pp = pp + TLS_HEADER_LEN;
       if(pp[0] != 0x01) {
 	fprintf(stderr, "This is not a valid TLS/SSL packet\n");
@@ -1157,10 +1176,13 @@ int dissector_tls(char *payload,
       }
     }
     else if(type == ALERT) {
+      is_tls = 1;
       /* TODO IF NECESSARY */
     }
     else if(type == APPLICATION_DATA) {
 
+      is_tls = 1;
+      
       /* key already in the hash? */
       HASH_FIND_INT(HT_Flows, &KEY, el);
       
@@ -1210,10 +1232,13 @@ int dissector_tls(char *payload,
 	  
 	} while(count < size_payload);
       }
+      if(el != NULL)
+	return decrLen; // it's TLS
+      return 0;
     }
-    if(el != NULL)
-      return decrLen; // it's TLS  
   }
+  if(is_tls == 1)
+    return 0;
   return -1;
 }
 
