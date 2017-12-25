@@ -177,7 +177,7 @@ static int tls_decrypt_aead_record(struct Handshake *h, const unsigned char *in,
     }
   }
   
-  printf("Plaintext = %s of len %d\n\n", out_str, ciphertext_len);
+  //printf("Plaintext = %s of len %d\n\n", out_str, ciphertext_len);
   *outl = ciphertext_len;
   return 0;
 }
@@ -432,7 +432,7 @@ static void add_flow(struct Flow *flow, int KEY, struct Handshake *handshake, u_
       }
       else if(flag == CKE_MS) {
 	memcpy(&elem_flow->handshake->master_secret, handshake->master_secret, len_id);
-	elem_flow->handshake->pre_master_secret[48] = '\0';
+	elem_flow->handshake->master_secret[48] = '\0';
       }
     }
  
@@ -711,7 +711,7 @@ int dissector_tls(char *payload,
 
 	    // add Chipher Suite Server to handshake
 	    /* memcpy(handshake->cipher_suite, pp, 2); */
-	    if(pp[1] == 0x9d)
+	    if(pp[1] != 0x9d)
 	      handshake->cipher_suite = cipher_suites[1];
 	    else
 	      handshake->cipher_suite = cipher_suites[0];
@@ -818,15 +818,12 @@ int dissector_tls(char *payload,
 	    }
 
 	    pp = pp + 3; // add the 3 bytes for certficates total length
-
+	    
 	    u_int16_t subcert_len_total = 0;
-
+	    
 	    if(cert_len_total > 0) {
 
-	      /* 
-		 TODO: SAVE MORE CERTIFICATES IN HANDSHAKE OF A FLOW
-		 check if the first certificate is not overwritten
-	      */
+	      /* TODO: SAVE MORE CERTIFICATES IN HANDSHAKE OF A FLOW */
 
 	      do { // more than one certificate
 
@@ -837,10 +834,12 @@ int dissector_tls(char *payload,
 		// Copy the Certificate from Server
 		memcpy(cert, pp + 3, subcert_len);
 		// Save the certificate in a file "cert.der"
-		  save_certificate_FILE(cert, subcert_len);
-		/*
-		  TODO function to split the certificate chain
-		*/
+		/* if(s == 1) */
+		/*   save_certificate_FILE(cert, subcert_len); */
+		/***
+		    --- TODO function to split the certificate chain ---
+		***/
+		//handshake.certificate_S = split_Server_Certificate(cert, cert_len);
 		pp = pp + 3 + subcert_len;
 
 		subcert_len_total += subcert_len + 3;
@@ -858,7 +857,7 @@ int dissector_tls(char *payload,
 		  fprintf(stderr, "This is not a valid TLS/SSL packet\n");
 		  return -1;
 		}
-		else if(pp[5] == 0x0e) {
+		else if(pp[5] == 0x0e) { // jump the SERVER_HELLO_DONE
 		  offset += TLS_HEADER_LEN + HANDSK_HEADER_LEN;
 		  more_records = 1;
 		  break;
@@ -1096,6 +1095,7 @@ int dissector_tls(char *payload,
 	      more_records = 1;
 	      break;
 	    }
+	    break;
 	  }
 	case CERTIFICATE_REQUEST:
 	  {

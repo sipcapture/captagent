@@ -142,39 +142,43 @@ int w_parse_tls(msg_t *msg) {
   // call dissector
   if((ret_len = dissector_tls((char *) msg->data, msg->len, decrypted_buffer, DECR_LEN, msg->rcinfo.src_port, msg->rcinfo.dst_port, msg->rcinfo.ip_proto, flow, Key_Hash, pvtkey_path)) > 0) {
 
-    LDEBUG("DECRIPTED BUFFER TLS = %s\n", decrypted_buffer);
-    msg->data = decrypted_buffer; // JSON buff --> Msg data
+    LDEBUG("DECRIPTED BUFFER TLS = %s", decrypted_buffer);
+    memcpy(msg->data, decrypted_buffer, ret_len); // decrypted buff --> Msg data
     msg->len = ret_len;
     msg->mfree = 1;
   }
   else if(ret_len == -3) {
-    LERR("Error on malloc for handshake\n");
+    LERR("Error on malloc for handshake");
     if(msg->corrdata) 
       {
 	free(msg->corrdata);
 	msg->corrdata = NULL;
       }
-    else if(ret_len == -2) {
-      LERR("Error on decription packet\n");
-      if(msg->corrdata) 
-	{
-	  free(msg->corrdata);
-	  msg->corrdata = NULL;
-	}
-    }
-    else {
-      LERR("INVALID TLS/SSL packet\n");
-      if(msg->corrdata) 
-	{
-	  free(msg->corrdata);
-	  msg->corrdata = NULL;
-	}
-    }
+    return -3;
+  }
+  else if(ret_len == -2) {
+    LERR("Error on decription packet");
+    if(msg->corrdata) 
+      {
+	free(msg->corrdata);
+	msg->corrdata = NULL;
+      }
+    return -2;
+  }
+  else if(ret_len == -1) {
+    LERR("INVALID TLS/SSL packet");
+    if(msg->corrdata) 
+      {
+	free(msg->corrdata);
+	msg->corrdata = NULL;
+      }
     return -1;
   }
 #else
-  LERR("TLS has been not enabled. Please reconfigure captagent with param --enable-ssl and --enable-tls\n");                                  
+  LERR("TLS has been not enabled. Please reconfigure captagent with param --enable-ssl and --enable-tls");
 #endif
+
+  LDEBUG("TLS packet found");
   
   return 0;
 }
