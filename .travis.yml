@@ -1,3 +1,18 @@
+matrix:
+  include:
+    # Plain Agent
+    - os: linux
+      env:
+        - CONFIGURE=""
+    # TLS Agent
+    - os: linux
+      env:
+        - CONFIGURE="--enable-tls --enable-ssl"      
+    # SSL Agent
+    - os: linux
+      env:
+        - CONFIGURE="--enable-ssl"      
+
 language: c
 
 compiler:
@@ -7,11 +22,11 @@ install:
   - sudo -E apt-add-repository -y ppa:linuxjedi/ppa
   - sudo apt-get update || true
   - sudo apt-get install build-essential
-  - sudo apt-get install libpcap-dev libexpat-dev libjson0-dev bison flex libtool autoconf automake autogen libuv-dev
+  - sudo apt-get install libpcap-dev libexpat-dev libjson0-dev bison flex libtool autoconf automake autogen libuv-dev libssl-dev libgcrypt20 libgcrypt20-dev 
 
 script:
   - ./build.sh
-  - ./configure
+  - ./configure ${CONFIGURE}
   - make
   - ./src/captagent -h
   - ./src/captagent -v

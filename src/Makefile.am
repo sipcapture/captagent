@@ -7,10 +7,10 @@ SUBDIRS = \
 	modules/socket/tzsp \
 	modules/protocol/sip \
 	modules/protocol/rtcp \
+	modules/protocol/tcp \
 	modules/protocol/rtcpxr \
 	modules/protocol/diameter \
 	modules/protocol/ss7 \
-	modules/protocol/tcp \
 	modules/transport/hep \
 	modules/transport/json \
 	modules/database/hash \
@@ -29,7 +29,7 @@ rtpagentconfdir = $(sysconfdir)
 rtpagentconf_DATA = $(top_srcdir)/conf/captagent.xml
 else
 sbin_PROGRAMS = captagent
-AM_CFLAGS = -g -fPIC -rdynamic -I$(top_srcdir)/include
+AM_CFLAGS = -g3 -fPIC -rdynamic -I$(top_srcdir)/include
 AM_CPPFLAGS = -DSYSCONFDIR='"$(sysconfdir)"' -I$(top_srcdir)/include
 BUILT_SOURCES = capplan.tab.h
 noinst_HEADERS = md5.h captagent.h conf_function.h

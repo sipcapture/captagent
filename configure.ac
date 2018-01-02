@@ -1,5 +1,5 @@
 AC_PREREQ(2.61)
-AC_INIT(captagent,6.2.11,support@sipcapture.org,,[http://www.sipcapture.org])
+AC_INIT(captagent,6.3.0,support@sipcapture.org,,[http://www.sipcapture.org])
 AC_COPYRIGHT("SIP Capture Solution")
 AC_CONFIG_MACRO_DIR([m4])
 AM_INIT_AUTOMAKE(foreign tar-ustar)
@@ -93,9 +93,19 @@ AC_MSG_RESULT([$REDIS])
 AC_SUBST([REDIS])
 
 useLIBUV=yes
-
 AC_MSG_RESULT([$LIBUV])
 AC_SUBST([LIBUV])
+
+useTLS=no
+AC_MSG_CHECKING([whether to use TLS])
+AC_ARG_ENABLE(tls,
+   [  --enable-tls    Enable TLS support],
+   [TLS="$enableval"]
+   useTLS=yes,
+   [TLS="no"]
+)
+AC_MSG_RESULT([$TLS])
+AC_SUBST([TLS])
 
 enableExtraModules=no
 AC_ARG_ENABLE(extramodules,
@@ -200,7 +210,8 @@ AC_SUBST(JSON_LIBS)
 AC_SUBST(PCRE_LIBS)
 AC_SUBST(HIREDIS_LIBS)
 AC_SUBST(FLEX_LIBS)
-
+AC_SUBST(GCRYPT_LIBS)
+AC_SUBST(CRYPTO_LIBS)
 
 dnl
 dnl check for pcre library
@@ -264,6 +275,18 @@ if test "$REDIS" = "yes"; then
    AC_CHECK_LIB(hiredis, redisCommand, [ HIREDIS_LIBS="-lhiredis" ], [AC_MSG_ERROR([$PACKAGE_NAME requires but cannot find lhiredis])])
    AC_DEFINE(USE_REDIS, 1, [Use REDIS library])
    AC_SUBST(HIREDIS_LIBS)
+fi
+
+if test "$TLS" = "yes"; then
+  AC_CHECKING([for gcrypt Library and Header files])
+  AC_CHECK_HEADER(gcrypt.h,,[AC_MSG_ERROR([ gcrypt.h headers not found.])])
+  AC_CHECK_LIB(gcrypt, gcry_control, [ GCRYPT_LIBS="-lgcrypt" ], [AC_MSG_ERROR([$PACKAGE_NAME requires but cannot find lgcrypt])])
+  AC_DEFINE(USE_GCRYPT, 1, [Use GCRYPT library])
+  AC_SUBST(GCRYPT_LIBS)
+  AC_CHECKING([for crypto Library and Header files])
+  AC_CHECK_LIB(crypto, CRYPTO_new_ex_data, [CRYPTO_LIBS="-lcrypto"], [AC_MSG_ERROR([library 'crypto' is required for OpenSSL])])
+  AC_DEFINE(USE_GCRYPTO, 1, [Use CRYPTO library])
+  AC_SUBST(CRYPTO_LIBS)
 fi
 
 
@@ -374,5 +397,6 @@ echo Build with MySQL............ : $useMysql
 echo Build with PCRE............. : $usePCRE
 echo Build with LibUV............ : $useLIBUV
 echo Build with EPAN............. : $useEpan
+echo Build with TLS.............. : $useTLS
 echo
 

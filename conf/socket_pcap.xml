@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <document type="captagent_module/xml">
     <module name="socket_pcap" description="HEP Socket" serial="2014010402">
-	<profile name="socketspcap_sip" description="HEP Socket" enable="false" serial="2014010402">
+	<profile name="socketspcap_sip" description="HEP Socket" enable="true" serial="2014010402">
 	    <settings>
 		<param name="dev" value="any"/>
 		<param name="promisc" value="true"/>
@@ -9,7 +9,19 @@
 		<param name="tcpdefrag" value="false"/>
 		<param name="capture-plan" value="sip_capture_plan.cfg"/>
 		<param name="filter">
-		    <value>portrange 5060-5091</value>
+		    <value>port 5060</value>
+		</param>
+	    </settings>
+	</profile>
+	<profile name="socketspcap_tls" description="TLS Socket" enable="false" serial="2014010402">
+	    <settings>
+		<param name="dev" value="any"/>
+		<param name="promisc" value="true"/>
+		<param name="reasm" value="false"/>
+		<param name="tcpdefrag" value="true"/>
+		<param name="capture-plan" value="tcp_capture_plan.cfg"/>
+		<param name="filter">
+		    <value>tcp port 5061</value>
 		</param>
 	    </settings>
 	</profile>
@@ -25,7 +37,7 @@
 		<param name="capture-filter" value="rtcp"/>
 		<param name="capture-plan" value="rtcp_capture_plan.cfg"/>
 		<param name="filter">
-		    <value>portrange 10000-50000 and len >=50 </value>
+		    <value>portrange 10000-30000 and len >=50 </value>
 		</param>
 	    </settings>
 	</profile>

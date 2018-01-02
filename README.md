@@ -1,20 +1,28 @@
-![](http://i.imgur.com/3kEIR.png)
+<!-- ![](http://i.imgur.com/3kEIR.png) -->
+<img src="http://i.imgur.com/3kEIR.png" width=150 />
 
-CaptAgent 6 Project
+CaptAgent
 =========
 
-### The Next-Generation capture agent for Sipcapture's [Homer](https://github.com/sipcapture/homer) Project
+### The Next-Generation HEP Capture Agent for [Homer](https://github.com/sipcapture/homer)
 -------------
+![HEP](https://img.shields.io/badge/proto-hep_eep-blue.svg)
+![HEP](https://img.shields.io/badge/proto-sip-brightgreen.svg)
+![HEP](https://img.shields.io/badge/proto-rtcp-brightgreen.svg)
+![HEP](https://img.shields.io/badge/proto-rtcp_xr-brightgreen.svg)
+![HEP](https://img.shields.io/badge/proto-rtp_stats-brightgreen.svg)
+![HEP](https://img.shields.io/badge/proto-ss7_isup-brightgreen.svg)
+![HEP](https://img.shields.io/badge/proto-epan-orange.svg)
+![HEP](https://img.shields.io/badge/proto-diameter-orange.svg)
+![HEP](https://img.shields.io/badge/proto-tls_rsa-orange.svg)
 
-Download the latest code from our repository and compile it on your system.
+Captagent is a powerful, flexible, completely modular HEP packet capture and mirroring framework for RTC, ready for _(virtually)_ any kind of IP protocol and encapsulation method - past, present - and future.
 
-Full instructions are available on the [wiki](https://github.com/sipcapture/captagent/wiki/Installation)
+### Status
+[![Build Status](https://travis-ci.org/sipcapture/captagent.svg?branch=master)](https://travis-ci.org/sipcapture/captagent)
 
-## Configuration
-
-Captagent 6 provides a modular configuration structure supporting includes.
-To get familiar with the new configuration please use the projects [wiki](https://github.com/sipcapture/captagent/wiki)
-
+### Get Started
+Setup & Configuration instructions are available on the Project [Wiki](https://github.com/sipcapture/captagent/wiki/Installation)
 
 -------------
 

@@ -1,36 +1,72 @@
 /**
-   Container of header structures for 
-   - Datalink layer
-   - Network layer
-   - Transport layer
+   decoder - decode TLS/SSL traffic - save handshake and extract certificate
+   Copyright (C) 2016-2017 Michele Campus <fci1908@gmail.com>
+             (C) QXIP BV 2012-2017 (http://qxip.net)
    
-   Author: 2016-2017 Michele Campus <fci1908@gmail.com>
-   (C) Homer Project 2012-2017 (http://www.sipcapture.org)
+   This file is part of decoder.
    
-   Homer capture agent is free software; you can redistribute it and/or modify
-   it under the terms of the GNU General Public License as published by
-   the Free Software Foundation; either version 3 of the License, or
-   (at your option) any later version
+   decoder is free software: you can redistribute it and/or modify it under the
+   terms of the GNU General Public License as published by the Free Software
+   Foundation, either version 3 of the License, or (at your option) any later
+   version.
    
-   Homer capture agent is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU General Public License for more details.
+   decoder is distributed in the hope that it will be useful, but WITHOUT ANY
+   WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+   A PARTICULAR PURPOSE. See the GNU General Public License for more details.
    
-   You should have received a copy of the GNU General Public License
-   along with this program; if not, write to the Free Software
-   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+   You should have received a copy of the GNU General Public License along with
+   decoder. If not, see <http://www.gnu.org/licenses/>.
 **/
-#ifndef STRUCTURES_H_
-#define STRUCTURES_H_
+#ifndef DECRIPTION_H_
+#define DECRIPTION_H_
 
-#include <pcap.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+#include <pcap.h>
 #include <endian.h>
 #include <net/ethernet.h>
+#include <openssl/pem.h>
+#include <openssl/ssl.h>
+#include <openssl/rsa.h>
+#include <openssl/evp.h>
+#include <openssl/bio.h>
+#include <openssl/err.h>
+#include <gcrypt.h>
 #include "define.h"
 #include "uthash.h"
+
+#define SHA384 0x009d
+#define SHA256 0x009c
+
+#define MS_LENGTH      48
+#define MAX_BLOCK_SIZE 16
+#define MAX_KEY_SIZE   32
+
+// for cipher suite
+#define KEX_RSA        0x1e
+#define ENC_AES        0x35
+#define ENC_AES256     0x36
+#define ENC_NULL       0x3B
+#define DIG_SHA256     0x42
+#define DIG_SHA384     0x43
+
+/* Create a RSA structure */
+RSA *createRSA(unsigned char * key, int public);
+
+// PRIVATE ENCRIPTION
+/* int private_encrypt(unsigned char * data, int data_len, unsigned char * key, unsigned char *encrypted); */
+
+/* // PUBLIC ENCRIPTION */
+/* int public_encrypt(unsigned char * data, int data_len, unsigned char * key, unsigned char *encrypted); */
+
+// PRIVATE DECRIPTION
+int private_decrypt(unsigned char * enc_data, int data_len, unsigned char * key, unsigned char *decrypted);
+
+// PUBLIC DECRIPTION
+/* int public_decrypt(unsigned char * enc_data, int data_len, unsigned char * key, unsigned char *decrypted); */
+
+/* **************************** */
 
 #ifdef __GNUC__
 /* GNU C */
@@ -46,8 +82,6 @@ struct chdlc_hdr
   u_int16_t proto_code;   /* protocol type (e.g. 0x0800 IP)    */
 } PACK_OFF;
 
-
-
 /* +++++++++++++++++++++ Ethernet header ++++++++++++++++++++++ */
 struct ether_hdr
 {
@@ -55,8 +89,6 @@ struct ether_hdr
   u_int8_t ether_src_addr[ETHER_ADDR_LEN];  // Source MAC address
   u_int16_t type_or_len; // Ethernet Type (for Eth II) or length (for Eth)
 } PACK_OFF;
-
-
 
 /* +++++++++++++++++ LLC SNAP header (IEEE 802.2) ++++++++++++ */
 struct llc_snap_hdr
@@ -70,8 +102,6 @@ struct llc_snap_hdr
   u_int16_t type;
 } PACK_OFF;
 
-
-
 /* +++++++++++++++ 802.1Q header (Virtual LAN) +++++++++++++++ */
 struct vlan_hdr
 {
@@ -79,15 +109,11 @@ struct vlan_hdr
   u_int16_t type;
 } PACK_OFF;
 
-
-
 /* +++++++++++++++++++++++ MPLS header +++++++++++++++++++++++ */
 struct mpls_hdr
 {
   u_int32_t label:20, exp:3, s:1, ttl:8;
 } PACK_OFF;
-
-
 
 /* ++++++++++ Radio Tap header (for IEEE 802.11) with timestamp +++++++++++++ */
 struct radiotap_hdr
@@ -100,8 +126,6 @@ struct radiotap_hdr
   u_int8_t flags;
 } PACK_OFF;
 
-
-
 /* ++++++++++++ Wireless header (IEEE 802.11) ++++++++++++++++ */
 struct wifi_hdr
 {
@@ -113,8 +137,6 @@ struct wifi_hdr
   u_int16_t seq_ctrl;
   /* u_int64_t ccmp - for data encription only - check fc.flag */
 } PACK_OFF;
-
-
 
 /* +++++++++++++ Internet Protocol (IPv4) header +++++++++++++ */
 struct ipv4_hdr
@@ -141,19 +163,11 @@ struct ipv4_hdr
   u_int32_t ip_dst_addr;      // destination IP address
 } PACK_OFF;
 
-
-
 /* +++++++++++++++++++++++ IPv6 header +++++++++++++++++++++++ */
 struct ipv6_addr
 {
-  /* union */
-  /* { */
-  u_int8_t   ipv6_addr[16];
-  /* u_int16_t  ipv6_addr16[8]; */
-    /* u_int32_t  ipv6_addr32[4]; */
-  /* } ipv6_addr;  /\* 128-bit IPV6 address *\/ */
+  u_int8_t ipv6_addr[16];
 };
-
 
 struct ipv6_hdr
 {
@@ -163,8 +177,7 @@ struct ipv6_hdr
       u_int16_t ipv6_un1_plen;    /* payload length */
       u_int8_t  ipv6_un1_next;    /* next header */
       u_int8_t  ipv6_un1_hlim;    /* hop limit */
-    } ipv6_un1;
-    
+    } ipv6_un1; 
     u_int8_t ipv6_un2_vfc;        /* 4 bits version, top 4 bits tclass */ 
   } ipv6_ctlun;
   
@@ -172,13 +185,11 @@ struct ipv6_hdr
   struct ipv6_addr ipv6_dst;	  /* destination address */
 } PACK_OFF;
 
-
-
 /* +++++++++++++++++++++++ TCP header +++++++++++++++++++++++++ */
 struct tcp_hdr
 {
-  u_int16_t tcp_src_port;     // source TCP port
-  u_int16_t tcp_dst_port;    // destination TCP port
+  u_int16_t tcp_src_port;      // source TCP port
+  u_int16_t tcp_dst_port;     // destination TCP port
   u_int32_t tcp_seq;          // TCP sequence number
   u_int32_t tcp_ack;          // TCP acknowledgement number
 #if defined(__LITTLE_ENDIAN)
@@ -200,8 +211,6 @@ struct tcp_hdr
   u_int16_t tcp_checksum;   // TCP checksum
   u_int16_t tcp_urgent;     // TCP urgent pointer
 } PACK_OFF;
-
-
 
 /* +++++++++++++++++++++++ UDP header +++++++++++++++++++++++++ */
 struct udp_hdr
@@ -227,7 +236,6 @@ struct flow_stats
   u_int16_t tcp_pkts;
   u_int16_t udp_pkts;
   u_int16_t num_tls_pkts; // count tls pkts
-  
 };
 
 /* struct passed to the callback proto function */
@@ -236,50 +244,103 @@ struct flow_callback_proto
 {
   pcap_t *pcap_handle;
   struct flow_stats stats;
+  u_int8_t save;
 };
 
 
-struct Certificate
-{
-  
+/* **************************** */
+
+typedef struct {
+  const char *name;
+  unsigned int len;
+} SslDigestAlgo;
+
+/* SSL Cipher Suite modes */
+typedef enum {
+  MODE_CBC,               /* GenericBlockCipher */
+  MODE_GCM,               /* GenericAEADCipher */
+  MODE_CCM,               /* AEAD_AES_{128,256}_CCM with 16 byte auth tag */
+  MODE_CCM_8,             /* AEAD_AES_{128,256}_CCM with 8 byte auth tag */
+  MODE_POLY1305,
+} ssl_cipher_mode_t;
+
+typedef struct {
+  int number;             /* The cipher suite identification */
+  int kex;                /* The key exchange algorithm */
+  int enc;		  /* The private key encryption algorithm */
+  int dig;		  /* The digest algorithm */
+  ssl_cipher_mode_t mode; /* The cipher suite modes */
+} SslCipherSuite;
+
+// cipher suites array
+extern const SslCipherSuite cipher_suites[];
+// digest array
+extern const SslDigestAlgo digests[];
+// get index digest index
+extern const SslDigestAlgo *ssl_cipher_suite_dig(const SslCipherSuite *cs);
+
+extern const char *ciphers[];
+
+struct _SslDecoder {
+  u_int8_t *iv;
+  u_int8_t *w_key;
+  gcry_cipher_hd_t evp;
 };
+
+// Internal function for PRF pseudo-random function
+int tls12_prf(int md, unsigned char *secret, const char *usage,
+	      u_int8_t *rnd1, u_int8_t *rnd2, unsigned char *out,
+	      u_int8_t out_len);
 
 // Handshake struct for the Flow (to put in Hashtable)
 /* 
+   - pre-master secret
+   - public key cert (from server in case of pms presence) TLS1
+   - public key cli  (from client key exchange) TLS1.2
    - random val (C-S)
    - session ID (C-S)
-   - certificate_server
+   - certificate
+   - cipher_suite
+   - SSL decoder CLIENT
+   - SSL decoder SERVER
 */
 struct Handshake
 {
-  /* u_int8_t cli_rand[32];    // Client random num */
-  /* u_int8_t srv_rand[32];    // Server random num */
-  u_int8_t * sessID_c;      // Client session ID
-  u_int8_t * sessID_s;      // Server session ID
-  struct Certificate * certificate_S; // Server Certificate
-  struct Certificate * certificate_C; // [Opt] Client Certificate
+  u_int8_t pre_master_secret[49];      // Pre-Master Secret
+  u_int8_t master_secret[49];          // Master Secret
+  u_int8_t cli_rand[33];               // Client random num
+  u_int8_t srv_rand[33];               // Server random num
+  u_int8_t *sessID_c;                  // Client session ID
+  u_int8_t *sessID_s;                  // Server session ID
+  u_int8_t *certificate_S;             // Server Certificate
+  SslCipherSuite cipher_suite;         // Cipher Suite
+  struct _SslDecoder ssl_decoder_cli;
+  struct _SslDecoder ssl_decoder_srv;
+  
 };
 
-/* struct containing the fields used as the key in the hashmap for a flow */
-struct Flow_key
+/* struct containing the fields used for a flow */
+struct Flow
 {
-  // IPV4
-  u_int32_t ip_src;
-  u_int32_t ip_dst;
-  // IPV6
-  struct ipv6_addr ipv6_src;
-  struct ipv6_addr ipv6_dst;
-  
+  /* // IPV4 */
+  /* u_int32_t ip_src; */
+  /* u_int32_t ip_dst; */
+  /* // IPV6 */
+  /* struct ipv6_addr ipv6_src; */
+  /* struct ipv6_addr ipv6_dst; */
+  // Ports
   u_int16_t src_port;
   u_int16_t dst_port;
+  // Transport proto
   u_int8_t proto_id_l3;
 };
 
 /** HASH TABLE **/
 struct Hash_Table
 {
-  struct Flow_key flow_key_hash; // Key
+  struct Flow flow;
   struct Handshake *handshake;
+  int KEY; // Key
   u_int8_t is_handsk_fin;
   UT_hash_handle hh;
 };
