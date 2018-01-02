@@ -1,5 +1,5 @@
 AC_PREREQ(2.61)
-AC_INIT(captagent,6.2.11,support@sipcapture.org,,[http://www.sipcapture.org])
+AC_INIT(captagent,6.3.0,support@sipcapture.org,,[http://www.sipcapture.org])
 AC_COPYRIGHT("SIP Capture Solution")
 AC_CONFIG_MACRO_DIR([m4])
 AM_INIT_AUTOMAKE(foreign tar-ustar)
