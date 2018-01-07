@@ -130,7 +130,8 @@ int w_parse_tls(msg_t *msg) {
   */
   if(msg->rcinfo.ip_family == AF_INET)
     Key_Hash = (int) (msg->rcinfo.src_port + msg->rcinfo.dst_port + msg->rcinfo.ip_proto);
-  // ELSE IPV6 TODO
+
+  LDEBUG("KEY in proto_tcp = %d", Key_Hash);
 
   /** PREPARE THE KEY **/
   while(profile_protocol[index].pvt_key_path == NULL) // search the profile protocol TLS
@@ -140,7 +141,7 @@ int w_parse_tls(msg_t *msg) {
   
 
   // call dissector
-  if((ret_len = dissector_tls((char *) msg->data, msg->len, decrypted_buffer, DECR_LEN, msg->rcinfo.src_port, msg->rcinfo.dst_port, msg->rcinfo.ip_proto, flow, Key_Hash, pvtkey_path)) > 0) {
+  if((ret_len = dissector_tls((const u_char *) msg->data, msg->len, decrypted_buffer, DECR_LEN, msg->rcinfo.src_port, msg->rcinfo.dst_port, msg->rcinfo.ip_proto, flow, Key_Hash, pvtkey_path)) > 0) {
 
     LDEBUG("DECRIPTED BUFFER TLS = %s", decrypted_buffer);
     memcpy(msg->data, decrypted_buffer, ret_len); // decrypted buff --> Msg data
