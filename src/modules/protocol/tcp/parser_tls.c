@@ -359,6 +359,8 @@ static void add_flow(struct Flow *flow, int KEY, struct Handshake *handshake, u_
 {
   struct Hash_Table * elem_flow;
 
+  LDEBUG("KEY CKE flow = %d", KEY);
+
   /* key already in the hash? */
   HASH_FIND_INT(HT_Flows, &KEY, elem_flow);
   
@@ -464,7 +466,7 @@ static void add_flow(struct Flow *flow, int KEY, struct Handshake *handshake, u_
 
 
 // Function to dissect TLS/SSL
-int dissector_tls(char *payload,
+int dissector_tls(const u_char *payload,
 		  int size_payload,
 		  char decrypted_buff[],
 		  int msg_len,
@@ -477,7 +479,7 @@ int dissector_tls(char *payload,
 {
   struct Hash_Table *el = NULL;
   struct Handshake *handshake = NULL;
-  char *pp = payload;
+  const u_int8_t *pp = payload;
   unsigned char *PVTkey; // PVT KEY path
   int decrLen = 0;
   int is_tls = 0;
@@ -711,7 +713,7 @@ int dissector_tls(char *payload,
 
 	    // add Chipher Suite Server to handshake
 	    /* memcpy(handshake->cipher_suite, pp, 2); */
-	    if(pp[1] != 0x9d)
+	    if(pp[1] == 0x9d)
 	      handshake->cipher_suite = cipher_suites[1];
 	    else
 	      handshake->cipher_suite = cipher_suites[0];
@@ -952,6 +954,7 @@ int dissector_tls(char *payload,
 	      // copy pre_master_secret in flow
 	      memcpy(handshake->pre_master_secret, PMS, pms_len);
 	      handshake->pre_master_secret[48] = '\0';
+	      LDEBUG("KEY CKE 1 = %d", KEY);
 	      add_flow(flow, KEY, handshake, CKE_PMS, pms_len);
 
 	      /* key already in the hash? */
