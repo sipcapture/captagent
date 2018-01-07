@@ -47,6 +47,7 @@
 #include <captagent/modules_api.h>
 #include <captagent/modules.h>
 #include <captagent/log.h>
+#include <captagent/md5.h>
 #include "localapi.h"
 #include "protocol_tcp.h"
 #include "parser_tls.h"
@@ -102,6 +103,20 @@ int w_parse_tls(msg_t *msg) {
 
   /* int json_len; */
   /* char json_tls_buffer[JSON_BUFFER_LEN] = {0}; */
+  /*
+  
+  LERR("MESSAGE LEN [%d]\n", msg->len);
+  char key[33];
+  md5_byte_t hash[16];    
+  md5_state_t ctx;
+  md5_init(&ctx);
+  md5_append(&ctx, (const md5_byte_t *) msg->data, msg->len);
+  md5_finish(&ctx, hash);
+  int i = 0;
+  for (i = 0; i < 16; i++) sprintf(&key[i*2], "%02X", (unsigned int)hash[i]);                          
+  LERR("MESSAGE KEY [%s]\n", key);   
+  */
+  
 #ifdef USE_SSL
 
   int ret_len = 0, index = 0;
