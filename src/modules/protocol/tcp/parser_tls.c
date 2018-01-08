@@ -911,8 +911,8 @@ int dissector_tls(const u_char *payload,
 	    int ret, needed = 0, cipher_algo = 0;
 	    unsigned char *key_block = NULL, *ptr;
 	    unsigned int encr_key_len, write_iv_len = 0;
-	    struct _SslDecoder SslDecoder_Client;
-	    struct _SslDecoder SslDecoder_Server;
+	    struct _SslDecoder SslDecoder_Client = {0};
+	    struct _SslDecoder SslDecoder_Server = {0};
 	    
 	    
 	    if(hand_hdr_len > 33) {
@@ -924,6 +924,8 @@ int dissector_tls(const u_char *payload,
 	      enc_pms_len = hand_hdr_len - 2;
 	      
 	      u_int8_t *enc_pre_master_secret = malloc(sizeof(u_int8_t) * enc_pms_len);
+	      memset(enc_pre_master_secret, 0, enc_pms_len);
+	      
 	      // save the enc_pre-master secret
 	      memcpy(enc_pre_master_secret, pp + 2, enc_pms_len);
 	      
@@ -969,7 +971,7 @@ int dissector_tls(const u_char *payload,
 	      */
 	      ms_ret = PRF(el->handshake, PMS, master_string, MS, MS_LENGTH);
 	      if(ms_ret == 0) {
-		printf("MASTER SECRET = %s\n", MS);
+		/* printf("MASTER SECRET = %s\n", MS); */
 		// copy master_secret in flow
 		memcpy(handshake->master_secret, MS, MS_LENGTH);
 		handshake->master_secret[48] = '\0';
@@ -1021,7 +1023,7 @@ int dissector_tls(const u_char *payload,
 		fprintf(stderr, "Can't generate key_block\n");
 		return -1;
 	      }
-	      printf("key expansion = %s\n", key_block);
+	      /* printf("key expansion = %s\n", key_block); */
 
 	      /* alloc memory for write keys and IVs */
 	      SslDecoder_Client.w_key = calloc(encr_key_len + 1, sizeof(unsigned char));
@@ -1046,16 +1048,7 @@ int dissector_tls(const u_char *payload,
 		memcpy(SslDecoder_Server.iv, ptr, write_iv_len);
 		/* s_iv = ptr; */ /* ptr += write_iv_len; */
 	      }
-	      
-	      /* show key material info */
-	      printf("Client Write key = %s of len %d\n", SslDecoder_Client.w_key, encr_key_len);
-	      printf("Server Write key = %s of len %d\n", SslDecoder_Server.w_key, encr_key_len);
-	      /* used as IV for CBC mode and the AEAD implicit nonce (salt) */
-	      if (write_iv_len > 0) {
-	        printf("Client Write IV = %s of len %d\n", SslDecoder_Client.iv, write_iv_len);
-	        printf("Server Write IV = %s of len %d\n", SslDecoder_Server.iv, write_iv_len);
-	      }
-
+	     
 	      /* CREATE DECODER CLIENT */
 	      ret = ssl_create_decoder(&SslDecoder_Client, cipher_algo, SslDecoder_Client.w_key, SslDecoder_Client.iv, el->handshake->cipher_suite.mode);
 	      if(ret < 0) {
@@ -1139,6 +1132,11 @@ int dissector_tls(const u_char *payload,
 	case CERTIFICATE_VERIFY:
 	  is_tls = 1;
 	  break;
+
+	case NEW_SESSION_TICKET:
+	  is_tls = 1;
+	  more_records = 1;
+	  break;
 	  
 	case FINISHED:
 	  {
@@ -1207,8 +1205,8 @@ int dissector_tls(const u_char *payload,
 	  count = count + TLS_HEADER_LEN + len;
 
 	  // allocate space for encryption and decryption buffers
-	  encrypted = calloc(size_payload+1, sizeof(unsigned char));
-	  decrypted = calloc(size_payload+1, sizeof(unsigned char));
+	  encrypted = calloc(len+1, sizeof(unsigned char));
+	  decrypted = calloc(len+1, sizeof(unsigned char));
 	  
 	  // copy the ENCRIPTED application data into "encrypted" buffer
 	  memcpy(encrypted, pp, len);
