@@ -94,7 +94,7 @@ static int tls_decrypt_aead_record(struct Handshake *h, const unsigned char *in,
   */
   
   gcry_error_t err;
-  const unsigned char *explicit_nonce = NULL, *ciphertext;
+  const unsigned char *explicit_nonce = NULL, *ciphertext = NULL;
   int ciphertext_len, auth_tag_len;
   unsigned char nonce[12];
   const ssl_cipher_mode_t cipher_mode = h->cipher_suite.mode;
@@ -231,112 +231,72 @@ static int ssl_create_decoder(struct _SslDecoder *dec,
   ret = ssl_cipher_init(&d->evp, cipher_algo, sk, iv, mode);
   if(ret < 0) {
     fprintf(stderr, "Can't create cipher id: %d mode: %d\n", cipher_algo, mode);
+    // clean up memory
     free(d);
     return -1;
   }
 
   dec->evp = d->evp;
+
+  // clean up memory
+  free(d);
   
   return 0;
-}
-
-/**
-   Function to read FILE and return string
-**/
-static unsigned char * read_file(char *name) {
-  FILE *file;
-  unsigned long fileLen;
-  unsigned char *buffer;
-
-  char path[1000];
-
-  if(getcwd(path, 1000) == NULL)
-    LERR("GETCWD ERROR -> wrong path resolution");
-
-  strcat(path, "/");
-  strcat(path, name);
-  
-  // Open file
-  file = fopen(name, "rb");
-  if (!file) {
-    LERR("Unable to open file %s", name);
-    return NULL;
-  }
-  
-  // Get file length
-  fseek(file, 0, SEEK_END);
-  fileLen = ftell(file);
-  fseek(file, 0, SEEK_SET);
-  
-  // Allocate memory
-  buffer = malloc(fileLen + 1);
-  if (!buffer) {
-    LERR("Memory error!");
-    fclose(file);
-    return NULL;
-  }
-  
-  // Read file contents into buffer
-  fread(buffer, fileLen, 1, file);
-  fclose(file);
-  
-  return buffer;
-  
 }
 
 /** ###### FunctionS to save the certificate(s) ###### **/
 
 // SAVE CERTIFICATE AS .DER FILE
-static void save_certificate_FILE(const unsigned char *cert, u_int16_t cert_len)
-{
-  FILE *fw;
-  X509 *x_cert;
-  char filename[cert_len];
-  char buff[cert_len];
-  struct tm *timeinfo;
-  struct timeval tv;
-  int millisec;
+/* static void save_certificate_FILE(const unsigned char *cert, u_int16_t cert_len) */
+/* { */
+/*   FILE *fw; */
+/*   X509 *x_cert; */
+/*   char filename[cert_len]; */
+/*   char buff[cert_len]; */
+/*   struct tm *timeinfo; */
+/*   struct timeval tv; */
+/*   int millisec; */
   
-  x_cert = d2i_X509(NULL, &cert, cert_len);
-  if (!x_cert) {
-    fprintf(stderr, "Error on d21_X509 funtion\n");
-    return;
-  }
+/*   x_cert = d2i_X509(NULL, &cert, cert_len); */
+/*   if (!x_cert) { */
+/*     fprintf(stderr, "Error on d21_X509 funtion\n"); */
+/*     return; */
+/*   } */
 
-  gettimeofday(&tv, NULL);
+/*   gettimeofday(&tv, NULL); */
 
-  // trick to have milliseconds (thanks to a Stack Overflow answer)
-  millisec = lrint(tv.tv_usec/1000.0); // Round to nearest millisec
-  if(millisec >= 1000) {               // Allow for rounding up to nearest second
-    millisec -= 1000;
-    tv.tv_sec++;
-  }
+/*   // trick to have milliseconds (thanks to a Stack Overflow answer) */
+/*   millisec = lrint(tv.tv_usec/1000.0); // Round to nearest millisec */
+/*   if(millisec >= 1000) {               // Allow for rounding up to nearest second */
+/*     millisec -= 1000; */
+/*     tv.tv_sec++; */
+/*   } */
 
-  timeinfo = localtime(&tv.tv_sec);
+/*   timeinfo = localtime(&tv.tv_sec); */
 
-  memset(filename, 0, cert_len);
-  memset(buff, 0, cert_len);
-  struct stat st = {0};
+/*   memset(filename, 0, cert_len); */
+/*   memset(buff, 0, cert_len); */
+/*   struct stat st = {0}; */
 
-  if (stat("certificates/", &st) == -1) {
-    mkdir("certificates/", 0555);
-  }
+/*   if (stat("certificates/", &st) == -1) { */
+/*     mkdir("certificates/", 0555); */
+/*   } */
 
-  /* save every file with the time certificate was catched */
-  strftime(filename, sizeof(filename), "certificates/cert_%Y-%m-%d_%H-%M-%S-%%03u.der", timeinfo);
-  snprintf(buff, sizeof(buff), filename, tv.tv_usec);
+/*   /\* save every file with the time certificate was catched *\/ */
+/*   strftime(filename, sizeof(filename), "certificates/cert_%Y-%m-%d_%H-%M-%S-%%03u.der", timeinfo); */
+/*   snprintf(buff, sizeof(buff), filename, tv.tv_usec); */
   
-  if(!(fw = fopen(buff,"w"))) {
-    fprintf(stderr, "Error on opening file descriptor fw\n");
-    return;
-  }
-  // function to convert raw data (DER) to PEM certificate (good for parsing with openssl)
-  i2d_X509_fp(fw, x_cert);
+/*   if(!(fw = fopen(buff,"w"))) { */
+/*     fprintf(stderr, "Error on opening file descriptor fw\n"); */
+/*     return; */
+/*   } */
+/*   // function to convert raw data (DER) to PEM certificate (good for parsing with openssl) */
+/*   i2d_X509_fp(fw, x_cert); */
 
-  // free cert and close file descriptor
-  X509_free(x_cert);
-  fclose(fw);
-}
+/*   // free cert and close file descriptor */
+/*   X509_free(x_cert); */
+/*   fclose(fw); */
+/* } */
 
 
 // UPDATE CERT (used o update the certificate)
@@ -475,29 +435,29 @@ int dissector_tls(const u_char *payload,
 		  const u_int8_t proto_id_l3,
 		  struct Flow *flow,
 		  int KEY,
-		  char *pvtkey_path)
+		  unsigned char *PVTkey
+		  /* char *pvtkey_path */)
 {
   struct Hash_Table *el = NULL;
   struct Handshake *handshake = NULL;
   const u_int8_t *pp = payload;
-  unsigned char *PVTkey; // PVT KEY path
+  /* unsigned char *PVTkey = NULL; // PVT KEY path */
   int decrLen = 0;
   int is_tls = 0;
 
 
   // call READ_FILE to get the string from key
-  PVTkey = read_file(pvtkey_path);
+  /* PVTkey = read_file(pvtkey_path); */
   
   /**
      # HANDSHAKE #
      initialize the handshake structure
   */
-  handshake = malloc(sizeof(struct Handshake) * 1);
+  handshake = calloc(1, sizeof(struct Handshake));
   if(!handshake) {
     fprintf(stderr, "error on malloc handshake\n");
     return -1;
   }
-  memset(handshake, 0, sizeof(struct Handshake));
   
   /**
      NOTE:
@@ -535,9 +495,11 @@ int dissector_tls(const u_char *payload,
     case 0x17:   // APPLICATION_DATA
       type = APPLICATION_DATA;
       break;
-    default:
+    default: {
       fprintf(stderr, "This is not a valid TLS/SSL packet\n");
+      free(handshake);
       return -1;
+    }
     }
     
     // Record Version
@@ -546,6 +508,8 @@ int dissector_tls(const u_char *payload,
        ntohs(hdr_tls_rec->version) != TLS12) {
       
       fprintf(stderr, "This is not a valid TLS/SSL packet\n");
+      // clean up memory
+      free(handshake);
       return -1; 
     }
 
@@ -573,6 +537,8 @@ int dissector_tls(const u_char *payload,
 	    // check version  
 	    if(pp[0] != 0x03 && (pp[1] != 0x01 || pp[1] != 0x02 || pp[1] != 0x03)) {
 	      fprintf(stderr, "This is not a valid TLS/SSL packet\n");
+	      // clean up memory
+	      free(handshake);
 	      return -1;
 	    }
 	    // move foward of 2 bytes
@@ -668,11 +634,15 @@ int dissector_tls(const u_char *payload,
 	      }
 	      else {
 		fprintf(stderr, "This is not a valid TLS/SSL packet\n");
+		// clean up memory
+		free(handshake);
 		return -1;
 	      };
 	    }
 	    else {
 	      fprintf(stderr, "This is not a valid TLS/SSL packet\n");
+	      // clean up memory
+	      free(handshake);
 	      return -1;
 	    };
 	  }
@@ -683,6 +653,8 @@ int dissector_tls(const u_char *payload,
 	    // check version
 	    if(pp[0] != 0x03 && (pp[1] != 0x01 || pp[1] != 0x02 || pp[1] != 0x03)) {
 	      fprintf(stderr, "This is not a valid TLS/SSL packet\n");
+	      // clean up memory
+	      free(handshake);
 	      return -1;
 	    }	
 	    // move foward of 2 bytes
@@ -707,7 +679,11 @@ int dissector_tls(const u_char *payload,
 	    u_int16_t cipher_len = 2;
 	    if(pp[0] != 0x00 && (pp[1] != 0x9d ||
 				 pp[1] != 0x9c)) {
+
 	      fprintf(stderr, "Invalid Chipher Suite. No DHE/EDH availlable for decription\n");
+	      // clean up memory
+	      free(handshake);
+	      
 	      return -9;
 	    }
 
@@ -804,6 +780,8 @@ int dissector_tls(const u_char *payload,
 	    }
 	    else {
 	      fprintf(stderr, "This is not a valid TLS/SSL packet\n");
+	      // clean up memory
+	      free(handshake);
 	      return -1;
 	    };
 	  }
@@ -816,6 +794,7 @@ int dissector_tls(const u_char *payload,
 
 	    if((cert_len_total + 3) != hh_len) {
 	      fprintf(stderr, "This is not a valid TLS/SSL packet\n");
+	      free(handshake);
 	      return -1;
 	    }
 
@@ -857,6 +836,7 @@ int dissector_tls(const u_char *payload,
 	      if(cert_len_total > 0) {
 		if(pp[5] != 0x0c && pp[5] != 0x16 && pp[5] != 0x10 && pp[5] != 0x0e) {
 		  fprintf(stderr, "This is not a valid TLS/SSL packet\n");
+		  free(handshake);
 		  return -1;
 		}
 		else if(pp[5] == 0x0e) { // jump the SERVER_HELLO_DONE
@@ -889,6 +869,8 @@ int dissector_tls(const u_char *payload,
 	      pp = pp + 3 + cert_status_len;
 	      if(pp[5] != 0x0c && pp[5] != 0x16 && pp[5] != 0x10) {
 		fprintf(stderr, "This is not a valid TLS/SSL packet\n");
+		// clean up memory
+		free(handshake);
 		return -1;
 	      }
 	      more_records = 0;
@@ -951,6 +933,10 @@ int dissector_tls(const u_char *payload,
 	      if(pms_len != MS_LENGTH)
 		{
 		  fprintf(stderr, "Private Decrypt failed for PreMaster Secret\n");
+		  // clean up memory
+		  free(handshake);
+		  free(enc_pre_master_secret);
+
 		  return -2; // Error on decription PMS
 		}
 	      // copy pre_master_secret in flow
@@ -963,6 +949,9 @@ int dissector_tls(const u_char *payload,
 	      HASH_FIND_INT(HT_Flows, &KEY, el);
 	      if(el == NULL) {
 		fprintf(stderr, "error! No open flow found\n");
+		// clean up memory
+		free(handshake);
+		free(enc_pre_master_secret);
 		return -1;
 	      }
 
@@ -979,6 +968,9 @@ int dissector_tls(const u_char *payload,
 	      }
 	      else {
 		fprintf(stderr, "error on Master Secret\n");
+		// clean up memory
+		free(handshake);
+		free(enc_pre_master_secret);
 		return -1;
 	      }
 	      
@@ -996,6 +988,9 @@ int dissector_tls(const u_char *payload,
 		cipher_algo = gcry_cipher_map_name(cipher_name);
 		if(cipher_algo == 0) {
 		  fprintf(stderr, "error on find cipher %s\n", cipher_name);
+		  // clean up memory
+		  free(handshake);
+		  free(enc_pre_master_secret);
 		  return -1;
 		}
 	      }
@@ -1021,6 +1016,9 @@ int dissector_tls(const u_char *payload,
 	      ret = PRF(el->handshake, MS, key_string, key_block, needed);
 	      if(ret == -1) {
 		fprintf(stderr, "Can't generate key_block\n");
+		// clean up memory
+		free(handshake);
+		free(enc_pre_master_secret);
 		return -1;
 	      }
 	      /* printf("key expansion = %s\n", key_block); */
@@ -1048,11 +1046,17 @@ int dissector_tls(const u_char *payload,
 		memcpy(SslDecoder_Server.iv, ptr, write_iv_len);
 		/* s_iv = ptr; */ /* ptr += write_iv_len; */
 	      }
+
+	      // clean up memory
+	      free(key_block);
 	     
 	      /* CREATE DECODER CLIENT */
 	      ret = ssl_create_decoder(&SslDecoder_Client, cipher_algo, SslDecoder_Client.w_key, SslDecoder_Client.iv, el->handshake->cipher_suite.mode);
 	      if(ret < 0) {
 		fprintf(stderr, "Can't create DECODER CLIENT !\n");
+		// clean up memory
+		free(handshake);
+		free(enc_pre_master_secret);
 		return -1;
 	      }
 
@@ -1060,6 +1064,9 @@ int dissector_tls(const u_char *payload,
 	      ret = ssl_create_decoder(&SslDecoder_Server, cipher_algo, SslDecoder_Server.w_key, SslDecoder_Server.iv, el->handshake->cipher_suite.mode);
 	      if(ret < 0) {
 		fprintf(stderr, "Can't create DECODER SERVER !\n");
+		// clean up memory
+		free(handshake);
+		free(enc_pre_master_secret);
 		return -1;
 	      }
 
@@ -1068,6 +1075,9 @@ int dissector_tls(const u_char *payload,
 	      el->handshake->ssl_decoder_srv = SslDecoder_Server;
 	      
 	      /* ******* */
+
+	      // clean up memory
+	      free(enc_pre_master_secret);
 	    }	    
 	    
 	    offset = TLS_HEADER_LEN + HANDSK_HEADER_LEN + hand_hdr_len;
@@ -1080,6 +1090,8 @@ int dissector_tls(const u_char *payload,
 	      }
 	      else if (pp[0] != 0x0f) {
 		fprintf(stderr, "This is not a valid TLS/SSL packet\n");
+		// clean up memory
+		free(handshake);
 		return -1;
 	      }
 	      else {
@@ -1106,6 +1118,8 @@ int dissector_tls(const u_char *payload,
 	    if(offset < size_payload) {
 	      if(pp[0] != 0x0e) {
 		fprintf(stderr, "This is not a valid TLS/SSL packet\n");
+		// clean up memory
+		free(handshake);
 		return -1;
 	      }
 	      more_records = 0;
@@ -1124,6 +1138,8 @@ int dissector_tls(const u_char *payload,
 	
 	    if(hand_hdr_len != 0) {
 	      fprintf(stderr, "This is not a valid TLS/SSL packet\n");
+	      // clean up memory
+	      free(handshake);
 	      return -1;
 	    }
 	    more_records = 1;
@@ -1141,23 +1157,13 @@ int dissector_tls(const u_char *payload,
 	case FINISHED:
 	  {
 	    is_tls = 1;
-	    
-	    struct Hash_Table *old; 
-	    old = malloc(sizeof(struct Hash_Table));
-
-	    memcpy(&old->flow, flow, sizeof(struct Flow));
-	    
-	    // set handshake fin to T
-	    HASH_FIND_INT(HT_Flows, &KEY, old);
-	    if(old) {
-	      old->is_handsk_fin = T;
-	      HASH_REPLACE_INT(HT_Flows, KEY, old, el);
-	    }
 	    more_records = 1;
+	    // THE PAYLOAD IS ECRYPTED
 	    break;
 	  }
-
+	  
 	default:
+	  is_tls = 1; // maybe Finished
 	  more_records = 1;
 	  break;
 	  
@@ -1173,6 +1179,8 @@ int dissector_tls(const u_char *payload,
       pp = pp + TLS_HEADER_LEN;
       if(pp[0] != 0x01) {
 	fprintf(stderr, "This is not a valid TLS/SSL packet\n");
+	// clean up memory
+	free(handshake);
 	return -1;
       }
     }
@@ -1222,7 +1230,12 @@ int dissector_tls(const u_char *payload,
 	     INTERNALLY IT IS USED FUNCTION OF GCRYPT LIBRARY
 	  **/
 	  if(tls_decrypt_aead_record(el->handshake, encrypted, len, decrypted, &decrLen, direction) == -1) {
-	    /* decryption failed */
+	    /*** decryption failed ***/
+	    
+	    // clean up memory
+	    free(encrypted);
+	    free(decrypted);
+	    free(handshake);
 	    return -1;
 	  }
 
@@ -1232,12 +1245,18 @@ int dissector_tls(const u_char *payload,
 	  pp = pp + len;
 	  
 	} while(count < size_payload);
+	// clean up memory
+	free(encrypted);
+	free(decrypted);
       }
       if(el != NULL)
 	return decrLen; // it's TLS
       return 0;
     }
   }
+  // clean up memory
+  free(handshake);
+  
   if(is_tls == 1)
     return 0;
   return -1;

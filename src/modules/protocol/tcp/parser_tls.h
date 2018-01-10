@@ -189,6 +189,6 @@ int dissector_tls(const u_char *payload,
 		  const u_int8_t proto_id_l3,
 		  struct Flow *flow,
 		  int KEY,
-		  char *pvtkey_path);
+		  unsigned char *PVTkey);
 
 #endif

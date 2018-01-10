@@ -70,23 +70,30 @@ const SslDigestAlgo *ssl_cipher_suite_dig(const SslCipherSuite *cs) {
 RSA *createRSA(unsigned char * key, int public)
 {
   RSA *rsa = NULL;
-  BIO *keybio ;
+  BIO *keybio = NULL;
 
   keybio = BIO_new_mem_buf(key, -1);
 
   if(keybio == NULL) {
     printf( "Failed to create key BIO");
-    return 0;
+    return NULL;
   }
   
   if(public)
-      rsa = PEM_read_bio_RSA_PUBKEY(keybio, /* &rsa */NULL, NULL, NULL);
+    rsa = PEM_read_bio_RSA_PUBKEY(keybio, /* &rsa */NULL, NULL, NULL);
   else
-      rsa = PEM_read_bio_RSAPrivateKey(keybio, /* &rsa */NULL, NULL, NULL);
-
-  if(rsa == NULL)
+    rsa = PEM_read_bio_RSAPrivateKey(keybio, /* &rsa */NULL, NULL, NULL);
+  
+  if(rsa == NULL) {
     printf("Failed to create RSA");
- 
+    // clean up memory
+    free(keybio);
+    return NULL;
+  }
+
+  // clean up memory
+  free(keybio);
+  
   return rsa;
 }
 
@@ -110,7 +117,17 @@ RSA *createRSA(unsigned char * key, int public)
 int private_decrypt(unsigned char * enc_data, int data_len, unsigned char * key, unsigned char *decrypted)
 {
   RSA * rsa = createRSA(key, 0);
-  int  result = RSA_private_decrypt(data_len, enc_data, decrypted, rsa, PADDING);
+  if(rsa == NULL)
+    return -1;
+  int result = RSA_private_decrypt(data_len, enc_data, decrypted, rsa, PADDING);
+  if(result == -1) {
+    fprintf(stderr, "error on RSA_private_decrypt\n");
+    free(rsa);
+    return -1;
+  }
+  // clean up memory
+  free(rsa);
+  
   return result;
 }
 
@@ -129,7 +146,7 @@ int private_decrypt(unsigned char * enc_data, int data_len, unsigned char * key,
 static inline int ssl_hmac_init(SSL_HMAC *hm, const void *key, int len, int algo)
 {
   gcry_error_t err;
-  const char *err_str, *err_src;
+  const char *err_str = NULL, *err_src = NULL;
   
   err = gcry_md_open(hm, algo, GCRY_MD_FLAG_HMAC);
   if(err != 0) {
@@ -177,9 +194,9 @@ static void tls_hash(unsigned char *secret, unsigned char *seed,
 		     u_int8_t seed_len, int md, unsigned char *out,
 		     int out_len)
 {
-  u_int8_t  *ptr;
+  u_int8_t  *ptr = NULL;
   u_int32_t residual, tocpy;
-  u_int8_t  *A;
+  u_int8_t  *A = NULL;
   u_int8_t  _A[MS_LENGTH], tmp[MS_LENGTH]; // 48
   u_int32_t A_l, tmp_l;
   SSL_HMAC  hm;
@@ -223,8 +240,8 @@ int tls12_prf(int md, unsigned char *secret, const char *usage,
 		     u_int8_t out_len)
 {
   u_int8_t usage_len, seed_len, tot;
-  unsigned char *_seed;
-  unsigned char *ptr;
+  unsigned char *_seed = NULL;
+  unsigned char *ptr = NULL;
 
   usage_len = strlen(usage);
   tot = usage_len + 32 + 32; // 32 length of cli_rand and srv_rand

@@ -99,6 +99,50 @@ int bind_api(protocol_module_api_t* api)
   return 0;
 }
 
+/**
+   Function to read FILE and return string
+**/
+static unsigned char * read_file(char *name) {
+  FILE *file;
+  unsigned long fileLen = 0;
+  unsigned char *buffer = NULL;
+
+  char path[1000];
+
+  if(getcwd(path, 1000) == NULL)
+    LERR("GETCWD ERROR -> wrong path resolution");
+
+  strcat(path, "/");
+  strcat(path, name);
+  
+  // Open file
+  file = fopen(name, "rb");
+  if (!file) {
+    LERR("Unable to open file %s", name);
+    return NULL;
+  }
+  
+  // Get file length
+  fseek(file, 0, SEEK_END);
+  fileLen = ftell(file);
+  fseek(file, 0, SEEK_SET);
+  
+  // Allocate memory
+  buffer = malloc((fileLen + 1) * sizeof(unsigned char));
+  if(buffer == NULL) {
+    LERR("Memory error!");
+    fclose(file);
+    return NULL;
+  }
+  
+  // Read file contents into buffer
+  fread(buffer, fileLen, 1, file);
+  fclose(file);
+  
+  return buffer;
+}
+
+
 int w_parse_tls(msg_t *msg) {
 
   /* int json_len; */
@@ -124,6 +168,8 @@ int w_parse_tls(msg_t *msg) {
   struct Flow * flow = NULL;
   int Key_Hash = 0;
   char pvtkey_path[PATH_MAX];   // PVT KEY path buff
+  unsigned char *PVTkey = NULL; // PVT KEY path
+  
   
   msg->mfree = 0;
 
@@ -153,10 +199,18 @@ int w_parse_tls(msg_t *msg) {
     index++;
   // copy the key path to buffer key_path_buff
   memcpy(pvtkey_path, profile_protocol[index].pvt_key_path, sizeof(pvtkey_path));
+
+  // call READ_FILE to get the string from key
+  PVTkey = read_file(pvtkey_path);
+  if(PVTkey == NULL) {
+    fprintf(stderr, "invalid private key\n");
+    free(flow);
+    return -5;
+  }
   
 
   // call dissector
-  if((ret_len = dissector_tls((const u_char *) msg->data, msg->len, decrypted_buffer, DECR_LEN, msg->rcinfo.src_port, msg->rcinfo.dst_port, msg->rcinfo.ip_proto, flow, Key_Hash, pvtkey_path)) > 0) {
+  if((ret_len = dissector_tls((const u_char *) msg->data, msg->len, decrypted_buffer, DECR_LEN, msg->rcinfo.src_port, msg->rcinfo.dst_port, msg->rcinfo.ip_proto, flow, Key_Hash, PVTkey)) > 0) {
 
     LDEBUG("DECRIPTED BUFFER TLS = %s", decrypted_buffer);
     memcpy(msg->data, decrypted_buffer, ret_len); // decrypted buff --> Msg data
@@ -168,6 +222,8 @@ int w_parse_tls(msg_t *msg) {
     if(msg->corrdata) 
       {
 	free(msg->corrdata);
+	free(PVTkey);
+	free(flow);
 	msg->corrdata = NULL;
       }
     return -3;
@@ -177,6 +233,8 @@ int w_parse_tls(msg_t *msg) {
     if(msg->corrdata) 
       {
 	free(msg->corrdata);
+	free(PVTkey);
+	free(flow);
 	msg->corrdata = NULL;
       }
     return -2;
@@ -186,6 +244,8 @@ int w_parse_tls(msg_t *msg) {
     if(msg->corrdata) 
       {
 	free(msg->corrdata);
+	free(PVTkey);
+	free(flow);
 	msg->corrdata = NULL;
       }
     return -1;
@@ -195,6 +255,9 @@ int w_parse_tls(msg_t *msg) {
 #endif
 
   LDEBUG("TLS packet found");
+
+  free(PVTkey);
+  free(flow);
   
   return 0;
 }
@@ -331,13 +394,14 @@ static int load_module(xml_node *config) {
 	    goto nextparam;
 	  }
 
-	  key = params->attr[1];
-
 	  if (params->attr[2] && params->attr[3] && !strncmp(params->attr[2], "value", 5)) {
 	    value = params->attr[3];
 	  } else {
 	    value = params->child->value;
 	  }
+
+	  key = params->attr[1];
+	  value = params->attr[3];
 
 	  if (key == NULL || value == NULL) {
 	    LERR("bad values in the config");
@@ -347,9 +411,9 @@ static int load_module(xml_node *config) {
 	  /**
 	     Set param value for private or public key 
 	  **/
-	  r = strncmp(params->attr[1], "private-key-path", 16);
+	  r = strncmp(key, "private-key-path", 16);
 	  if(r == 0)
-	    profile_protocol[profile_size].pvt_key_path = strdup(params->attr[3]);
+	    profile_protocol[profile_size].pvt_key_path = strdup(value);
 	  else profile_protocol[profile_size].pvt_key_path = NULL;
 	}
 	
