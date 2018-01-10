@@ -17,6 +17,9 @@
    You should have received a copy of the GNU General Public License along with
    decoder. If not, see <http://www.gnu.org/licenses/>.
 **/
+
+#ifdef USE_SSL
+
 #include <openssl/pem.h>
 #include <openssl/ssl.h>
 #include <openssl/rsa.h>
@@ -267,5 +270,7 @@ int tls12_prf(int md, unsigned char *secret, const char *usage,
 
   return 0;
 }
+
+#endif
 
 /* ********************************************************************** */

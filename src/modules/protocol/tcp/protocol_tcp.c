@@ -50,9 +50,12 @@
 #include <captagent/md5.h>
 #include "localapi.h"
 #include "protocol_tcp.h"
+
+#ifdef USE_SSL
 #include "parser_tls.h"
 #include "decryption.h"
 #include "define.h"
+#endif
 
 pthread_rwlock_t ipport_lock;
 
@@ -250,15 +253,18 @@ int w_parse_tls(msg_t *msg) {
       }
     return -1;
   }
+  
+  free(PVTkey);
+  free(flow);
+    
 #else
   LERR("TLS has been not enabled. Please reconfigure captagent with param --enable-ssl and --enable-tls");
 #endif
 
   LDEBUG("TLS packet found");
 
-  free(PVTkey);
-  free(flow);
-  
+
+
   return 0;
 }
 
