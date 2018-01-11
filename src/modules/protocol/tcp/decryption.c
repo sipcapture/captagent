@@ -18,6 +18,8 @@
    decoder. If not, see <http://www.gnu.org/licenses/>.
 **/
 
+#include "config.h"
+
 #ifdef USE_SSL
 
 #include <openssl/pem.h>
