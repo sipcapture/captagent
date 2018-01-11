@@ -263,8 +263,6 @@ int w_parse_tls(msg_t *msg) {
 
   LDEBUG("TLS packet found");
 
-
-
   return 0;
 }
 

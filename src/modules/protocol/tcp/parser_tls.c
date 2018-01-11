@@ -497,8 +497,7 @@ int dissector_tls(const u_char *payload,
       break;
     default: {
       fprintf(stderr, "This is not a valid TLS/SSL packet\n");
-      free(handshake);
-      return -1;
+      goto error; 
     }
     }
     
@@ -508,9 +507,7 @@ int dissector_tls(const u_char *payload,
        ntohs(hdr_tls_rec->version) != TLS12) {
       
       fprintf(stderr, "This is not a valid TLS/SSL packet\n");
-      // clean up memory
-      free(handshake);
-      return -1; 
+      goto error;
     }
 
     /**
@@ -537,9 +534,7 @@ int dissector_tls(const u_char *payload,
 	    // check version  
 	    if(pp[0] != 0x03 && (pp[1] != 0x01 || pp[1] != 0x02 || pp[1] != 0x03)) {
 	      fprintf(stderr, "This is not a valid TLS/SSL packet\n");
-	      // clean up memory
-	      free(handshake);
-	      return -1;
+	      goto error;
 	    }
 	    // move foward of 2 bytes
 	    pp = pp + 2;
@@ -634,16 +629,12 @@ int dissector_tls(const u_char *payload,
 	      }
 	      else {
 		fprintf(stderr, "This is not a valid TLS/SSL packet\n");
-		// clean up memory
-		free(handshake);
-		return -1;
+		goto error;
 	      };
 	    }
 	    else {
 	      fprintf(stderr, "This is not a valid TLS/SSL packet\n");
-	      // clean up memory
-	      free(handshake);
-	      return -1;
+	      goto error;
 	    };
 	  }
 	case SERVER_HELLO:
@@ -653,9 +644,7 @@ int dissector_tls(const u_char *payload,
 	    // check version
 	    if(pp[0] != 0x03 && (pp[1] != 0x01 || pp[1] != 0x02 || pp[1] != 0x03)) {
 	      fprintf(stderr, "This is not a valid TLS/SSL packet\n");
-	      // clean up memory
-	      free(handshake);
-	      return -1;
+	      goto error;
 	    }	
 	    // move foward of 2 bytes
 	    pp = pp + 2;
@@ -681,10 +670,7 @@ int dissector_tls(const u_char *payload,
 				 pp[1] != 0x9c)) {
 
 	      fprintf(stderr, "Invalid Chipher Suite. No DHE/EDH availlable for decription\n");
-	      // clean up memory
-	      free(handshake);
-	      
-	      return -9;
+	      goto error;
 	    }
 
 	    // add Chipher Suite Server to handshake
@@ -780,9 +766,7 @@ int dissector_tls(const u_char *payload,
 	    }
 	    else {
 	      fprintf(stderr, "This is not a valid TLS/SSL packet\n");
-	      // clean up memory
-	      free(handshake);
-	      return -1;
+	      goto error;
 	    };
 	  }
 	case CERTIFICATE:
@@ -794,8 +778,7 @@ int dissector_tls(const u_char *payload,
 
 	    if((cert_len_total + 3) != hh_len) {
 	      fprintf(stderr, "This is not a valid TLS/SSL packet\n");
-	      free(handshake);
-	      return -1;
+	      goto error;
 	    }
 
 	    pp = pp + 3; // add the 3 bytes for certficates total length
@@ -836,8 +819,7 @@ int dissector_tls(const u_char *payload,
 	      if(cert_len_total > 0) {
 		if(pp[5] != 0x0c && pp[5] != 0x16 && pp[5] != 0x10 && pp[5] != 0x0e) {
 		  fprintf(stderr, "This is not a valid TLS/SSL packet\n");
-		  free(handshake);
-		  return -1;
+		  goto error;
 		}
 		else if(pp[5] == 0x0e) { // jump the SERVER_HELLO_DONE
 		  offset += TLS_HEADER_LEN + HANDSK_HEADER_LEN;
@@ -869,9 +851,7 @@ int dissector_tls(const u_char *payload,
 	      pp = pp + 3 + cert_status_len;
 	      if(pp[5] != 0x0c && pp[5] != 0x16 && pp[5] != 0x10) {
 		fprintf(stderr, "This is not a valid TLS/SSL packet\n");
-		// clean up memory
-		free(handshake);
-		return -1;
+		goto error;
 	      }
 	      more_records = 0;
 	      break;
@@ -933,11 +913,7 @@ int dissector_tls(const u_char *payload,
 	      if(pms_len != MS_LENGTH)
 		{
 		  fprintf(stderr, "Private Decrypt failed for PreMaster Secret\n");
-		  // clean up memory
-		  free(handshake);
-		  free(enc_pre_master_secret);
-
-		  return -2; // Error on decription PMS
+		  goto error2;
 		}
 	      // copy pre_master_secret in flow
 	      memcpy(handshake->pre_master_secret, PMS, pms_len);
@@ -949,10 +925,7 @@ int dissector_tls(const u_char *payload,
 	      HASH_FIND_INT(HT_Flows, &KEY, el);
 	      if(el == NULL) {
 		fprintf(stderr, "error! No open flow found\n");
-		// clean up memory
-		free(handshake);
-		free(enc_pre_master_secret);
-		return -1;
+		goto error2;
 	      }
 
 	      /**
@@ -968,10 +941,7 @@ int dissector_tls(const u_char *payload,
 	      }
 	      else {
 		fprintf(stderr, "error on Master Secret\n");
-		// clean up memory
-		free(handshake);
-		free(enc_pre_master_secret);
-		return -1;
+		goto error2;
 	      }
 	      
 	      /**
@@ -988,10 +958,7 @@ int dissector_tls(const u_char *payload,
 		cipher_algo = gcry_cipher_map_name(cipher_name);
 		if(cipher_algo == 0) {
 		  fprintf(stderr, "error on find cipher %s\n", cipher_name);
-		  // clean up memory
-		  free(handshake);
-		  free(enc_pre_master_secret);
-		  return -1;
+		  goto error2;
 		}
 	      }
 
@@ -1016,10 +983,7 @@ int dissector_tls(const u_char *payload,
 	      ret = PRF(el->handshake, MS, key_string, key_block, needed);
 	      if(ret == -1) {
 		fprintf(stderr, "Can't generate key_block\n");
-		// clean up memory
-		free(handshake);
-		free(enc_pre_master_secret);
-		return -1;
+		goto error2;
 	      }
 	      /* printf("key expansion = %s\n", key_block); */
 
@@ -1054,20 +1018,14 @@ int dissector_tls(const u_char *payload,
 	      ret = ssl_create_decoder(&SslDecoder_Client, cipher_algo, SslDecoder_Client.w_key, SslDecoder_Client.iv, el->handshake->cipher_suite.mode);
 	      if(ret < 0) {
 		fprintf(stderr, "Can't create DECODER CLIENT !\n");
-		// clean up memory
-		free(handshake);
-		free(enc_pre_master_secret);
-		return -1;
+		goto error2;
 	      }
 
 	      /* CREATE DECODER SERVER */
 	      ret = ssl_create_decoder(&SslDecoder_Server, cipher_algo, SslDecoder_Server.w_key, SslDecoder_Server.iv, el->handshake->cipher_suite.mode);
 	      if(ret < 0) {
 		fprintf(stderr, "Can't create DECODER SERVER !\n");
-		// clean up memory
-		free(handshake);
-		free(enc_pre_master_secret);
-		return -1;
+		goto error2;
 	      }
 
 	      // Assign SSL DECODER to Handshake
@@ -1076,6 +1034,13 @@ int dissector_tls(const u_char *payload,
 	      
 	      /* ******* */
 
+	    error2: {
+		// clean up memory
+		free(handshake);
+		free(enc_pre_master_secret);
+		return -2;
+	      }
+	      
 	      // clean up memory
 	      free(enc_pre_master_secret);
 	    }	    
@@ -1090,9 +1055,7 @@ int dissector_tls(const u_char *payload,
 	      }
 	      else if (pp[0] != 0x0f) {
 		fprintf(stderr, "This is not a valid TLS/SSL packet\n");
-		// clean up memory
-		free(handshake);
-		return -1;
+		goto error;
 	      }
 	      else {
 		more_records = 0;
@@ -1118,9 +1081,7 @@ int dissector_tls(const u_char *payload,
 	    if(offset < size_payload) {
 	      if(pp[0] != 0x0e) {
 		fprintf(stderr, "This is not a valid TLS/SSL packet\n");
-		// clean up memory
-		free(handshake);
-		return -1;
+		goto error;
 	      }
 	      more_records = 0;
 	      break;
@@ -1138,9 +1099,7 @@ int dissector_tls(const u_char *payload,
 	
 	    if(hand_hdr_len != 0) {
 	      fprintf(stderr, "This is not a valid TLS/SSL packet\n");
-	      // clean up memory
-	      free(handshake);
-	      return -1;
+	      goto error;
 	    }
 	    more_records = 1;
 	    break;
@@ -1179,9 +1138,7 @@ int dissector_tls(const u_char *payload,
       pp = pp + TLS_HEADER_LEN;
       if(pp[0] != 0x01) {
 	fprintf(stderr, "This is not a valid TLS/SSL packet\n");
-	// clean up memory
-	free(handshake);
-	return -1;
+	goto error;
       }
     }
     else if(type == ALERT) {
@@ -1254,8 +1211,12 @@ int dissector_tls(const u_char *payload,
       return 0;
     }
   }
-  // clean up memory
-  free(handshake);
+  
+ error: {
+    // clean up memory
+    free(handshake);
+    return -1;
+  }
   
   if(is_tls == 1)
     return 0;
