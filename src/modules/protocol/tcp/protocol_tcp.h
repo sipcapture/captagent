@@ -27,7 +27,6 @@
 
 #include <captagent/xmlread.h>
 #include "uthash.h"
-#include "hash_structure.h"
 
 typedef struct protocol_tcp_stats {
   uint64_t received_packets_total;
@@ -45,7 +44,7 @@ int reload_config(char *erbuf, int erlen);
 void free_module_xml_config();
 int load_module_xml_config();
 
-/** Functions for TCP **/
+/** Functions for TLS **/
 int w_parse_tls(msg_t *msg);
 
 #endif /* PROTOCOL_TCP_H_ */

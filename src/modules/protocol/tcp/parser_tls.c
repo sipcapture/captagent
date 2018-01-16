@@ -28,6 +28,8 @@
 #include <captagent/log.h>
 #include "config.h"
 
+#include <openssl/md5.h>
+
 #ifdef USE_SSL
 
 #include <openssl/x509.h>
@@ -445,7 +447,6 @@ int dissector_tls(const u_char *payload,
   int decrLen = 0;
   int is_tls = 0;
 
-
   // call READ_FILE to get the string from key
   /* PVTkey = read_file(pvtkey_path); */
   
@@ -458,6 +459,10 @@ int dissector_tls(const u_char *payload,
     fprintf(stderr, "error on malloc handshake\n");
     return -1;
   }
+  // initialization of handshake struct pointers
+  handshake->sessID_c = NULL;
+  handshake->sessID_s = NULL;
+  handshake->certificate_S = NULL;
   
   /**
      NOTE:
@@ -1214,6 +1219,10 @@ int dissector_tls(const u_char *payload,
   
  error: {
     // clean up memory
+    if(handshake->sessID_c)
+      free(handshake->sessID_c);
+    if(handshake->sessID_s)
+      free(handshake->sessID_s);
     free(handshake);
     return -1;
   }
