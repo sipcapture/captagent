@@ -51,7 +51,7 @@
 #include "localapi.h"
 #include "protocol_tcp.h"
 
-#include <openssl/md5.h>
+/* #include <openssl/md5.h> */
 
 #ifdef USE_SSL
 #include "parser_tls.h"

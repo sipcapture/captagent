@@ -28,7 +28,7 @@
 #include <captagent/log.h>
 #include "config.h"
 
-#include <openssl/md5.h>
+/* #include <openssl/md5.h> */
 
 #ifdef USE_SSL
 
