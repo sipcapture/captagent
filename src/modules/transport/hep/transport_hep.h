@@ -122,13 +122,14 @@ int sigPipe(void);
 profile_transport_t* get_profile_by_name(char *name);
 unsigned int get_profile_index_by_name(char *name);
 int bind_usrloc(transport_module_api_t *api);
-int send_hep(msg_t *msg);
+int send_hep(msg_t *msg, int freeParam);
 void free_module_xml_config();
 int load_module_xml_config();
 int reload_config (char *erbuf, int erlen);
 int check_module_xml_config();
 /*API*/
 int w_send_hep_api(msg_t *_m, char *param1);
+int w_send_hep_api_param(msg_t *_m, char *param1, char *param2);
 int w_send_hep_proto(msg_t *_m, char *param1, char *param2);
 
 /*LIBUV*/

@@ -92,6 +92,7 @@ static cmd_export_t cmds[] = {
         {"transport_hep_bind_api",  (cmd_function)bind_usrloc,   1, 0, 0, 0},
         {"bind_transport_hep",  (cmd_function)bind_transport_hep,  0, 0, 0, 0},
         { "send_hep", (cmd_function) w_send_hep_api, 1, 0, 0, 0 },
+        { "send_hep", (cmd_function) w_send_hep_api_param, 2, 0, 0, 0 },
         { "send_hep_proto", (cmd_function) w_send_hep_proto, 2, 0, 0, 0 },
         {0, 0, 0, 0, 0, 0}
 };
@@ -125,7 +126,21 @@ int w_send_hep_api(msg_t *_m, char *param1)
 
     _m->profile_name = param1;
         
-    ret =  send_hep(_m);    
+    ret =  send_hep(_m, 1);    
+    
+    return ret;
+}
+
+int w_send_hep_api_param(msg_t *_m, char *param1, char *param2) 
+{
+    
+    int ret = 0;
+    int freeParam = 1;
+    
+    _m->profile_name = param1;
+    if(param2 != NULL && !strncmp(param2,"true", 4)) freeParam = 0;
+        
+    ret =  send_hep(_m, freeParam);    
     
     return ret;
 }
@@ -138,7 +153,7 @@ int w_send_hep_proto(msg_t *_m, char *param1, char *param2)
     _m->profile_name = param1;
     _m->rcinfo.proto_type = atoi(param2);
         
-    ret =  send_hep(_m);    
+    ret =  send_hep(_m, 1);    
     
     return ret;
 }
@@ -203,7 +218,7 @@ void ensure_connected(int idx) {
     reconnect(idx);
 }
 
-int send_hep (msg_t *msg) {
+int send_hep (msg_t *msg, int freeParam) {
 
         unsigned char *zipData = NULL;
         rc_info_t *rcinfo = NULL;
@@ -269,15 +284,18 @@ int send_hep (msg_t *msg) {
 
 #endif /* USE_ZLIB */
 
-        if(msg->mfree == 1) {
-             LDEBUG("LETS FREE IT!");
-             free(msg->data);
-        }
-        if(msg->corrdata)  
+        if(freeParam == 1)
         {
-             free(msg->corrdata);
-             msg->corrdata = NULL;
-        }                                                                                     
+                if(msg->mfree == 1) {
+                     LDEBUG("LETS FREE IT!");
+                     free(msg->data);
+                }
+                if(msg->corrdata)  
+                {
+                     free(msg->corrdata);
+                     msg->corrdata = NULL;
+                }                                                                                     
+        }
         
         return ret;
 }
