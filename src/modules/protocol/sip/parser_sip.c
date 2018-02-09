@@ -862,16 +862,19 @@ parse_message (char *message, unsigned int blen, unsigned int *bytes_parsed, sip
 		&& *(tmp + CONTENTTYPE_LEN) == ':')) {
 
 	if (*(tmp + CONTENTTYPE_LEN + 1) == ' ')
-	  header_offset = 14;
+	  header_offset = 1;
 	else
-	  header_offset = 13;
+	  header_offset = 0;
 
-	if (!strncmp ((tmp + CONTENTTYPE_LEN + header_offset), "vq-rtcpxr", 9)) {
+	if (!strncmp ((tmp + CONTENTTYPE_LEN + 13 + header_offset), "vq-rtcpxr", 9)) {
 	  psip->hasVqRtcpXR = TRUE;
 	}
-	else if (!memcmp ((tmp + CONTENTTYPE_LEN + header_offset), "sdp", 3)) {
+	else if (!memcmp ((tmp + CONTENTTYPE_LEN + 13 + header_offset), "sdp", 3)) {
 	  psip->hasSdp = TRUE;
 	}
+        else if (!memcmp ((tmp+CONTENTTYPE_LEN+header_offset+1), "multipart/mixed", 15)) {
+          psip->hasSdp = TRUE;
+        }
 
 	continue;
       }
