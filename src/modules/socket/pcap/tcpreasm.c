@@ -363,12 +363,12 @@ add_fragment_tcp (struct tcpreasm_ip_entry *entry, struct tcpreasm_frag_entry *f
 	 */
 
         struct tcpreasm_frag_entry *cur = entry->frags;
-        struct tcpreasm_frag_entry  *next = cur->next;
+        /* struct tcpreasm_frag_entry *next = cur->next; */
 
 	entry->len+=frag->len;
 
 	while (cur->next != NULL) cur = cur->next;
-	next = cur->next;
+	/* next = cur->next; */
 
 	/* Fragment is to be inserted between cur and next; next may be NULL. */
 

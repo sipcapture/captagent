@@ -44,6 +44,10 @@
 #include <time.h>
 #include <pthread.h>
 
+#ifdef USE_SSL
+#include <openssl/ssl.h>
+#endif
+
 #include "config.h"
 
 #ifdef  HAVE_JSON_C_JSON_H  
@@ -521,21 +525,21 @@ int init_jsonsocket_blocking (unsigned int idx) {
 
 #ifdef USE_SSL
 SSL_CTX* initCTX(void) {
-        SSL_METHOD *method;
-        SSL_CTX *ctx;
+  const SSL_METHOD *method;
+  SSL_CTX *ctx;
 
-        OpenSSL_add_all_algorithms();  /* Load cryptos, et.al. */
-        SSL_load_error_strings();   /* Bring in and register error messages */
-
-        /* we use SSLv3 */
-        method = SSLv3_client_method();  /* Create new client-method instance */
-
-        ctx = SSL_CTX_new(method);   /* Create new context */
-        if ( ctx == NULL ) {
-                ERR_print_errors_fp(stderr);
-                abort();
-        }
-        return ctx;
+  OpenSSL_add_all_algorithms();  /* Load cryptos, et.al. */
+  SSL_load_error_strings();   /* Bring in and register error messages */
+  
+  /* we use SSLv3 (possible warning here. Check here (https://bugs.freebsd.org/bugzilla/show_bug.cgi?id=223388#c0) */
+  method = SSLv3_client_method();  /* Create new client-method instance */
+  
+  ctx = SSL_CTX_new(method);   /* Create new context */
+  if ( ctx == NULL ) {
+    ERR_print_errors_fp(stderr);
+    abort();
+  }
+  return ctx;
 }
 
 
