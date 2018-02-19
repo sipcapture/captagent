@@ -112,7 +112,7 @@ hep_connection_t hep_connection_s[MAX_TRANPORTS];
 
 int bind_usrloc(transport_module_api_t *api)
 {
-	api->send_f = send_hep;
+        api->send_f = send_hep; // should be w_send_hep_api or w_send_hep_api_param
 	api->reload_f = reload_config;
 	api->module_name = module_name;
 

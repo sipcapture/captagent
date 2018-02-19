@@ -5,7 +5,7 @@
  *  Duplicate SIP messages in Homer Encapulate Protocol [HEP] [ipv6 version]
  *
  *  Author: Alexandr Dubovikov <alexandr.dubovikov@gmail.com>
- *  (C) Homer Project 2012-2015 (http://www.sipcapture.org)
+ *  (C) QXIP BV 2012-2018 (http://qxip.net)
  *
  * Homer capture agent is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -36,6 +36,27 @@ extern char *global_scripts_path;
 
 int ipv4fragments=0;
 int ipv6fragments=0;
+
+/* Ethernet type in case of vlan or mpls header */
+#define VLAN            0x8100
+#define MPLS_UNI        0x8847
+#define MPLS_MULTI      0x8848
+
+/* --- MPLS header --- */
+struct mpls_header
+{
+#if (__BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__)
+  u_int32_t ttl:8, s:1, exp:3, label:20;
+#elif (__BYTE_ORDER__ == __ORDER_BIG_ENDIAN__)
+  u_int32_t label:20, exp:3, s:1, ttl:8;
+#endif
+} __attribute__((packed));
+
+/* --- MPLS struct --- */
+union mpls {
+  uint32_t u32;
+  struct mpls_header mpls;
+};
 
 /* header offsets */
 #define ETHHDR_SIZE 14
