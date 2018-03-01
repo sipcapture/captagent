@@ -34,9 +34,6 @@ extern int handler(int value);
 extern char *global_config_path;
 extern char *global_scripts_path;
 
-int ipv4fragments=0;
-int ipv6fragments=0;
-
 /* Ethernet type in case of vlan or mpls header */
 #define VLAN            0x8100
 #define MPLS_UNI        0x8847
@@ -85,6 +82,13 @@ typedef struct socket_pcap_stats {
 	uint64_t send_packets;
 } socket_pcap_stats_t;
 
+typedef struct socket_pcap_user_data {
+	int ipv4fragments;
+	int ipv6fragments;
+
+} socket_pcap_user_data_t;
+
+
 extern FILE* yyin;
 extern int yyparse();
 
@@ -106,9 +110,12 @@ int dump_proto_packet(struct pcap_pkthdr *, u_char *, uint8_t, char *, uint32_t,
 
 
 /*IPv4 filter*/
-#define BPF_DEFRAGMENTION_FILTER_IPV4 "(ip[6:2] & 0x3fff != 0)"
+#define BPF_DEFRAGMENTION_FILTER_IPV4 "(ip[6:2] & 0x1fff != 0)"
 /*IPv6 filter*/
 #define BPF_DEFRAGMENTION_FILTER_IPV6 "(ip6[6]=44 and (ip6[42:2] & 0xfff8 != 0))"
+
+#define REASM_UDP (1<<0)
+#define REASM_TCP (1<<1)
 
 #define TZSP_TYPE_RECEIVED_TAG_LIST 0
 #define TZSP_TYPE_PACKET_FOR_TRANSMIT 1

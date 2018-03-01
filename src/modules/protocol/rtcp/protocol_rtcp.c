@@ -125,7 +125,7 @@ int w_parse_rtcp_to_json(msg_t *_m)
 
 int w_is_rtcp (msg_t *msg) {
 
-  printf("IS RTCP\n\n");
+  LDEBUG("IS RTCP\n");
   return check_rtcp_version (msg->data, msg->len);
 }
 

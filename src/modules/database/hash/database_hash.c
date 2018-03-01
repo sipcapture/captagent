@@ -572,7 +572,7 @@ static int unload_module(void) {
 	unsigned int i = 0;
 
 	LNOTICE("unloaded module %s", module_name);
-	timer_loop_stop = 0;
+	timer_loop_stop = 1;
 
 	for (i = 0; i < profile_size; i++) {
 		free_profile(i);

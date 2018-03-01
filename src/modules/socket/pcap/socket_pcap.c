@@ -88,6 +88,7 @@ char *module_description;
 int debug_socket_pcap_enable = 0;
 
 static socket_pcap_stats_t stats;
+static socket_pcap_user_data_t user_data[MAX_SOCKETS];
 
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_t call_thread[MAX_SOCKETS];
@@ -183,7 +184,7 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
     if (tmp_ip_proto == GRE_PROTO) {
       memcpy(&tmp_ip_len, (packet + ETHHDR_SIZE), 1);
       tmp_ip_len = (tmp_ip_len & IPLEN_MASK) * 4; // LSB 4 bits: length in 32-bit words
-      //printf("ip.proto: %d, ip header len: %d\n", tmp_ip_proto, tmp_ip_len);
+      //printf("ip.proto: %u, ip header len: %u\n", tmp_ip_proto, tmp_ip_len);
       erspan_offset = ETHHDR_SIZE + tmp_ip_len + GREHDR_SIZE; // Ethernet + IP + GRE
       pkthdr->len -= erspan_offset;
       pkthdr->caplen -= erspan_offset;
@@ -252,7 +253,7 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
   /* stats */
   stats.received_packets_total++;
 
-  if (profile_socket[loc_index].reasm == 1 && reasm[loc_index] != NULL) {
+  if (profile_socket[loc_index].reasm && reasm[loc_index] != NULL) {
     unsigned new_len;
 
     u_char *new_p = malloc(len - link_offset - hdr_offset);
@@ -364,7 +365,7 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
       if((tcp_pkt->th_flags & TH_PUSH)) psh = 1;
 
                                         
-      if(debug_socket_pcap_enable) LDEBUG("DEFRAG TCP process: LEN:[%d], ACK:[%d], PSH[%d]\n", len, (tcp_pkt->th_flags & TH_ACK), psh);
+      if(debug_socket_pcap_enable) LDEBUG("DEFRAG TCP process: LEN:[%u], ACK:[%u], PSH[%u]\n", len, (tcp_pkt->th_flags & TH_ACK), psh);
                         
       datatcp = tcpreasm_ip_next_tcp(tcpreasm[loc_index], new_p_2, len , (tcpreasm_time_t) 1000000UL * pkthdr->ts.tv_sec + pkthdr->ts.tv_usec, &new_len, &ip4_pkt->ip_src, &ip4_pkt->ip_dst, ntohs(tcp_pkt->th_sport), ntohs(tcp_pkt->th_dport), psh);
 
@@ -373,7 +374,7 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
       len = new_len;
                         
       if(debug_socket_pcap_enable)
-	LDEBUG("COMPLETE TCP DEFRAG: LEN[%d], PACKET:[%s]\n", len, datatcp);
+	LDEBUG("COMPLETE TCP DEFRAG: LEN[%u], PACKET:[%s]\n", len, datatcp);
                         
 
       if(!profile_socket[profile_size].full_packet) {
@@ -612,12 +613,12 @@ int init_socket(unsigned int loc_idx) {
 		};
 		
 		if (pcap_set_snaplen(sniffer_proto[loc_idx], profile_socket[loc_idx].snap_len) == -1) {
-			LERR("Failed to set snap_len [%d], \"%s\": %s", profile_socket[loc_idx].snap_len, (char *) profile_socket[loc_idx].device, pcap_geterr(sniffer_proto[loc_idx]));
+			LERR("Failed to set snap_len [%u], \"%s\": %s", profile_socket[loc_idx].snap_len, (char *) profile_socket[loc_idx].device, pcap_geterr(sniffer_proto[loc_idx]));
 			return -1;						
 		};
 		
 		if (pcap_set_buffer_size(sniffer_proto[loc_idx], buffer_size) == -1) {
-			LERR("Failed to set buffer_size [%d] \"%s\": %s", buffer_size,  (char *) profile_socket[loc_idx].device, pcap_geterr(sniffer_proto[loc_idx]));
+			LERR("Failed to set buffer_size [%u] \"%s\": %s", buffer_size,  (char *) profile_socket[loc_idx].device, pcap_geterr(sniffer_proto[loc_idx]));
 			return -1;									
 		};
 		
@@ -643,14 +644,14 @@ int init_socket(unsigned int loc_idx) {
 	{
 		len += snprintf(filter_expr+len, sizeof(filter_expr)-len, "(%s)", profile_socket[loc_idx].filter);
 
-		if(ipv4fragments || ipv6fragments)
+		if(user_data[loc_idx].ipv4fragments || user_data[loc_idx].ipv6fragments)
 		{
-			if (ipv4fragments)
+			if (user_data[loc_idx].ipv4fragments)
 			{
 				LDEBUG("Reassembling of IPv4 packets is enabled, adding '%s' to filter", BPF_DEFRAGMENTION_FILTER_IPV4);
 				len += snprintf(filter_expr+len, sizeof(filter_expr), " or %s", BPF_DEFRAGMENTION_FILTER_IPV4);
 			}
-			if (ipv6fragments)
+			if (user_data[loc_idx].ipv6fragments)
 			{
 				LDEBUG("Reassembling of IPv6 packets is enabled, adding '%s' to filter", BPF_DEFRAGMENTION_FILTER_IPV6);
 				len += snprintf(filter_expr+len, sizeof(filter_expr), " or %s", BPF_DEFRAGMENTION_FILTER_IPV6);
@@ -704,7 +705,7 @@ int set_raw_filter(unsigned int loc_idx, char *filter) {
         //struct pcap_t *aa;
         int fd = -1;
                 
-        LERR("APPLY FILTER [%d]\n", loc_idx);        
+        LERR("APPLY FILTER [%u]\n", loc_idx);
         if(loc_idx >= MAX_SOCKETS || sniffer_proto[loc_idx] == NULL) return 0;         
 
         fd = pcap_get_selectable_fd(sniffer_proto[loc_idx]);
@@ -781,7 +782,7 @@ void* proto_collect(void *arg) {
 		exit(-1);
 	}
 
-	LDEBUG("Link offset interface type [%u] [%d] [%d]", dl, dl, link_offset);
+	LDEBUG("Link offset interface type [%u] [%d] [%u]", dl, dl, link_offset);
 
 	while(1) {
 		ret = pcap_loop(sniffer_proto[loc_idx], 0, (pcap_handler) callback_proto, (u_char *) &loc_idx);
@@ -915,6 +916,7 @@ static int load_module(xml_node *config) {
 		}
 
 		memset(&profile_socket[profile_size], 0, sizeof(profile_socket_t));
+		memset(&user_data[profile_size], 0, sizeof(socket_pcap_user_data_t));
 
 		/* set values */
 		profile_socket[profile_size].name = strdup(profile->attr[1]);
@@ -969,13 +971,13 @@ static int load_module(xml_node *config) {
 					if (!usefile && !strncmp(key, "dev", 3))
 						profile_socket[profile_size].device = strdup(value);
 					else if (!strncmp(key, "reasm", 5) && !strncmp(value, "true", 4))
-						profile_socket[profile_size].reasm = +1;
+						profile_socket[profile_size].reasm |= REASM_UDP;
                                         else if (!strncmp(key, "ipv4fragments", 13) && !strncmp(value, "true", 4))
-						ipv4fragments = 1;
+						user_data[profile_size].ipv4fragments = 1;
                                         else if (!strncmp(key, "ipv6fragments", 13) && !strncmp(value, "true", 4))
-						ipv6fragments = 1;
+						user_data[profile_size].ipv6fragments = 1;
                                         else if(!strncmp(key, "tcpdefrag", 9) && !strncmp(value, "true", 4))
-                                                profile_socket[profile_size].reasm +=2;                                                    						
+                                                profile_socket[profile_size].reasm |= REASM_TCP;
 					else if (!strncmp(key, "ring-buffer", 11))					        
 						profile_socket[profile_size].ring_buffer = atoi(value);		
 					else if (!strncmp(key, "full-packet",11) && !strncmp(value, "true", 4))					        
@@ -1034,14 +1036,14 @@ static int load_module(xml_node *config) {
 		}
 
 		 /* REASM */
-                if (profile_socket[i].reasm == 1 || profile_socket[i].reasm == 3) {
+                if (profile_socket[i].reasm & REASM_UDP) {
                         reasm[i] = reasm_ip_new();
                         reasm_ip_set_timeout(reasm[i], 30000000);
                 }
                 else reasm[i] = NULL;
 
                 /* TCPREASM */
-                if (profile_socket[i].reasm == 2 || profile_socket[i].reasm == 3) {
+                if (profile_socket[i].reasm & REASM_TCP) {
                         tcpreasm[i] = tcpreasm_ip_new ();
                         tcpreasm_ip_set_timeout(tcpreasm[i], 30000000);
                 }

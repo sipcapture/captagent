@@ -24,6 +24,8 @@
 #include <netinet/ip6.h>
 #endif /* USE_IPv6 */
 
+#include <captagent/log.h>
+
 extern int debug_socket_pcap_enable;
 
 #include "tcpreasm.h"
@@ -247,7 +249,7 @@ tcpreasm_ip_next_tcp (struct tcpreasm_ip *tcpreasm, unsigned char *packet, unsig
                 
         if(debug_socket_pcap_enable) {
         
-        	printf("\nTCPREASM: Proto [%d], Hash:[%d] SPORT: [%d], DPORT: [%d]\n", proto, hash, sport, dport);
+                LDEBUG("TCPREASM: Proto [%d], Hash:[%u] SPORT: [%u], DPORT: [%u]\n", proto, hash, sport, dport);
         }
         
 	hash %= REASM_IP_HASH_SIZE;
@@ -259,14 +261,14 @@ tcpreasm_ip_next_tcp (struct tcpreasm_ip *tcpreasm, unsigned char *packet, unsig
 	/* no buffer, go out */
 	if(psh == 1 && entry == NULL) {
 		free(frag);
-		if(debug_socket_pcap_enable) printf("RETURN PACKET BACK\n");
+		if(debug_socket_pcap_enable) LDEBUG("RETURN PACKET BACK\n");
 		*output_len = len;
 		return packet;
 	}		
 
 	if (entry == NULL) {
 	
-		if(debug_socket_pcap_enable) printf("EMPTY ENTRY\n");
+		if(debug_socket_pcap_enable) LDEBUG("EMPTY ENTRY\n");
         			
 		entry = malloc (sizeof (*entry));
 		if (entry == NULL) {
@@ -339,8 +341,8 @@ tcpreasm_ip_next_tcp (struct tcpreasm_ip *tcpreasm, unsigned char *packet, unsig
 	
 	unsigned char *r = assemble_tcp (entry, output_len);
 
-	//printf("TCP REASSEM: [%d]\n", *output_len);
-	//printf("MESSAGE: [%s]\n", r);
+	//LDEBUG("TCP REASSEM: [%u]\n", *output_len);
+	//LDEBUG("MESSAGE: [%s]\n", r);
 	
 	drop_entry (tcpreasm, entry);
 	return r;
@@ -419,7 +421,7 @@ assemble_tcp (struct tcpreasm_ip_entry *entry, unsigned *output_len)
 	unsigned char *p = malloc (entry->len + offset0);
 	unsigned tlen = 0;
 	
-	//printf("TOTAL LEN: %d\n", entry->len);
+	//LDEBUG("TOTAL LEN: %u\n", entry->len);
 	
 	if (p == NULL)
 		return NULL;
