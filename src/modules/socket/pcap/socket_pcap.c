@@ -480,6 +480,8 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
       _msg.data = (packet + link_offset + hdr_offset);
 		        
     }
+	  
+    _msg.rcinfo.src_port = ntohs(udp_pkt->uh_sport);	  
     _msg.rcinfo.dst_port = ntohs(udp_pkt->uh_dport);
     _msg.rcinfo.src_ip = ip_src;
     _msg.rcinfo.dst_ip = ip_dst;
