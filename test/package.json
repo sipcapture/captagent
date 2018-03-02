@@ -1,0 +1,19 @@
+{
+  "name": "captagent-ci",
+  "version": "1.0.0",
+  "description": "Captagent CI Tests",
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha index.js"
+  },
+  "keywords": [
+    "hep",
+    "captagent",
+    "sipcapture",
+    "homer",
+    "test",
+    "ci"
+  ],
+  "author": "Lorenzo Mangani <lorenzo.mangani@gmail.com> (http://qxip.net/)",
+  "license": "GPLv3"
+}
