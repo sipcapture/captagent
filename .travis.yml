@@ -14,19 +14,30 @@ matrix:
         - CONFIGURE="--enable-ssl"      
 
 language: c
-
+addons:
+  apt:
+    packages:
+      - net-tools
 compiler:
   - gcc
-
-install: 
+before_install:
   - sudo -E apt-add-repository -y ppa:linuxjedi/ppa
   - sudo apt-get update || true
-  - sudo apt-get install build-essential
-  - sudo apt-get install libpcap-dev libexpat-dev libjson0-dev bison flex libtool autoconf automake autogen libuv-dev libssl-dev libgcrypt20 libgcrypt20-dev 
+  - sudo apt-get install -y build-essential
+  - sudo apt-get install -y libpcap-dev libexpat-dev libjson0-dev bison flex libtool autoconf automake autogen libuv-dev libssl-dev libgcrypt20 libgcrypt20-dev 
+  - ip -o -4 a | awk '$2 == "eth0" { gsub(/\/.*/, "", $4); print $4 }' > /tmp/pubip
+  - ip -o -4 a | awk '$2 == "lo" { gsub(/\/.*/, "", $4); print $4 }' > /tmp/localip
+install: 
+  - curl -sL https://deb.nodesource.com/setup_8.x | sudo -E bash -
+  - sudo apt-get install -y nodejs
+  - sudo npm i -g npm
 
 script:
+  - sudo sed -i 's/any/lo/g' ./conf/socket_pcap.xml
   - ./build.sh
   - ./configure ${CONFIGURE}
   - make
-  - ./src/captagent -h
+  - sudo make install
+  - sudo setcap 'CAP_NET_RAW+eip CAP_NET_ADMIN+eip' ./src/captagent || echo "Setcap failed"
   - ./src/captagent -v
+  - cd test && npm install && sudo -s npm test
