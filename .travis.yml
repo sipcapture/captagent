@@ -33,12 +33,10 @@ install:
   - sudo npm i -g npm
 
 script:
-  - sudo sed -i 's/any/lo/g' conf/socket_pcap.xml
   - ./build.sh
   - ./configure ${CONFIGURE}
   - make
   - sudo make install
   - sudo setcap 'CAP_NET_RAW+eip CAP_NET_ADMIN+eip' ./src/captagent || echo "Setcap failed"
-  - sudo chmod u+s ./src/captagent  || echo "chmod u+s failed"
   - ./src/captagent -v
   - cd test && npm install && sudo -s npm test

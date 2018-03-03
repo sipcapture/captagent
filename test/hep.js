@@ -48,14 +48,17 @@ describe('CaptAgent HEP Basic', () => {
     in_socket.bind(9061, ipserver)
   })
 	
-  it('HEP should originate from 127.0.0.1', () => {
+  it('HEP should originate from 127.0.0.1', (done) => {
     assert.ok(network.address === '127.0.0.1');
+    done();
   })
-  it('should return HEP data', () => {
+  it('should return HEP data', (done) => {
     assert.ok(decoded);
+    done();
   })
-  it('should return HEP payload', () => {
+  it('should return HEP payload', (done) => {
     assert.ok(decoded.payload.length > 0);
+    done();
   })
  })
 
