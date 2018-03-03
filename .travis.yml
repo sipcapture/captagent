@@ -34,7 +34,6 @@ install:
 script:
   - ./build.sh
   - ./configure ${CONFIGURE}
-# - sudo sed -i 's/any/lo/g' conf/socket_pcap.xml
   - make
   - sudo make install
   - ./src/captagent -h
