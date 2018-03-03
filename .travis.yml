@@ -31,9 +31,9 @@ install:
 script:
   - ./build.sh
   - ./configure ${CONFIGURE}
+  - sudo sed -i 's/any/lo/g' conf/socket_pcap.xml
   - make
   - sudo make install
-  - sudo sed -i 's/any/lo/g' /usr/local/captagent/etc/captagent/socket_pcap.xml
   - ./src/captagent -h
   - ./src/captagent -v
   - cd test && npm install && sudo npm test
