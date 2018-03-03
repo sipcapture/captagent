@@ -33,6 +33,7 @@ describe('CaptAgent HEP Basic', () => {
     in_socket.on('message', (message,socket) => {
       decoded = hepjs.decapsulate(message);
       network = socket;
+      // console.log(network,decoded);
       captagent.kill();
     })
     var sendHep = function(){
@@ -50,16 +51,28 @@ describe('CaptAgent HEP Basic', () => {
     in_socket.bind(9061, ipserver)
   })
 
-  it('HEP should originate from 127.0.0.1', (done) => {
+  it('UDP should originate from 127.0.0.1', (done) => {
     assert.ok(network.address === '127.0.0.1');
     done();
   })
-  it('should return HEP data', (done) => {
+  it('UDP should decode to HEP', (done) => {
     assert.ok(decoded);
     done();
   })
-  it('should return HEP payload', (done) => {
+  it('HEP should contain rcinfo', (done) => {
+    assert.ok(decoded.rcinfo);
+    done();
+  })
+  it('HEP should contain payload', (done) => {
     assert.ok(decoded.payload.length > 0);
+    done();
+  })
+  it('HEP payload should equal sent payload', (done) => {
+    assert.ok(decoded.payload.length === udpmessage.length);
+    done();
+  })
+  it('HEP capturePass should be "myhep"', (done) => {
+    assert.ok(decoded.rcinfo.capturePass === 'myhep');
     done();
   })
  })
