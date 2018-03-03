@@ -3,7 +3,7 @@ const spawn = require('child_process').spawn
 const hepjs = require('hep-js')
 const dgram = require('dgram')
 const command = '../src/captagent'
-const ipserver = '0.0.0.0'
+const ipserver = '127.0.0.1'
 const iptarget = '127.0.0.1'
 
 /*
