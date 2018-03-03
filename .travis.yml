@@ -31,6 +31,9 @@ install:
   - curl -sL https://deb.nodesource.com/setup_8.x | sudo -E bash -
   - sudo apt-get install -y nodejs
   - sudo npm i -g npm
+
+before_script:
+  - sudo setcap cap_net_raw=ep src/captagent || echo "Setcap failed"
 script:
   - sudo sed -i 's/any/lo/g' conf/socket_pcap.xml
   - ./build.sh
