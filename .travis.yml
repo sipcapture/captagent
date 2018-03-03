@@ -32,13 +32,12 @@ install:
   - sudo apt-get install -y nodejs
   - sudo npm i -g npm
 
-before_script:
-  - sudo setcap cap_net_raw=ep src/captagent || echo "Setcap failed"
 script:
   - sudo sed -i 's/any/lo/g' conf/socket_pcap.xml
   - ./build.sh
   - ./configure ${CONFIGURE}
   - make
   - sudo make install
+  - sudo setcap cap_net_raw=ep src/captagent || echo "Setcap failed"
   - ./src/captagent -v
   - cd test && npm install && sudo -s npm test
