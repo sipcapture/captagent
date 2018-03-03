@@ -29,7 +29,7 @@ install:
   - curl -sL https://deb.nodesource.com/setup_8.x | sudo -E bash -
   - sudo apt-get install -y nodejs
 script:
-  - IP=$(ifconfig eth0 | grep -oP 'inet addr:\K\S+') && echo "eth0 address: $IP"
+  - export IP=$(ifconfig eth0 | grep -oP 'inet addr:\K\S+') && echo "eth0 address: $IP"
   - ./build.sh
   - ./configure ${CONFIGURE}
   - sudo sed -i 's/any/eth0/g' conf/socket_pcap.xml
