@@ -3,7 +3,7 @@ const spawn = require('child_process').spawn
 const hepjs = require('hep-js')
 const dgram = require('dgram')
 const command = '../src/captagent'
-const ipserver = '127.0.0.1'
+const ipserver = '0.0.0.0'
 const iptarget = '127.0.0.1'
 
 /*
@@ -51,6 +51,9 @@ describe('CaptAgent HEP Basic', () => {
     assert.ok(network.address === '127.0.0.1');
   })
   it('should return HEP data', () => {
+    assert.ok(decoded);
+  })
+  it('should return HEP payload', () => {
     assert.ok(decoded.payload.length > 0);
   })
  })
