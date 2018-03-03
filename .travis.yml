@@ -20,7 +20,10 @@ addons:
       - net-tools
 compiler:
   - gcc
-
+before_install:
+  - sudo apt-get install -y libpcap0.8 -qq
+  - sudo ln -s /usr/lib/x86_64-linux-gnu/libpcap.so.1.5.3 /usr/lib/x86_64-linux-gnu/libpcap.so
+  - sudo ls -al /usr/lib/x86_64-linux-gnu/libpcap.*
 install: 
   - sudo -E apt-add-repository -y ppa:linuxjedi/ppa
   - sudo apt-get update || true
@@ -28,7 +31,6 @@ install:
   - sudo apt-get install -y libpcap-dev libexpat-dev libjson0-dev bison flex libtool autoconf automake autogen libuv-dev libssl-dev libgcrypt20 libgcrypt20-dev 
   - curl -sL https://deb.nodesource.com/setup_8.x | sudo -E bash -
   - sudo apt-get install -y nodejs
-
 script:
   - ./build.sh
   - ./configure ${CONFIGURE}
