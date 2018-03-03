@@ -23,7 +23,11 @@ describe('CaptAgent HEP Basic', () => {
   before((done) => {
 
     let captagent = spawn(command, args);
-    let alldone = function(){ done() }
+    captagent.on('exit', () => {
+	in_socket.close();
+	out_socket.close();
+	done()
+    })
 
     in_socket.on('message', (message,socket) => {
       decoded = hepjs.decapsulate(message);
@@ -32,22 +36,16 @@ describe('CaptAgent HEP Basic', () => {
     })
     in_socket.on('listening', function () {
 	    captagent.stdout.on('data', (data) => {
-	      if(!data.includes('ready')) return;
+	      // if(!data.includes('ready')) return;
 	      var udpmessage = new Buffer(sipmessage);
 	      out_socket.send(udpmessage, 0, udpmessage.length, 5060, iptarget, function(err) {
 	        if (err) console.log(err);
     	  });
     	})
-    	captagent.on('exit', () => {
-		in_socket.close();
-		out_socket.close();
-		alldone()
-	})
-
     })
     in_socket.bind(9061, ipserver)
   })
-	
+
   it('HEP should originate from 127.0.0.1', (done) => {
     assert.ok(network.address === '127.0.0.1');
     done();
