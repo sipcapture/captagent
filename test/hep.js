@@ -17,6 +17,7 @@ describe('CaptAgent HEP Basic', () => {
   let decoded
   let network
   var sipmessage = 'SIP/2.0 200 OK\r\nVia: SIP/2.0/UDP there.com:5060\r\nFrom: LittleGuy <sip:UserB@there.com>\r\nTo: LittleGuy <sip:UserB@there.com>\r\nCall-ID: 123456789@there.com\r\nCSeq: 2 REGISTER\r\n\r\n'
+  var udpmessage = new Buffer(sipmessage);
   var in_socket = dgram.createSocket('udp4')
   var out_socket = dgram.createSocket('udp4')
 
@@ -34,13 +35,16 @@ describe('CaptAgent HEP Basic', () => {
       network = socket;
       captagent.kill();
     })
+    var sendHep = function(){
+	out_socket.send(udpmessage, 0, udpmessage.length, 5060, iptarget, function(err) {
+          if (err) console.log(err);
+	});
+    }
+
     in_socket.on('listening', function () {
-	    captagent.stdout.on('data', (data) => {
-	      // if(!data.includes('ready')) return;
-	      var udpmessage = new Buffer(sipmessage);
-	      out_socket.send(udpmessage, 0, udpmessage.length, 5060, iptarget, function(err) {
-	        if (err) console.log(err);
-    	  });
+	captagent.stdout.on('data', (data) => {
+	     //if(!data.includes('ready')) return;	
+	     setTimeout(sendHep, 1500);
     	})
     })
     in_socket.bind(9061, ipserver)
