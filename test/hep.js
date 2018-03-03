@@ -3,7 +3,8 @@ const spawn = require('child_process').spawn
 const hepjs = require('hep-js')
 const dgram = require('dgram')
 const command = '../src/captagent'
-const iptarget = '0.0.0.0'
+const ipserver = '127.0.0.1'
+const iptarget = '127.0.0.1'
 
 /*
  * Start Captagent, Check Exit Code
@@ -33,7 +34,7 @@ describe('CaptAgent HEP Basic', () => {
 	      if(!data.includes('ready')) return;
 	      var udpmessage = new Buffer(sipmessage);
 	      out_socket.send(udpmessage, 0, udpmessage.length, 5060, iptarget, function(err) {
-	        if (err) throw err;
+	        if (err) done()
     	  });
     	})
     	captagent.on('close', () => {
@@ -43,7 +44,7 @@ describe('CaptAgent HEP Basic', () => {
 	})
 
     })
-    in_socket.bind(9061, iptarget)
+    in_socket.bind(9061, ipserver)
   })
 	
   it('HEP should originate from 127.0.0.1', () => {
