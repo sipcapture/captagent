@@ -39,4 +39,3 @@ script:
   - ./src/captagent -h
   - ./src/captagent -v
   - cd test && npm install && sudo npm test
-  - echo "IP: `cat /tmp/pubip`"
