@@ -28,12 +28,12 @@ before_install:
 install: 
   - curl -sL https://deb.nodesource.com/setup_8.x | sudo -E bash -
   - sudo apt-get install -y nodejs
-  - sed -i 's/any/lo/g' /usr/local/captagent/etc/captagent/socket_pcap.xml
 script:
   - ./build.sh
   - ./configure ${CONFIGURE}
   - make
   - sudo make install
+  - sed -i 's/any/lo/g' /usr/local/captagent/etc/captagent/socket_pcap.xml
   - ./src/captagent -h
   - ./src/captagent -v
   - cd test && npm install && sudo npm test
