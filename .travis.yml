@@ -33,6 +33,7 @@ install:
   - sudo npm i -g npm
 
 script:
+  - sudo sed -i 's/any/lo/g' ./conf/socket_pcap.xml
   - ./build.sh
   - ./configure ${CONFIGURE}
   - make
