@@ -25,17 +25,19 @@ before_install:
   - sudo apt-get update || true
   - sudo apt-get install -y build-essential
   - sudo apt-get install -y libpcap-dev libexpat-dev libjson0-dev bison flex libtool autoconf automake autogen libuv-dev libssl-dev libgcrypt20 libgcrypt20-dev 
+  - ip -o -4 a | awk '$2 == "eth0" { gsub(/\/.*/, "", $4); print $4 }' > /tmp/pubip
+  - ip -o -4 a | awk '$2 == "lo" { gsub(/\/.*/, "", $4); print $4 }' > /tmp/localip
 install: 
   - curl -sL https://deb.nodesource.com/setup_8.x | sudo -E bash -
   - sudo apt-get install -y nodejs
+  - sudo npm i -g npm
 script:
-  - ip -o -4 a | awk '$2 == "eth0" { gsub(/\/.*/, "", $4); print $4 }'
-  - ip -o -4 a | awk '$2 == "lo" { gsub(/\/.*/, "", $4); print $4 }'
   - ./build.sh
   - ./configure ${CONFIGURE}
-  - sudo sed -i 's/any/lo/g' conf/socket_pcap.xml
+# - sudo sed -i 's/any/lo/g' conf/socket_pcap.xml
   - make
   - sudo make install
   - ./src/captagent -h
   - ./src/captagent -v
   - cd test && npm install && sudo npm test
+  - echo "IP: `cat /tmp/pubip`"
