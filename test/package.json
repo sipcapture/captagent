@@ -4,7 +4,7 @@
   "description": "Captagent CI Tests",
   "main": "index.js",
   "scripts": {
-    "test": "mocha index.js"
+    "test": "mocha *.js"
   },
   "keywords": [
     "hep",
@@ -15,5 +15,8 @@
     "ci"
   ],
   "author": "Lorenzo Mangani <lorenzo.mangani@gmail.com> (http://qxip.net/)",
-  "license": "GPLv3"
+  "license": "GPLv3",
+  "devDependencies": {
+    "hep-js": "^1.0.11"
+  }
 }

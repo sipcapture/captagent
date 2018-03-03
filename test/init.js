@@ -4,7 +4,7 @@ const spawn = require('child_process').spawn
 /*
  * Start Captagent, Check Exit Code
  */
-describe('CaptAgent', () => {
+describe('CaptAgent Initialization', () => {
   let args = [
     "-v"
   ]
