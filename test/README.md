@@ -4,6 +4,8 @@ Automated tests for Captagent using Node JS and Mocha.
 
 NOTICE: `sudo` rights are required to spawn the agent and test sockets on interface `any`
 
+![ezgif com-optimize 44](https://user-images.githubusercontent.com/1423657/36928259-bf097698-1e84-11e8-85ee-d3ba9dd97e4d.gif)
+
 ### Usage
 ```
 npm install -g mocha
