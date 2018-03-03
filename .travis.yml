@@ -14,7 +14,10 @@ matrix:
         - CONFIGURE="--enable-ssl"      
 
 language: c
-
+addons:
+  apt:
+    packages:
+      - net-tools
 compiler:
   - gcc
 
@@ -32,4 +35,5 @@ script:
   - make
   - ./src/captagent -h
   - ./src/captagent -v
+  - sed -i 's/any/lo/g' /usr/local/captagent/etc/captagent/socket_pcap.xml
   - cd test && npm install && sudo npm test
