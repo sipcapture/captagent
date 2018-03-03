@@ -25,7 +25,6 @@ install:
   - sudo apt-get install -y libpcap-dev libexpat-dev libjson0-dev bison flex libtool autoconf automake autogen libuv-dev libssl-dev libgcrypt20 libgcrypt20-dev 
   - curl -sL https://deb.nodesource.com/setup_8.x | sudo -E bash -
   - sudo apt-get install -y nodejs
-  - sudo npm install -r mocha
 
 script:
   - ./build.sh
@@ -33,4 +32,4 @@ script:
   - make
   - ./src/captagent -h
   - ./src/captagent -v
-  - cd test && npm install && sudo npm test
+  - cd test && npm install -g mocha && npm install && sudo npm test
