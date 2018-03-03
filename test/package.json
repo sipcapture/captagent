@@ -4,7 +4,7 @@
   "description": "Captagent CI Tests",
   "main": "index.js",
   "scripts": {
-    "test": "mocha *.js"
+    "test": "mocha --timeout 5000 *.js"
   },
   "keywords": [
     "hep",
