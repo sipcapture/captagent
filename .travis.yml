@@ -29,13 +29,13 @@ install:
   - curl -sL https://deb.nodesource.com/setup_8.x | sudo -E bash -
   - sudo apt-get install -y nodejs
 script:
-  - export IP=$(ifconfig eth0 | grep -oP 'inet addr:\K\S+') && echo "eth0 address: $IP"
+  - ip -o -4 a | awk '$2 == "eth0" { gsub(/\/.*/, "", $4); print $4 }'
+  - ip -o -4 a | awk '$2 == "lo" { gsub(/\/.*/, "", $4); print $4 }'
   - ./build.sh
   - ./configure ${CONFIGURE}
-  - sudo sed -i 's/any/eth0/g' conf/socket_pcap.xml
+  - sudo sed -i 's/any/lo/g' conf/socket_pcap.xml
   - make
   - sudo make install
   - ./src/captagent -h
   - ./src/captagent -v
-  - sudo sed -i 's/127.0.0.1/$IP/g' test/hep.js
   - cd test && npm install && sudo npm test
