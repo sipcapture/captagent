@@ -23,6 +23,7 @@ describe('CaptAgent HEP Basic', () => {
   before((done) => {
 
     let captagent = spawn(command, args);
+    let alldone = function(){ done() }
 
     in_socket.on('message', (message,socket) => {
       decoded = hepjs.decapsulate(message);
@@ -34,13 +35,13 @@ describe('CaptAgent HEP Basic', () => {
 	      if(!data.includes('ready')) return;
 	      var udpmessage = new Buffer(sipmessage);
 	      out_socket.send(udpmessage, 0, udpmessage.length, 5060, iptarget, function(err) {
-	        if (err) done()
+	        if (err) console.log(err);
     	  });
     	})
-    	captagent.on('close', () => {
+    	captagent.on('exit', () => {
 		in_socket.close();
 		out_socket.close();
-		done()
+		alldone()
 	})
 
     })
