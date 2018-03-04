@@ -44,8 +44,7 @@ describe('CaptAgent HEP Basic', () => {
 
     in_socket.on('listening', function () {
 	captagent.stdout.on('data', (data) => {
-	     //if(!data.includes('ready')) return;	
-	     setTimeout(sendHep, 1500);
+	     setTimeout(sendHep, 1200);
     	})
     })
     in_socket.bind(9061, ipserver)
@@ -75,5 +74,31 @@ describe('CaptAgent HEP Basic', () => {
     assert.ok(decoded.rcinfo.capturePass === 'myhep');
     done();
   })
+  it('HEP dstPort should be 5060', (done) => {
+    assert.ok(decoded.rcinfo.dstPort === 5060);
+    done();
+  })
+  it('HEP srcPort should exist', (done) => {
+    assert.ok(decoded.rcinfo.srcPort >= 0 );
+    done();
+  })
+  it('HEP captureId should be 2001', (done) => {
+    assert.ok(decoded.rcinfo.captureId === 2001);
+    done();
+  })
+  it('HEP payloadType should be "myhep"', (done) => {
+    assert.ok(decoded.rcinfo.payloadType === 1);
+    done();
+  })
+  it('HEP srcIp should be "127.0.0.1"', (done) => {
+    assert.ok(decoded.rcinfo.srcIp === '127.0.0.1');
+    done();
+  })
+  it('HEP dstIp should be "127.0.0.1"', (done) => {
+    assert.ok(decoded.rcinfo.dstIp === '127.0.0.1');
+    done();
+  })
+
  })
+
 
