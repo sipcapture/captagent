@@ -108,6 +108,7 @@ int bind_api(protocol_module_api_t* api)
    Function to read FILE and return string
 **/
 static unsigned char * read_file(char *name) {
+
   FILE *file = NULL;
   unsigned long fileLen = 0;
   unsigned char *buffer = NULL;
@@ -222,7 +223,7 @@ int w_parse_tls(msg_t *msg) {
   if((ret_len = dissector_tls((const u_char *) msg->data, msg->len, decrypted_buffer, DECR_LEN, msg->rcinfo.src_port, msg->rcinfo.dst_port, msg->rcinfo.ip_proto, flow, Key_Hash, PVTkey)) > 0) {
 
     LDEBUG("DECRIPTED BUFFER TLS = %s", decrypted_buffer);
-    memcpy(msg->data, decrypted_buffer, ret_len); // decrypted buff --> Msg data
+    msg->data = decrypted_buffer; // decrypted buff --> Msg data
     msg->len = ret_len;
     msg->mfree = 1;
   }
