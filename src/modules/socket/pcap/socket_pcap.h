@@ -35,9 +35,12 @@ extern char *global_config_path;
 extern char *global_scripts_path;
 
 /* Ethernet type in case of vlan or mpls header */
+#define IPV4_SIZE	20
+#define ERSPANHDR_SIZE	16
 #define VLAN            0x8100
 #define MPLS_UNI        0x8847
 #define MPLS_MULTI      0x8848
+#define COOKED_INT      0x88be
 
 /* --- MPLS header --- */
 struct mpls_header
@@ -66,6 +69,8 @@ union mpls {
 #define ISDNHDR_SIZE 16
 #define IEEE80211HDR_SIZE 32
 #define GREHDR_SIZE 4
+
+
 
 #define GRE_PROTO 47
 #define IPPROTO_OFFSET 9

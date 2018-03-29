@@ -166,13 +166,19 @@ int reload_config (char *erbuf, int erlen) {
 void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet) {
 
   int vlan_count = 0, mpls_count = 0;
-
+  uint8_t  hdr_preset = 0;
+    
   // define MPLS struct
   union mpls mpls;
   
   uint8_t hdr_offset = 0; // offset for VLAN or MPLS
   u_int16_t type = 0, vlan_id;
-  
+  uint8_t vlan = 0;
+    
+  unsigned char* ethaddr = NULL;
+  unsigned char* mplsaddr = NULL;
+  unsigned char* cooked = NULL;
+         
   uint8_t erspan_offset = 0;
   uint8_t tmp_ip_proto = 0;
   uint8_t tmp_ip_len = 0;
@@ -194,10 +200,13 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
   
   struct run_act_ctx ctx;
   struct ether_header *eth = (struct ether_header *) packet;
+    
   
   /* check for ethernet type */
   
   // VLAN
+  /* Need to check the code - it produce the errors in some scenarios!!! */
+  /*
   if(ntohs(eth->ether_type == VLAN)) {
     vlan_id = ((packet[link_offset] << 8) + packet[link_offset+1]) & 0xFFF;
     type = (packet[link_offset+2] << 8) + packet[link_offset+3];
@@ -227,7 +236,29 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
       mpls.u32 = ntohl(mpls.u32);
       hdr_offset += 4;
     }
+  }  
+  */
+
+  memcpy(&cooked, (packet + link_offset + IPV4_SIZE + 2), 2);
+  memcpy(&ethaddr, (packet + 12), 2);
+  memcpy(&mplsaddr, (packet + 16), 2);
+
+  if (ntohs((uint16_t)*(&ethaddr)) == VLAN) {
+          if (ntohs((uint16_t)*(&mplsaddr)) == MPLS_UNI) {
+             hdr_offset = 8;
+             vlan = 1;
+          } else {
+             hdr_offset = 4;
+             vlan = 2;
+          }
   }
+  else if(ntohs((uint16_t)*(&cooked)) == COOKED_INT)
+  {
+          /* LINK_OFFSET + IPV4_SIZE + GRE_ERSPAN + ERSPAN INFO */
+          hdr_offset = hdr_preset = link_offset + IPV4_SIZE + ERSPANHDR_SIZE ;
+          vlan = 3;
+  }    
+
   // IP
   struct ip      *ip4_pkt = (struct ip *)(packet + link_offset + hdr_offset);
 #if USE_IPv6
