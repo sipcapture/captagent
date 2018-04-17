@@ -93,6 +93,10 @@ static socket_pcap_user_data_t user_data[MAX_SOCKETS];
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_t call_thread[MAX_SOCKETS];
 pcap_t *sniffer_proto[MAX_SOCKETS];
+pthread_t stat_thread;
+
+struct pcap_stat last_stat[MAX_SOCKETS];
+
 struct reasm_ip *reasm[MAX_SOCKETS];
 struct tcpreasm_ip *tcpreasm[MAX_SOCKETS];
 
@@ -105,6 +109,8 @@ static int free_profile(unsigned int idx);
 
 unsigned int profile_size = 0;
 int verbose = 0;
+int stats_interval = 300;
+int drop_limit = 25;
 
 bind_protocol_module_api_t proto_bind_api;
 
@@ -852,6 +858,62 @@ void* proto_collect(void *arg) {
 	return NULL;
 }
 
+
+static void stat_collect(void* arg) {
+
+      LDEBUG("STARTING STATS....");
+      int i = 0;
+
+      while (1)
+      {
+              for (i = 0; i < profile_size; i++) {
+                      /* statistics */
+                      uint8_t pcap_drop = 0, interface_drop = 0;
+                      struct pcap_stat stat;
+
+                      if(pcap_stats(sniffer_proto[i], &stat) == 0)
+                      {
+                              if(stat.ps_recv >= last_stat[i].ps_recv) {
+
+                                      if(stat.ps_drop > last_stat[i].ps_drop) pcap_drop = 1;
+                                      if(stat.ps_ifdrop > last_stat[i].ps_ifdrop && (stat.ps_ifdrop - last_stat[i].ps_ifdrop) > (stat.ps_recv - last_stat[i].ps_recv) * drop_limit / 100) 
+				      {
+                                                      interface_drop = true;
+                                      }
+                                      if(pcap_drop == 1 || interface_drop == 1) {                                         
+                                              LERR("Packet drops on interface [%s], index: [%d], received: [%d]", profile_socket[i].device, i,
+                                                       (stat.ps_recv - last_stat[i].ps_recv));
+                                              if(pcap_drop) {
+                                                      LERR("pcap drop: [%d] = [%d]%%", (stat.ps_drop - last_stat[i].ps_drop),
+                                                       ((double)(stat.ps_drop - last_stat[i].ps_drop) / (stat.ps_recv - last_stat[i].ps_recv) * 100));
+                                              }
+                                              if(interface_drop) {
+                                                      LERR("interface drop: [%d] = [%d]%%", (stat.ps_ifdrop - last_stat[i].ps_ifdrop),
+                                                       ((double)(stat.ps_ifdrop - last_stat[i].ps_ifdrop) / (stat.ps_recv - last_stat[i].ps_recv) * 100));
+                                              }
+                                      }
+                                      else {
+                                             LERR("No packet drops on interface [%s], index: [%d], received: [%d]", profile_socket[i].device, i, (stat.ps_recv - last_stat[i].ps_recv));
+                                      }
+                              }
+
+                              last_stat[i] = stat;
+                       }     
+                       else {
+                               LERR("Couldn't get stats on interface [%s], index [%d]", profile_socket[i].device, i);
+                       }
+              }
+       
+              sleep(stats_interval);
+      }
+
+      LDEBUG("EXIT stats");
+      pthread_exit(0); // exit the thread signalling normal return                   
+      return NULL;
+}
+
+
+
 int load_module_xml_config() {
 
 	char module_config_name[500];
@@ -1031,6 +1093,8 @@ static int load_module(xml_node *config) {
                                                 debug_socket_pcap_enable = 1;	
 					else if (!strncmp(key, "erspan", 6) && !strncmp(value, "true", 4))
 						profile_socket[profile_size].erspan = 1;
+					else if (!strncmp(key, "stats-interval", 14))					        
+						stats_interval = atoi(value);												
 				}
 
 				nextparam: params = params->next;
@@ -1105,6 +1169,8 @@ static int load_module(xml_node *config) {
 		pthread_create(&call_thread[i], NULL, proto_collect, arg);		
 	}
 
+	pthread_create(&stat_thread, NULL, stat_collect, i);
+
 	return 0;
 }
 
@@ -1112,6 +1178,8 @@ static int unload_module(void) {
 	unsigned int i = 0;
 
 	LNOTICE("unloaded module %s", module_name);
+
+	pthread_cancel(stat_thread);     
 
 	for (i = 0; i < profile_size; i++) {
 
