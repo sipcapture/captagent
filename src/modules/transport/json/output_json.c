@@ -524,6 +524,7 @@ int init_jsonsocket_blocking (unsigned int idx) {
 
 
 #ifdef USE_SSL
+#ifndef OPENSSL_NO_SSL3 // solve the warning for https://bugs.freebsd.org/bugzilla/show_bug.cgi?id=223388#c0
 SSL_CTX* initCTX(void) {
   const SSL_METHOD *method;
   SSL_CTX *ctx;
@@ -531,7 +532,6 @@ SSL_CTX* initCTX(void) {
   OpenSSL_add_all_algorithms();  /* Load cryptos, et.al. */
   SSL_load_error_strings();   /* Bring in and register error messages */
   
-  /* we use SSLv3 (possible warning here. Check here (https://bugs.freebsd.org/bugzilla/show_bug.cgi?id=223388#c0) */
   method = SSLv3_client_method();  /* Create new client-method instance */
   
   ctx = SSL_CTX_new(method);   /* Create new context */
@@ -541,8 +541,7 @@ SSL_CTX* initCTX(void) {
   }
   return ctx;
 }
-
-
+#endif /* use OPENSSL */
 #endif /* use SSL */
 
 
