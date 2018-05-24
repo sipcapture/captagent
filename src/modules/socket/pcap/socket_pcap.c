@@ -893,7 +893,7 @@ static void stat_collect(void* arg) {
                                               }
                                       }
                                       else {
-                                             LERR("No packet drops on interface [%s], index: [%d], received: [%d]", profile_socket[i].device, i, (stat.ps_recv - last_stat[i].ps_recv));
+                                             LNOTICE("No packet drops on interface [%s], index: [%d], received: [%d]", profile_socket[i].device, i, (stat.ps_recv - last_stat[i].ps_recv));
                                       }
                               }
 
