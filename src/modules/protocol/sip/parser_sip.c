@@ -311,7 +311,8 @@ getUser (str * user, str * domain, char *s, int len)
   };
 
   enum state st;
-  int first_offset = 0, host_offset = 0, i;
+  int first_offset = 0, host_offset = 0;
+  unsigned int i;
   bool foundUser = FALSE, foundHost = FALSE, foundAtValue = FALSE;
   st = URI_BEGIN;
   //host_end_offset = len;
