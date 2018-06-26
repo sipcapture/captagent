@@ -162,6 +162,10 @@ struct tzsp_tag {
 
 int w_tzsp_payload_extract(msg_t *_m);
 void proccess_packet(msg_t *_m, struct pcap_pkthdr *pkthdr, u_char *packet);
+char** str_split(char* a_str, const char a_delim, int up);
+void load_ip_data(char *ips);
+int check_ip_data(char *ip, uint16_t *port);
+
 
 #endif /* _SOCKET_PCAP_H_ */
 

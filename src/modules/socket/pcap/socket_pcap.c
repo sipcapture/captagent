@@ -40,6 +40,7 @@
 #include <signal.h>
 #include <time.h>
 #include <pthread.h>
+#include <assert.h>
 
 
 #ifndef __FAVOR_BSD
@@ -112,6 +113,12 @@ int verbose = 0;
 int stats_interval = 300;
 int drop_limit = 25;
 
+char ipcheck_in[10][80] =  {0,0}; 
+char ipcheck_out[10][80]={0,0}; 
+int port_in[10] ={0}; 
+int port_out[10] = {0}; 
+int ipindex = -1;
+
 bind_protocol_module_api_t proto_bind_api;
 
 static cmd_export_t cmds[] = { 
@@ -175,7 +182,7 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
   uint8_t  hdr_preset = 0;
     
   // define MPLS struct
-  union mpls mpls;
+  //union mpls mpls;
   
   uint8_t hdr_offset = 0; // offset for VLAN or MPLS
   u_int16_t type = 0, vlan_id;
@@ -425,6 +432,7 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
 	_msg.len = len;		        
       }
 
+
       _msg.rcinfo.src_port = ntohs(tcp_pkt->th_sport);
       _msg.rcinfo.dst_port = ntohs(tcp_pkt->th_dport);
       _msg.rcinfo.src_ip = ip_src;
@@ -437,6 +445,16 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
       _msg.rcinfo.time_usec = pkthdr->ts.tv_usec;
       _msg.tcpflag = tcp_pkt->th_flags;
       _msg.parse_it = 1;
+      
+
+      /* replace IP */
+      if(ipindex) {
+          /* src */
+          check_ip_data(_msg.rcinfo.src_ip, &_msg.rcinfo.src_port);
+          /* dst */
+          check_ip_data(_msg.rcinfo.dst_ip, &_msg.rcinfo.dst_port);
+      }
+
 
       action_idx = profile_socket[loc_index].action;		
       run_actions(&ctx, main_ct.clist[action_idx], &_msg);
@@ -473,6 +491,14 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
       _msg.rcinfo.time_usec = pkthdr->ts.tv_usec;
       _msg.tcpflag = tcp_pkt->th_flags;
       _msg.parse_it = 1;
+
+      /* replace IP */
+      if(ipindex) {
+          /* src */
+          check_ip_data(_msg.rcinfo.src_ip, &_msg.rcinfo.src_port);
+          /* dst */
+          check_ip_data(_msg.rcinfo.dst_ip, &_msg.rcinfo.dst_port);
+      }
 
       action_idx = profile_socket[loc_index].action;		
       run_actions(&ctx, main_ct.clist[action_idx], &_msg);
@@ -531,6 +557,14 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
     _msg.tcpflag = 0;
     _msg.parse_it = 1;
 
+      /* replace IP */
+      if(ipindex) {
+          /* src */
+          check_ip_data(_msg.rcinfo.src_ip, &_msg.rcinfo.src_port);
+          /* dst */
+          check_ip_data(_msg.rcinfo.dst_ip, &_msg.rcinfo.dst_port);
+      }
+
 
     action_idx = profile_socket[loc_index].action;
     run_actions(&ctx, main_ct.clist[action_idx], &_msg);
@@ -580,7 +614,14 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
     _msg.tcpflag = 0;
     _msg.parse_it = 1;
 
-
+     /* replace IP */
+     if(ipindex) {
+          /* src */
+          check_ip_data(_msg.rcinfo.src_ip, &_msg.rcinfo.src_port);
+          /* dst */
+          check_ip_data(_msg.rcinfo.dst_ip, &_msg.rcinfo.dst_port);
+     }
+     
     /* default the full packet */
     _msg.len = pkthdr->caplen - link_offset - hdr_offset;
     _msg.data = (packet + link_offset + hdr_offset);
@@ -909,7 +950,7 @@ static void stat_collect(void* arg) {
 
       LDEBUG("EXIT stats");
       pthread_exit(0); // exit the thread signalling normal return                   
-      return NULL;
+      return;
 }
 
 
@@ -1094,7 +1135,11 @@ static int load_module(xml_node *config) {
 					else if (!strncmp(key, "erspan", 6) && !strncmp(value, "true", 4))
 						profile_socket[profile_size].erspan = 1;
 					else if (!strncmp(key, "stats-interval", 14))					        
-						stats_interval = atoi(value);												
+						stats_interval = atoi(value);				
+					else if (!strncmp(key, "ip-replace", 10))
+					{
+					        load_ip_data(value);
+                                        }
 				}
 
 				nextparam: params = params->next;
@@ -1484,4 +1529,128 @@ void proccess_packet(msg_t *_m, struct pcap_pkthdr *pkthdr, u_char *packet) {
         }
 	
 	return;
+}
+
+char** str_split(char* a_str, const char a_delim, int up)
+{
+    char** result    = 0;
+    size_t count     = 0;
+    char* tmp        = a_str;
+    char* last_comma = 0;
+    char delim[2];
+    delim[0] = a_delim;
+    delim[1] = 0;
+
+    while (*tmp)
+    {
+        if (a_delim == *tmp)
+        {
+            count++;
+            last_comma = tmp;
+        }
+        tmp++;
+    }
+
+    count += last_comma < (a_str + strlen(a_str) - 1);
+
+    count++;
+
+    result = malloc(sizeof(char*) * count);
+
+    if (result)
+    {
+        size_t idx  = 0;
+        char* token = strtok(a_str, delim);
+
+        while (token)
+        {
+            assert(idx < count);
+            *(result + idx++) = strdup(token);
+            token = strtok(0, delim);
+        }
+        assert(idx == count - 1);
+        *(result + idx) = 0;
+    }
+
+    return result;
+}
+
+void load_ip_data(char *ips)
+{
+    char **tokens1, **tokens2, **tokens3;
+
+    tokens1 = str_split(ips, ';', 0);
+
+    if (tokens1) {
+        int i;
+        for (i = 0; *(tokens1 + i); i++)
+        {
+            tokens2 = str_split(*(tokens1 + i), '-', 1);            
+            if (tokens2)
+            {
+                int j;
+                for (j = 0; *(tokens2 + j); j++)
+                {
+                    tokens3 = str_split(*(tokens2 + j), ':', 1);
+                    if (tokens3)
+                    {
+                        int z;
+                        for (z = 0; *(tokens3 + z); z++)
+                        {
+                            if(j == 0) {                                
+                                if(z == 0) {                                
+                                    ipindex++;
+                                    snprintf(ipcheck_in[ipindex], 80, "%s", *(tokens3 + z));
+                                }
+                                else {
+                                    port_in[ipindex] = atoi(*(tokens3 + z));        
+                                }
+                            }
+                            else if(j == 1) {
+                                if(z == 0) {                                
+                                    snprintf(ipcheck_out[ipindex], 80, "%s", *(tokens3 + z));
+                                }
+                                else {
+                                    port_out[ipindex] = atoi(*(tokens3 + z));        
+                                }                            
+                            }                            
+                            
+                            free(*(tokens3 + z));
+                        }                
+                        free(tokens3);
+                    }
+                    
+                    free(*(tokens2 + j));
+                }
+                
+                free(tokens2);
+            }
+
+            free(*(tokens1 + i));
+        }
+        free(tokens1);
+    }
+    
+    return;
+}
+
+int check_ip_data(char *ip, uint16_t *port)
+{
+
+    int j = 0,len=0;
+
+    len = strlen(ip);
+
+    for (j = 0; j < 10; j++)
+    {
+        if(strlen(ipcheck_in[j]) == 0) break;
+
+        if((strncmp(ipcheck_in[j], ip, len) == 0) && (port_in[j] == *port || port_in[j] == 0)) {
+                *port = port_out[j];
+                len = snprintf(ip, 80, "%s", ipcheck_out[j]);
+                return len;
+        }
+    }
+
+    return 0;
 }
