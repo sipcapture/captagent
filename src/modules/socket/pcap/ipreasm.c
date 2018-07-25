@@ -327,7 +327,7 @@ add_fragment (struct reasm_ip_entry *entry, struct reasm_frag_entry *frag, bool 
 
 	if (last_frag) {
 		if (entry->len != 0) {
-			fprintf (stderr, "* ERROR: Multiple final fragments.\n");
+			//fprintf (stderr, "* ERROR: Multiple final fragments.\n");
 			return false;
 		}
 		entry->len = frag->offset + frag->len;
