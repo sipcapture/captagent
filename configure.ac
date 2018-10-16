@@ -169,8 +169,9 @@ AC_PROG_MAKE_SET
 AC_LIBTOOL_DLOPEN
 AC_PROG_LIBTOOL
 AC_PROG_LEX
-if test "$LEX" != "flex"; then
-	AC_MSG_ERROR([flex not found. Please install flex])
+
+if test "x$LEXLIB" = "x"; then
+       AC_MSG_ERROR([captagent requires but cannot find libfl])
 fi
 
 if test -z "`echo %%|$LEX -t|grep yypop_buffer_state`"; then
@@ -199,8 +200,6 @@ echo "        Verify that you have libjson.a or libjson.so installed";
 echo "        If it is in a different directory, try using";
 echo "        the LDFLAGS to set its proper path.";
 AC_MSG_ERROR([Fatal:  libjson not found.])])])
-
-AC_CHECK_LIB(fl, yywrap, [ FLEX_LIBS="-lfl" ] , [AC_MSG_ERROR([$PACKAGE_NAME requires but cannot find libfl])])
 
 AC_SUBST(PTHREAD_LIBS)
 AC_SUBST(DL_LIBS)
