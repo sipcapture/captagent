@@ -35,9 +35,8 @@
 #define REPORT_BLOCK_JSON "\"ssrc\":%u,\"type\":%u, \"report_blocks\":[{\"source_ssrc\":%u,\"highest_seq_no\":%u,\"fraction_lost\":%u,\"ia_jitter\":%u,\
 \"packets_lost\":%d,\"lsr\":%u,\"dlsr\":%u}],\"report_count\":1,"
 
-#define SDES_REPORT_BEGIN_JSON "\"sdes_ssrc\":%u,\"sdes_chunk_ssrc\":%u,\"sdes_information\": [ "
+#define SDES_REPORT_BEGIN_JSON "\"sdes_ssrc\":%u,\"sdes_report_count\":%u,\"sdes_information\":["
 #define SDES_REPORT_INFO_JSON "{\"type\":%u,\"text\":\"%.*s\"},"
-#define SDES_REPORT_END_JSON "],\"sdes_report_count\":%u,"
 
 
 extern int send_sdes;
@@ -128,11 +127,6 @@ typedef struct _rtcp_rr
 	report_block_t rb[1];
 } rtcp_rr_t;
 
-typedef struct _rtcp_sdes_chunk
-{
-	uint32_t csrc;
-} rtcp_sdes_chunk_t;
-
 typedef struct _rtcp_sdes_item
 {
 	uint8_t type;
@@ -143,9 +137,8 @@ typedef struct _rtcp_sdes_item
 typedef struct _rtcp_sdes_t
 {
 	rtcp_header_t header;
-	uint32_t ssrc;
-	rtcp_sdes_chunk_t chunk;
-	rtcp_sdes_item_t item;
+	uint32_t csrc;
+	rtcp_sdes_item_t item[1];
 } rtcp_sdes_t;
 
 typedef struct _rtcp_bye
@@ -160,10 +153,6 @@ typedef struct _rtcp_app
 	uint32_t ssrc;
 	char name[4];
 } rtcp_app_t;
-
-#define sdes_chunk_get_csrc(c)  ntohl((c)->csrc)
-#define sdes_chunk_item_get_len(item)  (item)->len
-#define sdes_chunk_item_get_type(item) (item)->type
 
 int capt_parse_rtcp(char *packet, int len, char *json_buffer, int buffer_len);
 int check_rtcp_version (char *packet, int len);
