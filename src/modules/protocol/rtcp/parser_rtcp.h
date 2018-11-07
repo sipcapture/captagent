@@ -79,9 +79,9 @@ typedef struct _sender_info
 	uint32_t senders_octet_count;
 } sender_info_t;
 
-#define sender_info_get_ntp_timestamp_msw(si) ((si)->ntp_timestamp_msw)
-#define sender_info_get_ntp_timestamp_lsw(si) ((si)->ntp_timestamp_lsw)
-#define sender_info_get_rtp_timestamp(si) ((si)->rtp_timestamp)
+#define sender_info_get_ntp_timestamp_msw(si) ntohl((si)->ntp_timestamp_msw)
+#define sender_info_get_ntp_timestamp_lsw(si) ntohl((si)->ntp_timestamp_lsw)
+#define sender_info_get_rtp_timestamp(si) ntohl((si)->rtp_timestamp)
 #define sender_info_get_packet_count(si) ntohl((si)->senders_packet_count)
 #define sender_info_get_octet_count(si) ntohl((si)->senders_octet_count)
 
