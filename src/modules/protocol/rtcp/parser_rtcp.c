@@ -69,7 +69,6 @@ int capt_parse_rtcp(char *packet, int len, char *json_buffer, int buffer_len) {
 
   rtcp_header_t *rtcp = (rtcp_header_t *)packet;
   int ret = 0, flag = 0;
-  char *rptr;
 
   ret += snprintf(json_buffer, buffer_len, "{ ");
 
@@ -138,45 +137,31 @@ int capt_parse_rtcp(char *packet, int len, char *json_buffer, int buffer_len) {
       /* if not needed send sdes */
       if(!send_sdes) break;
 
+      int items;
+
       rtcp_sdes_t *sdes = (rtcp_sdes_t*)rtcp;
-
-      rptr = (char *)rtcp+2;
-      int sdes_report_count = 0;
-
-      char *end=(char*) rptr+(4*(rtcp_header_get_length(&sdes->header)+1)-15);
+      rtcp_sdes_item_t *end = (rtcp_sdes_item_t *)
+                                ((uint32_t *)rtcp + ntohs(rtcp->length) + 1);
+      rtcp_sdes_item_t *rsp, *rspn;
 
       ret += snprintf(json_buffer+ret, buffer_len - ret, SDES_REPORT_BEGIN_JSON,
-		      ntohl(sdes->ssrc),
-		      sdes_chunk_get_csrc(&sdes->chunk));
+          ntohl(sdes->csrc), sdes->header.rc);
 
-      while(rptr < end) {
-
-	if (rptr + 2 <= end) {
-
-	  uint8_t chunk_type=rptr[0];
-	  uint8_t chunk_len=rptr[1];
-
-	  if(chunk_len == 0) break;
-
-	  rptr += 2;
-
-	  ret += snprintf(json_buffer+ret, buffer_len - ret, SDES_REPORT_INFO_JSON,
-			  chunk_type,
-			  chunk_len, rptr);
-
-	  sdes_report_count++;
-
-	  if (rptr+chunk_len<=end) rptr+=chunk_len;
-	  else break;
-	}
-	else {
-	  break;
-	}
+      rsp = &sdes->item[0];
+      if (rsp >= end) break;
+      for (items = 0; rsp->type; rsp = rspn ) {
+        rspn = (rtcp_sdes_item_t *)((char*)rsp+rsp->len+2);
+        if (rspn >= end) {
+          rsp = rspn;
+          break;
+        }
+        ret += snprintf(json_buffer+ret, buffer_len - ret, SDES_REPORT_INFO_JSON,
+            rsp->type, rsp->len, rsp->content);
+        items++;
       }
       /* cut , off */
-      ret -= 1;
-
-      ret += snprintf(json_buffer+ret, buffer_len - ret, SDES_REPORT_END_JSON, sdes_report_count);
+      if (items) ret -= 1;
+      ret += snprintf(json_buffer+ret, buffer_len - ret, "],");
 
       break;
     }
