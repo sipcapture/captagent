@@ -86,11 +86,11 @@ typedef struct hep_connection {
   uv_async_t async_handle;
   uv_sem_t sem;
   uv_mutex_t mutex;
-  
+
   uv_connect_t connect;
-  uv_udp_t udp_handle; 
-  uv_tcp_t tcp_handle; 
-  
+  uv_udp_t udp_handle;
+  uv_tcp_t tcp_handle;
+
   void *context;
 
   conn_state_type_t conn_state;
@@ -131,17 +131,18 @@ int check_module_xml_config();
 int w_send_hep_api(msg_t *_m, char *param1);
 int w_send_hep_api_param(msg_t *_m, char *param1, char *param2);
 int w_send_hep_proto(msg_t *_m, char *param1, char *param2);
+int w_send_hep_raw(msg_t *_m, char *param1);
 
 /*LIBUV*/
 
 int send_message(hep_connection_t *conn, unsigned char *message, size_t len, hep_request_type_t type);
 
-#if UV_VERSION_MAJOR == 0                         
+#if UV_VERSION_MAJOR == 0
 uv_buf_t on_alloc(uv_handle_t* client, size_t suggested);
 void _async_callback(uv_async_t *async, int status);
 void _udp_recv_callback(uv_udp_t *handle, ssize_t nread, uv_buf_t *buf, struct sockaddr *addr, unsigned int flags);
 uv_buf_t  _buffer_alloc_callback(uv_handle_t *handle, size_t suggested);
-#else     
+#else
 void on_alloc(uv_handle_t* client, size_t suggested, uv_buf_t* buf);
 void _buffer_alloc_callback(uv_handle_t *handle, size_t suggested, uv_buf_t *dst);
 void _udp_recv_callback(uv_udp_t *handle, ssize_t nread, const uv_buf_t *buf, const struct sockaddr *addr, unsigned int flags);
@@ -161,7 +162,7 @@ int homer_alloc(hep_connection_t *conn);
 int init_udp_socket(hep_connection_t *conn, char *host, int port);
 void on_tcp_connect(uv_connect_t* connection, int status);
 int init_tcp_socket(hep_connection_t *conn, char *host, int port);
-     
+
 
 /* HEPv3 types */
 

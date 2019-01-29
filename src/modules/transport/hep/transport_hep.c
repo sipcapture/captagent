@@ -77,11 +77,11 @@ static uint64_t serial_module(void);
 static void reconnect(int idx);
 static void set_conn_state(hep_connection_t* conn, conn_state_type_t new_conn_state);
 
-#if UV_VERSION_MAJOR == 0                         
+#if UV_VERSION_MAJOR == 0
         /* need implement it */
 #else
 static uv_key_t hep_conn_key;
-#endif  
+#endif
 
 
 bind_statistic_module_api_t stats_bind_api;
@@ -89,8 +89,8 @@ unsigned int sslInit = 0;
 unsigned int profile_size = 0;
 
 static cmd_export_t cmds[] = {
-        {"transport_hep_bind_api",  (cmd_function)bind_usrloc,   1, 0, 0, 0},
-        {"bind_transport_hep",  (cmd_function)bind_transport_hep,  0, 0, 0, 0},
+        { "transport_hep_bind_api", (cmd_function) bind_usrloc, 1, 0, 0, 0},
+        { "bind_transport_hep", (cmd_function) bind_transport_hep, 0, 0, 0, 0},
         { "send_hep", (cmd_function) w_send_hep_api, 1, 0, 0, 0 },
         { "send_hep_raw", (cmd_function) w_send_hep_raw, 1, 0, 0, 0 },
         { "send_hep", (cmd_function) w_send_hep_api_param, 2, 0, 0, 0 },
@@ -100,7 +100,7 @@ static cmd_export_t cmds[] = {
 
 struct module_exports exports = {
         "transport_hep",
-        cmds,        /* Exported functions */
+        cmds,           /* Exported functions */
         load_module,    /* module initialization function */
         unload_module,
         description,
@@ -113,62 +113,62 @@ hep_connection_t hep_connection_s[MAX_TRANPORTS];
 
 int bind_usrloc(transport_module_api_t *api)
 {
-        api->send_f = send_hep; // should be w_send_hep_api or w_send_hep_api_param
+    api->send_f = send_hep;       // should be w_send_hep_api or w_send_hep_api_param
 	api->reload_f = reload_config;
 	api->module_name = module_name;
 
         return 0;
 }
 
-int w_send_hep_api(msg_t *_m, char *param1) 
+int w_send_hep_api(msg_t *_m, char *param1)
 {
-    
+
     int ret = 0;
 
     _m->profile_name = param1;
-        
-    ret =  send_hep(_m, 1);    
-    
+
+    ret =  send_hep(_m, 1);
+
     return ret;
 }
 
-int w_send_hep_raw(msg_t *_m, char *param1) 
+int w_send_hep_raw(msg_t *_m, char *param1)
 {
-    
+
     int ret = 0;
     unsigned int idx = get_profile_index_by_name(param1);
-       
-    send_data(msg->data , msg->len, idx);        
+
+    send_data(_m->data , _m->len, idx);
 
     return ret;
 }
 
 
 
-int w_send_hep_api_param(msg_t *_m, char *param1, char *param2) 
+int w_send_hep_api_param(msg_t *_m, char *param1, char *param2)
 {
-    
+
     int ret = 0;
     int freeParam = 1;
-    
+
     _m->profile_name = param1;
     if(param2 != NULL && !strncmp(param2,"true", 4)) freeParam = 0;
-        
-    ret =  send_hep(_m, freeParam);    
-    
+
+    ret =  send_hep(_m, freeParam);
+
     return ret;
 }
 
-int w_send_hep_proto(msg_t *_m, char *param1, char *param2) 
+int w_send_hep_proto(msg_t *_m, char *param1, char *param2)
 {
-    
+
     int ret = 0;
 
     _m->profile_name = param1;
     _m->rcinfo.proto_type = atoi(param2);
-        
-    ret =  send_hep(_m, 1);    
-    
+
+    ret =  send_hep(_m, 1);
+
     return ret;
 }
 
@@ -304,13 +304,13 @@ int send_hep (msg_t *msg, int freeParam) {
                      LDEBUG("LETS FREE IT!");
                      free(msg->data);
                 }
-                if(msg->corrdata)  
+                if(msg->corrdata)
                 {
                      free(msg->corrdata);
                      msg->corrdata = NULL;
-                }                                                                                     
+                }
         }
-        
+
         return ret;
 }
 
@@ -329,7 +329,7 @@ int send_hepv3 (rc_info_t *rcinfo, unsigned char *data, unsigned int len, unsign
     hep_chunk_t correlation_chunk;
     hep_chunk_uint16_t cval1;
     hep_chunk_uint16_t cval2;
-            
+
     hg = malloc(sizeof(struct hep_generic));
     memset(hg, 0, sizeof(struct hep_generic));
 
@@ -450,23 +450,23 @@ int send_hepv3 (rc_info_t *rcinfo, unsigned char *data, unsigned int len, unsign
              correlation_chunk.length    = htons(sizeof(correlation_chunk) + rcinfo->correlation_id.len);
              tlen += rcinfo->correlation_id.len;
     }
-    
+
     if(rcinfo->cval1) {
               tlen += sizeof(hep_chunk_uint16_t);
               cval1.chunk.vendor_id = htons(0x0000);
               cval1.chunk.type_id   = htons(0x0020);
               cval1.data = htons(rcinfo->cval1);
-              cval1.chunk.length = htons(sizeof(cval1));    
+              cval1.chunk.length = htons(sizeof(cval1));
     }
-    
+
     if(rcinfo->cval2) {
               tlen += sizeof(hep_chunk_uint16_t);
               cval2.chunk.vendor_id = htons(0x0000);
               cval2.chunk.type_id   = htons(0x0021);
               cval2.data = htons(rcinfo->cval2);
-              cval2.chunk.length = htons(sizeof(cval2));    
+              cval2.chunk.length = htons(sizeof(cval2));
     }
-    
+
     /* total */
     hg->header.length = htons(tlen);
 
@@ -521,18 +521,18 @@ int send_hepv3 (rc_info_t *rcinfo, unsigned char *data, unsigned int len, unsign
            memcpy((void*) buffer+buflen, rcinfo->correlation_id.s, rcinfo->correlation_id.len);
            buflen+= rcinfo->correlation_id.len;
     }
-    
+
     /* CVAL1 CHUNK */
     if(rcinfo->cval1) {
            memcpy((void*) buffer+buflen, &cval1,  sizeof(hep_chunk_uint16_t));
            buflen += sizeof(hep_chunk_uint16_t);
     }
-    
+
     /* CVAL2 CHUNK */
     if(rcinfo->cval2) {
            memcpy((void*) buffer+buflen, &cval2,  sizeof(hep_chunk_uint16_t));
            buflen += sizeof(hep_chunk_uint16_t);
-    }    
+    }
 
     /* PAYLOAD CHUNK */
     memcpy((void*) buffer+buflen, &payload_chunk,  sizeof(struct hep_chunk));
@@ -544,7 +544,7 @@ int send_hepv3 (rc_info_t *rcinfo, unsigned char *data, unsigned int len, unsign
 
     /* send this packet out of our socket */
     send_data(buffer, buflen, idx);
-       
+
 
     if(hg) free(hg);
 
@@ -653,14 +653,14 @@ error:
      return 0;
 }
 
-#if UV_VERSION_MAJOR == 0                         
+#if UV_VERSION_MAJOR == 0
 uv_buf_t  _buffer_alloc_callback(uv_handle_t *handle, size_t suggested)
 {
         char *chunk = malloc(suggested);
         printf("in allocate, allocating %lu bytes into pointer %p\n", (unsigned long)suggested, chunk);
         memset(chunk, 0, suggested);
         return uv_buf_init(chunk, suggested);
-        
+
 }
 #else
 void _buffer_alloc_callback(uv_handle_t *handle, size_t suggested, uv_buf_t *dst) {
@@ -670,13 +670,13 @@ void _buffer_alloc_callback(uv_handle_t *handle, size_t suggested, uv_buf_t *dst
       *dst = uv_buf_init(chunk, suggested);
 }
 
-#endif    
+#endif
 
-#if UV_VERSION_MAJOR == 0                         
+#if UV_VERSION_MAJOR == 0
 void _udp_recv_callback(uv_udp_t *handle, ssize_t nread, uv_buf_t *buf, struct sockaddr *addr, unsigned int flags)
 #else
 void _udp_recv_callback(uv_udp_t *handle, ssize_t nread, const uv_buf_t *buf, const struct sockaddr *addr, unsigned int flags)
-#endif    
+#endif
 {
   printf("DATA RECV BACK\n");
   if(buf && buf->base) {
@@ -690,7 +690,7 @@ void _udp_recv_callback(uv_udp_t *handle, ssize_t nread, const uv_buf_t *buf, co
 int send_data (void *buf, unsigned int len, unsigned int idx) {
 
         /* send this packet out of our socket */
-        
+
 	send_message(&hep_connection_s[idx], (unsigned char *)buf, len, hep_connection_s[idx].type == 1 ? SEND_UDP_REQUEST : SEND_TCP_REQUEST);
 
         stats.send_packets_total++;
@@ -705,36 +705,36 @@ int send_message(hep_connection_t *conn, unsigned char *message, size_t len, hep
 {
 
   hep_request_t *req = malloc(sizeof(hep_request_t));
-  
+
   req->message = message;
   req->len = len;
   req->request_type = type;
   req->conn = conn;
-   
+
   uv_mutex_lock(&conn->mutex);
 
   conn->async_handle.data = req;
-  
+
   uv_async_send(&conn->async_handle);
 
   uv_sem_wait(&conn->sem);
-  
+
   uv_mutex_unlock(&conn->mutex);
-  
-  
+
+
   return 0;
 }
 
-#if UV_VERSION_MAJOR == 0                         
+#if UV_VERSION_MAJOR == 0
 uv_buf_t on_alloc(uv_handle_t* client, size_t suggested) {
         char *chunk = malloc(suggested);
         memset(chunk, 0, suggested);
-        return uv_buf_init(chunk, suggested);   
+        return uv_buf_init(chunk, suggested);
 }
 
-#else 
+#else
 void on_alloc(uv_handle_t* client, size_t suggested, uv_buf_t* buf) {
-    
+
         char *chunk = malloc(suggested);
         memset(chunk, 0, suggested);
         *buf = uv_buf_init(chunk, suggested);
@@ -743,40 +743,40 @@ void on_alloc(uv_handle_t* client, size_t suggested, uv_buf_t* buf) {
 
 void on_tcp_close(uv_handle_t* handle)
 {
-#if UV_VERSION_MAJOR == 0                         
+#if UV_VERSION_MAJOR == 0
         /* need implement it */
-        hep_connection_t* hep_conn = handle->loop->data;        
+        hep_connection_t* hep_conn = handle->loop->data;
 #else
-        hep_connection_t* hep_conn = uv_key_get(&hep_conn_key);        
-#endif        
+        hep_connection_t* hep_conn = uv_key_get(&hep_conn_key);
+#endif
         assert(hep_conn != NULL);
         set_conn_state(hep_conn, STATE_CLOSED);
 
 }
 
-void on_send_udp_request(uv_udp_send_t* req, int status) 
+void on_send_udp_request(uv_udp_send_t* req, int status)
 {
         if (status == 0 && req) {
                 free(req->data);
-                free(req); 
+                free(req);
                 req = NULL;
-        }        
+        }
 }
 
-void on_send_tcp_request(uv_write_t* req, int status) 
+void on_send_tcp_request(uv_write_t* req, int status)
 {
 
         if (status == 0 && req) {
                 free(req->data);
-                free(req); 
+                free(req);
                 req = NULL;
         }
 
-#if UV_VERSION_MAJOR != 0                         
+#if UV_VERSION_MAJOR != 0
 
 	hep_connection_t* hep_conn = uv_key_get(&hep_conn_key);
 
-        assert(hep_conn != NULL);        
+        assert(hep_conn != NULL);
 
         if ((status != 0) && (hep_conn->conn_state == STATE_CONNECTED)) {
             LERR("tcp send failed! err=%d", status);
@@ -787,11 +787,11 @@ void on_send_tcp_request(uv_write_t* req, int status)
             }
             else
                 set_conn_state(hep_conn, STATE_CLOSED);
-        }    
-#endif   
-	
-}       
-   
+        }
+#endif
+
+}
+
 int _handle_send_udp_request(hep_connection_t *conn, unsigned char *message, size_t len)
 {
 
@@ -802,8 +802,8 @@ int _handle_send_udp_request(hep_connection_t *conn, unsigned char *message, siz
   buf.len = len;
   send_req = malloc(sizeof(uv_udp_send_t));
   send_req->data = message;
- 
-#if UV_VERSION_MAJOR == 0       
+
+#if UV_VERSION_MAJOR == 0
         uv_udp_send(send_req, &conn->udp_handle, &buf, 1, conn->send_addr, on_send_udp_request);
 #else
         uv_udp_send(send_req, &conn->udp_handle, &buf, 1, (const struct sockaddr*) &conn->send_addr, on_send_udp_request);
@@ -830,7 +830,7 @@ int _handle_send_tcp_request(hep_connection_t *conn, unsigned char *message, siz
 }
 
 
-#if UV_VERSION_MAJOR == 0                            
+#if UV_VERSION_MAJOR == 0
   void _async_callback(uv_async_t *async, int status)
 #else
   void _async_callback(uv_async_t *async)
@@ -857,21 +857,21 @@ int _handle_send_tcp_request(hep_connection_t *conn, unsigned char *message, siz
         result = _handle_quit(conn);
         break;
   }
-   
+
   uv_sem_post(&conn->sem);
 
   if (result != 0) {
     LDEBUG("Request %p, of type %d, failed with error code %d\n", (void *)request, (int)request->request_type, result);
   }
-   
-  if(request) {    
-    free(request); 
+
+  if(request) {
+    free(request);
     request = NULL;
-  }       
-}         
+  }
+}
 
 int homer_close(hep_connection_t *conn)
-{  
+{
   hep_request_t *request = calloc(1, sizeof(hep_request_t));
 
   LDEBUG("closing connection\n");
@@ -885,12 +885,12 @@ int homer_close(hep_connection_t *conn)
 
   if (conn->type == 2)
     set_conn_state(conn, STATE_SHUTTING_DOWN);
-  
+
   uv_async_send(&conn->async_handle);
 
   uv_sem_wait(&conn->sem);
   uv_mutex_unlock(&conn->mutex);
-   
+
   uv_thread_join(conn->thread);
 
   if (conn->type == 2)
@@ -911,8 +911,8 @@ void homer_free(hep_connection_t *conn)
 
 #if UV_VERSION_MAJOR == 0
 
-	homer_close(conn);	
-        uv_loop_delete(conn->loop);  
+	homer_close(conn);
+        uv_loop_delete(conn->loop);
 
 #else
 
@@ -928,10 +928,10 @@ void homer_free(hep_connection_t *conn)
 	}
 
 #endif
-   
+
 	uv_sem_destroy(&conn->sem);
 	uv_mutex_destroy(&conn->mutex);
-	free(conn->loop);  
+	free(conn->loop);
 	free(conn->thread);
 }
 
@@ -960,11 +960,11 @@ void _run_uv_loop(void *arg){
 
 #if UV_VERSION_MAJOR == 0
         conn->loop->data = conn;
-#else               
+#else
         uv_key_set(&hep_conn_key, conn);
 #endif
-                        
-      uv_run(conn->loop, UV_RUN_DEFAULT);   
+
+      uv_run(conn->loop, UV_RUN_DEFAULT);
 }
 
 /*ASYNC*/
@@ -972,70 +972,70 @@ void _run_uv_loop(void *arg){
 int homer_alloc(hep_connection_t *conn)
 {
 
-      //conn = malloc(sizeof(hep_connection_t));      
-      
-      memset(conn, 0, sizeof(hep_connection_t));      
-                
+      //conn = malloc(sizeof(hep_connection_t));
+
+      memset(conn, 0, sizeof(hep_connection_t));
+
 #if UV_VERSION_MAJOR == 0
       conn->loop = uv_loop_new();
-#else               
+#else
       conn->loop = malloc(sizeof(uv_loop_t));
-      uv_loop_init(conn->loop);            
+      uv_loop_init(conn->loop);
 #endif
 
       uv_sem_init(&conn->sem, 0);
       uv_mutex_init(&conn->mutex);
-      conn->thread = malloc(sizeof(uv_thread_t));  
-            
-  return 1;   
+      conn->thread = malloc(sizeof(uv_thread_t));
+
+  return 1;
 }
 
 int init_udp_socket(hep_connection_t *conn, char *host, int port) {
 
         struct sockaddr_in v4addr;
         int status = 0;
-        struct addrinfo hints[1] = {{ 0 }};            
+        struct addrinfo hints[1] = {{ 0 }};
         struct addrinfo *ai;
         char cport[15];
-                  
-        hints->ai_family = AF_UNSPEC;        
+
+        hints->ai_family = AF_UNSPEC;
         hints->ai_socktype = SOCK_DGRAM;
         hints->ai_protocol = IPPROTO_UDP;
         hints->ai_flags = 0;
-                
+
         snprintf(cport, sizeof(cport), "%d", port);
 
         if ((status = getaddrinfo(host, cport, hints, &ai)) != 0) {
                 LERR( "capture: getaddrinfo: %s", gai_strerror(status));
-                return 0;   
+                return 0;
         }
-	
+
 	/* copy structure */
-        memcpy(&conn->send_addr, ai->ai_addr, sizeof(struct sockaddr));                                        
-        
+        memcpy(&conn->send_addr, ai->ai_addr, sizeof(struct sockaddr));
+
         uv_async_init(conn->loop, &conn->async_handle, _async_callback);
-        uv_udp_init(conn->loop, &conn->udp_handle);  
-        
-#if UV_VERSION_MAJOR == 0                         
+        uv_udp_init(conn->loop, &conn->udp_handle);
+
+#if UV_VERSION_MAJOR == 0
         v4addr = uv_ip4_addr("0.0.0.0", 0);
-#else    
+#else
         status = uv_ip4_addr("0.0.0.0", 0, &v4addr);
 #endif
-            
-#if UV_VERSION_MAJOR == 0                         
+
+#if UV_VERSION_MAJOR == 0
         status = uv_udp_bind(&conn->udp_handle, v4addr,0);
-#else    
+#else
         status = uv_udp_bind(&conn->udp_handle, (struct sockaddr*)&v4addr, UV_UDP_REUSEADDR);
-              
-#endif        
+
+#endif
         uv_udp_set_broadcast(&conn->udp_handle, 1);
-             
+
         conn->udp_handle.data = conn;
-      
+
         conn->type = 1;
 
 	status = uv_thread_create(conn->thread, _run_uv_loop, conn);
-	
+
         return status;
 }
 
@@ -1043,14 +1043,14 @@ void on_tcp_connect(uv_connect_t* connection, int status)
 {
         LDEBUG("connected [%d]\n", status);
 
-#if UV_VERSION_MAJOR == 0                         
+#if UV_VERSION_MAJOR == 0
         hep_connection_t* hep_conn = connection->handle->loop->data;
 #else
 
         hep_connection_t* hep_conn = uv_key_get(&hep_conn_key);
-#endif   
-        assert(hep_conn != NULL);        
-	
+#endif
+        assert(hep_conn != NULL);
+
         if (status == 0)
             set_conn_state(hep_conn, STATE_CONNECTED);
         else {
@@ -1058,7 +1058,7 @@ void on_tcp_connect(uv_connect_t* connection, int status)
             set_conn_state(hep_conn, STATE_ERROR);
         }
 
-        
+
 }
 
 int init_tcp_socket(hep_connection_t *conn, char *host, int port) {
@@ -1066,11 +1066,11 @@ int init_tcp_socket(hep_connection_t *conn, char *host, int port) {
         struct sockaddr_in v4addr;
         int status;
 	int err;
-	struct addrinfo hints[1] = {{ 0 }};	    
+	struct addrinfo hints[1] = {{ 0 }};
         struct addrinfo *ai;
         char cport[15];
-                
-        hints->ai_family = AF_UNSPEC;        
+
+        hints->ai_family = AF_UNSPEC;
         hints->ai_socktype = SOCK_STREAM;
         hints->ai_protocol = IPPROTO_TCP;
         hints->ai_flags = 0;
@@ -1079,30 +1079,30 @@ int init_tcp_socket(hep_connection_t *conn, char *host, int port) {
 
         if ((status = getaddrinfo(host, cport, hints, &ai)) != 0) {
                 LERR( "capture: getaddrinfo: %s", gai_strerror(status));
-                return 0;   
+                return 0;
         }
-	
+
         uv_async_init(conn->loop, &conn->async_handle, _async_callback);
 	err = uv_tcp_init(conn->loop, &conn->tcp_handle);
-	if (err) return err;  
+	if (err) return err;
 
         /* copy structure */
         memcpy(&v4addr, (struct sockaddr_in*) ai->ai_addr, sizeof(struct sockaddr_in));
-   
+
 	uv_tcp_keepalive(&conn->tcp_handle, 1, 60);
 
-#if UV_VERSION_MAJOR == 0                         
-        /* v4addr = uv_ip4_addr(host, port);*/            
+#if UV_VERSION_MAJOR == 0
+        /* v4addr = uv_ip4_addr(host, port);*/
 #endif
 
         set_conn_state(conn, STATE_CONNECTING);
 
         conn->type = 2;
-      
-#if UV_VERSION_MAJOR == 0                         
+
+#if UV_VERSION_MAJOR == 0
         status = uv_tcp_connect(&conn->connect, &conn->tcp_handle, v4addr, on_tcp_connect);
-#else    
-        status = uv_tcp_connect(&conn->connect, &conn->tcp_handle, (struct sockaddr*)&v4addr, on_tcp_connect);                
+#else
+        status = uv_tcp_connect(&conn->connect, &conn->tcp_handle, (struct sockaddr*)&v4addr, on_tcp_connect);
 #endif
 
         if(status < 0)
@@ -1178,12 +1178,12 @@ static int load_module(xml_node *config) {
 
 	LNOTICE("Loaded %s", module_name);
 
-#if UV_VERSION_MAJOR == 0                         
+#if UV_VERSION_MAJOR == 0
         /* not implemented */
-#else    
+#else
 	uv_key_create(&hep_conn_key);
 #endif
-                
+
 
 	load_module_xml_config();
 	/* READ CONFIG */
@@ -1332,12 +1332,12 @@ static int load_module(xml_node *config) {
 			}
 #endif /* USE_ZLIB */
 			homer_alloc(&hep_connection_s[i]);
-			
+
 			if(!strncmp(profile_transport[i].capt_proto, "udp", 3))
 			{
 				init_udp_socket(&hep_connection_s[i], profile_transport[i].capt_host, atoi(profile_transport[i].capt_port));
 			}
-			else 
+			else
 {				init_tcp_socket(&hep_connection_s[i], profile_transport[i].capt_host, atoi(profile_transport[i].capt_port));
 			}
 
@@ -1360,12 +1360,12 @@ static int unload_module(void)
 			free_profile(i);
 	}
 
-#if UV_VERSION_MAJOR == 0                         
+#if UV_VERSION_MAJOR == 0
         /* not implemented */
-#else    
+#else
 	uv_key_delete(&hep_conn_key);
 #endif
-              
+
     return 0;
 }
 
@@ -1457,7 +1457,7 @@ static void set_conn_state(hep_connection_t* conn, conn_state_type_t new_conn_st
 		return;
 
 	conn_state_type_t old_state = conn->conn_state;
-	conn->conn_state = new_conn_state; 
+	conn->conn_state = new_conn_state;
 	conn->conn_state_changed_time = time(NULL);
 
 	LNOTICE("Connection state change: %s => %s", get_state_label(old_state), get_state_label(new_conn_state));
