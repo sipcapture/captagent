@@ -92,6 +92,7 @@ static cmd_export_t cmds[] = {
         {"transport_hep_bind_api",  (cmd_function)bind_usrloc,   1, 0, 0, 0},
         {"bind_transport_hep",  (cmd_function)bind_transport_hep,  0, 0, 0, 0},
         { "send_hep", (cmd_function) w_send_hep_api, 1, 0, 0, 0 },
+        { "send_hep_raw", (cmd_function) w_send_hep_raw, 1, 0, 0, 0 },
         { "send_hep", (cmd_function) w_send_hep_api_param, 2, 0, 0, 0 },
         { "send_hep_proto", (cmd_function) w_send_hep_proto, 2, 0, 0, 0 },
         {0, 0, 0, 0, 0, 0}
@@ -130,6 +131,19 @@ int w_send_hep_api(msg_t *_m, char *param1)
     
     return ret;
 }
+
+int w_send_hep_raw(msg_t *_m, char *param1) 
+{
+    
+    int ret = 0;
+    unsigned int idx = get_profile_index_by_name(param1);
+       
+    send_data(msg->data , msg->len, idx);        
+
+    return ret;
+}
+
+
 
 int w_send_hep_api_param(msg_t *_m, char *param1, char *param2) 
 {

@@ -208,7 +208,10 @@ int capt_parse_rtcp(char *packet, int len, char *json_buffer, int buffer_len) {
     return 0;
   }
   
-  ret += snprintf(json_buffer + ret - 1, buffer_len - ret + 1, "}");
+  /* replace last comma */
+  json_buffer[ret-1]='}';
+  
+  //ret += snprintf(json_buffer + ret - 1, buffer_len - ret + 1, "}");
 
   return ret;
 }
