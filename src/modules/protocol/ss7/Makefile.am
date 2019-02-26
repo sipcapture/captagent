@@ -5,12 +5,11 @@ SUBDIRS = \
 
 noinst_HEADERS =
 #
-protocol_ss7_la_SOURCES = protocol_ss7.c
+protocol_ss7_la_SOURCES = protocol_ss7.c isup_generated.c isup_parsed.c srjson.c
 protocol_ss7_la_CFLAGS = -Wall ${MODULE_CFLAGS}
 protocol_ss7_la_LDFLAGS = -module -avoid-version
-protocol_ss7_la_LIBADD = ${PTHREAD_LIBS} ${EXPAT_LIBS} ${PCAP_LIBS}
+protocol_ss7_la_LIBADD = ${PTHREAD_LIBS} ${EXPAT_LIBS} ${PCAP_LIBS} -lm
 protocol_ss7_laconfdir = $(confdir)
 protocol_ss7_laconf_DATA = $(top_srcdir)/conf/protocol_ss7.xml
 
 mod_LTLIBRARIES = protocol_ss7.la
-

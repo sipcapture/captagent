@@ -25,6 +25,20 @@
 		</param>
 	    </settings>
 	</profile>
+	<profile name="socketspcap_sctp" description="SCTP Socket" enable="false" serial="2014010402">
+            <settings>
+                <param name="dev" value="any"/>
+                <param name="promisc" value="true"/>
+                <param name="reasm" value="true"/>
+                <param name="ipv4fragments" value="true"/>
+                <param name="ipv6fragments" value="true"/>
+                <param name="proto-type" value="sip"/>
+                <param name="capture-plan" value="isup_capture_plan.cfg"/>
+                <param name="filter">
+                    <value>proto 132</value>
+                </param>
+            </settings>
+        </profile>
 	<profile name="socketspcap_rtcp" description="RTCP Socket" enable="true" serial="2014010402">
 	    <settings>
 		<param name="dev" value="any"/>
