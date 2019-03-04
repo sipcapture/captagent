@@ -32,6 +32,7 @@
 #include <sys/types.h>
 #include <limits.h>
 
+#include "isup_parsed.h"
 
 #define SCTP_M2UA_PPID	2
 #define SCTP_M2PA_PPID	5
@@ -41,11 +42,17 @@
 
 #define M2UA_IE_DATA	0x0300
 
-
 #define M2PA_CLASS	11
 #define M2PA_DATA	1
 
 #define MTP_ISUP	0x05
+
+/* hep defines */
+#define HEP_M2UA                0x08
+#define HEP_M2PA                0x0d
+
+//54
+#define PROTO_M2UA_JSON		0x36
 
 struct mtp_level_3_hdr {
 #if __BYTE_ORDER == __LITTLE_ENDIAN
@@ -69,11 +76,18 @@ struct mtp_level_3_hdr {
 } __attribute__((packed));
 
 static int ss7_parse_isup(msg_t *, char *, char *);
+static int ss7_parse_isup_to_json(msg_t *, char *, char *);
+static int w_isup_to_json(msg_t *, char *, char *);
 static int ss7_load_module(xml_node *config);
 static int ss7_unload_module(void);
 static int ss7_description(char *description);
 static int ss7_statistic(char *buf, size_t len);
 static uint64_t ss7_serial_module(void);
+
+char correlation[100];
+
+static const char *isup_last = NULL;
+static srjson_doc_t *isup_json = NULL;
 
 static uint64_t module_serial = 0;
 
@@ -81,6 +95,20 @@ static cmd_export_t ss7_cmds[] = {
 	{
 		.name		= "parse_isup",
 		.function	= ss7_parse_isup,
+		.param_no	= 0,
+		.flags		= 0,
+		.fixup_flags	= 0,
+	},
+	{
+		.name		= "parse_isup_to_json",
+		.function	= ss7_parse_isup_to_json,
+		.param_no	= 0,
+		.flags		= 0,
+		.fixup_flags	= 0,
+	},
+	{
+		.name		= "isup_to_json",
+		.function	= w_isup_to_json,
 		.param_no	= 0,
 		.flags		= 0,
 		.fixup_flags	= 0,
@@ -287,6 +315,71 @@ static int ss7_parse_isup(msg_t *msg, char *param1, char *param2)
 		return -1;
 	}
 
+	/* data[0:1] is now the CIC and data[2] the type */
+	return 1;
+}
+
+static int ss7_parse_isup_to_json(msg_t *msg, char *param1, char *param2)
+{
+	uint8_t *data;
+	size_t len;
+	int opc, dpc, type, rc;
+	uint16_t cic;
+	struct isup_state isup_state = { 0, };
+        
+	data = ss7_extract_payload(msg, &len, &opc, &dpc, &type);
+	if (!data)
+		return -1;
+	if (type != MTP_ISUP) {
+		LDEBUG("ISUP service indicator not ISUP but %d", type);
+		return -1;
+	}
+
+
+	free((char *) isup_last);
+        srjson_DeleteDoc(isup_json);
+
+        /* parse isup... */
+        isup_state.json = srjson_NewDoc(NULL);
+        if (!isup_state.json) {
+                LERR("Failed to allocate JSON document\n");
+                return -1;
+        }
+        
+        isup_state.json->root = srjson_CreateObject(isup_state.json);
+        if (!isup_state.json->root) {
+                LERR("Failed to allocate JSON object\n");
+                srjson_DeleteDoc(isup_state.json);
+                return -1;
+        }
+
+        rc = isup_parse(data, len, &isup_state, &cic);
+        if (rc != 0) {
+                srjson_DeleteDoc(isup_state.json);
+                return rc;
+        }
+        srjson_AddNumberToObject(isup_state.json, isup_state.json->root, "opc", opc);
+        srjson_AddNumberToObject(isup_state.json, isup_state.json->root, "dpc", dpc);
+        isup_last = srjson_PrintUnformatted(isup_state.json, isup_state.json->root);
+        isup_json = isup_state.json;
+        
+        //LDEBUG("RR OPC: %d - DPC: %d - TYPE: %d, CIC: %d", opc, dpc, type, cic);
+        //LDEBUG("JSON: %s", isup_last);
+        //LDEBUG("CORRELATION: %s", correlation);
+        
+        msg->rcinfo.correlation_id.len = snprintf(correlation, sizeof(correlation), "%d:%d:%d", opc <= dpc ? opc : dpc, opc > dpc ? opc : dpc, cic);
+                
+        msg->rcinfo.proto_type = PROTO_M2UA_JSON;
+        msg->len = strlen(isup_last);
+        msg->data = isup_last;
+        msg->rcinfo.correlation_id.s = correlation;
+
+	/* data[0:1] is now the CIC and data[2] the type */
+	return 1;
+}
+
+static int w_isup_to_json(msg_t *msg, char *param1, char *param2)
+{
 	/* data[0:1] is now the CIC and data[2] the type */
 	return 1;
 }
