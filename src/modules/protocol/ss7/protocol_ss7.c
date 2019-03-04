@@ -35,20 +35,24 @@
 #include "isup_parsed.h"
 
 #define SCTP_M2UA_PPID	2
+#define SCTP_M3UA_PPID	3
 #define SCTP_M2PA_PPID	5
 
 #define M2UA_MSG	6
 #define M2UA_DATA	1
-
 #define M2UA_IE_DATA	0x0300
-
 #define M2PA_CLASS	11
 #define M2PA_DATA	1
+
+#define M3UA_MSG	1
+#define M3UA_DATA	1
+#define M3UA_IE_DATA	0x0210
 
 #define MTP_ISUP	0x05
 
 /* hep defines */
 #define HEP_M2UA                0x08
+#define HEP_M3UA                0x09
 #define HEP_M2PA                0x0d
 
 //54
@@ -69,6 +73,27 @@ struct mtp_level_3_hdr {
 	uint32_t sls : 4,
 		opc : 14,
 		dpc : 14;
+#else
+	#error "Unknown endian type"
+#endif
+	uint8_t data[0];
+} __attribute__((packed));
+
+struct m3ua_protocol_data {
+#if __BYTE_ORDER == __LITTLE_ENDIAN
+	uint32_t opc;
+	uint32_t dpc;
+	uint8_t ser_ind;
+	uint8_t ni;
+	uint8_t mp;
+	uint8_t sls;
+#elif __BYTE_ORDER == __BIG_ENDIAN
+	uint8_t sls;
+	uint8_t mp;
+	uint8_t ni;
+        uint8_t ser_ind;
+        uint32_t dpc;
+        uint32_t opc;
 #else
 	#error "Unknown endian type"
 #endif
@@ -202,6 +227,85 @@ next:
 	return NULL;
 }
 
+static uint8_t *extract_from_m3ua(msg_t *msg, size_t *len)
+{
+	uint8_t *data;
+	uint32_t data_len;
+
+	if (msg->len < 8) {
+		LERR("M3UA hdr too short %u", msg->len);
+		return NULL;
+	}
+	data = msg->data;
+
+	/* check the header */
+	if (data[0] != 0x01) {
+		LERR("M3UA unknown version number %d", data[0]);
+		return NULL;
+	}
+	if (data[1] != 0x00) {
+		LERR("M3UA unknown reserved fields %d", data[1]);
+		return NULL;
+	}
+	if (data[2] != M3UA_MSG) {
+		LDEBUG("M3UA unhandled message class %d", data[2]);
+		return NULL;
+	}
+	if (data[3] != M3UA_DATA) {
+		LDEBUG("M3UA not data msg but %d", data[3]);
+		return NULL;
+	}
+
+	/* check the length */
+	memcpy(&data_len, &data[4], sizeof(data_len));
+	data_len = ntohl(data_len);
+	
+	if (msg->len < data_len) {
+		LERR("M3UA data can't fit %u vs. %u", msg->len, data_len);
+		return NULL;
+	}
+
+	/* skip the header */
+	data += 8;
+	data_len -= 8;
+	while (data_len > 4) {
+		uint16_t ie_tag, ie_len, padding;
+		memcpy(&ie_tag, &data[0], sizeof(ie_tag));
+		memcpy(&ie_len, &data[2], sizeof(ie_len));
+		ie_tag = ntohs(ie_tag);
+		ie_len = ntohs(ie_len);
+
+		if (ie_len > data_len) {
+			LERR("M3UA premature end %u vs. %u", ie_len, data_len);
+			return NULL;
+		}
+			
+		if (ie_tag != M3UA_IE_DATA)
+			goto next;
+
+		*len = ie_len - 4;
+		
+		return &data[4];
+
+next:
+		data += ie_len;
+		data_len -= ie_len;
+
+		/* and now padding... */
+                padding = (4 - (ie_len % 4)) & 0x3;
+		if (data_len < padding) {
+			LERR("M3UA no place for padding %u vs. %u", padding, data_len);
+			return NULL;
+		}
+		data += padding;
+		data_len -= padding;
+	}
+	/* No data IE was found */
+	LERR("M3UA no data element found");
+	return NULL;
+}
+
+
 static uint8_t *extract_from_m2pa(msg_t *msg, size_t *len)
 {
 	uint8_t *data;
@@ -282,6 +386,32 @@ static uint8_t *extract_from_mtp(uint8_t *data, size_t *len, int *opc, int *dpc,
 	*dpc = hdr->dpc;
 	*type = hdr->ser_ind;
 	*len -= sizeof(*hdr);
+	
+	LDEBUG("RR OPC: %d - DPC: %d - TYPE: %d", opc, dpc, type);
+	
+	return &hdr->data[0];
+}
+
+static uint8_t *extract_from_m3ua_mtp(uint8_t *data, size_t *len, int *opc, int *dpc, int *type)
+{
+	struct m3ua_protocol_data *hdr;
+
+	*opc = INT_MAX;
+	*dpc = INT_MAX;
+
+	if (!data)
+		return NULL;
+	if (*len < sizeof(*hdr)) {
+		LERR("MTP not enough space for mtp hdr %zu vs. %zu", *len, sizeof(*hdr));
+		return NULL;
+	}
+
+	hdr = (struct m3ua_protocol_data *) data;
+	*opc = ntohl(hdr->opc);
+	*dpc = ntohl(hdr->dpc);
+	*type = hdr->ser_ind;
+	*len -= sizeof(*hdr);
+	
 	return &hdr->data[0];
 }
 
@@ -292,6 +422,10 @@ static uint8_t *ss7_extract_payload(msg_t *msg, size_t *len, int *opc, int *dpc,
 		msg->rcinfo.proto_type = 0x08;
 		return extract_from_mtp(extract_from_m2ua(msg, len), len, opc, dpc, type);
 		break;
+	case SCTP_M3UA_PPID:
+		msg->rcinfo.proto_type = 0x09;
+		return extract_from_m3ua_mtp(extract_from_m3ua(msg, len), len, opc, dpc, type);
+		break;				
 	case SCTP_M2PA_PPID:
 		msg->rcinfo.proto_type = 0x0d;
 		return extract_from_mtp(extract_from_m2pa(msg, len), len, opc, dpc, type);
