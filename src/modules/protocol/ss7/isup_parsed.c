@@ -826,7 +826,7 @@ static uint16_t parse_cic(const uint8_t *data)
 #endif
 }
 
-static int do_parse(const uint8_t *data, size_t len, visit visitor, struct isup_state *ptr)
+static int do_parse(const uint8_t *data, size_t len, visit visitor, struct isup_state *ptr, uint16_t *cic)
 {
 	const struct isup_msg *msg_class;
 	const uint8_t *ptrs;
@@ -837,6 +837,8 @@ static int do_parse(const uint8_t *data, size_t len, visit visitor, struct isup_
 		LERR("ISUP message too short %zu\n", len);
 		return -1;
 	}
+	
+	*cic = parse_cic(data);
 
 	/* extract the basics */
 	srjson_AddNumberToObject(ptr->json, ptr->json->root, "cic", parse_cic(data));
@@ -972,7 +974,7 @@ static int do_parse(const uint8_t *data, size_t len, visit visitor, struct isup_
 	return 0;
 }
 
-int isup_parse(const uint8_t *data, size_t len, struct isup_state *ptr)
+int isup_parse(const uint8_t *data, size_t len, struct isup_state *ptr, uint16_t *cic)
 {
-	return do_parse(data, len, isup_visitor, ptr);
+	return do_parse(data, len, isup_visitor, ptr, cic);
 }

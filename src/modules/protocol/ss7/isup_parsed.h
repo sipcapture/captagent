@@ -61,4 +61,4 @@ enum {
 	ISUP_FIELD_UI_LAYER1_PROTOCOL,
 };
 
-int isup_parse(const uint8_t *data, size_t len, struct isup_state *ptrs);
+int isup_parse(const uint8_t *data, size_t len, struct isup_state *ptrs, uint16_t *cic);
