@@ -7,6 +7,9 @@
  *  Author: Holger Hans Peter Freyther <help@moiji-mobile.com>
  *  (C) Homer Project 2016 (http://www.sipcapture.org)
  *
+ *  Author: Alexandr Dubovikov <alexandr.dubovikov@gmail.com>
+ *  (C) Homer Project 2019 (http://www.sipcapture.org)
+ *
  * Homer capture agent is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 3 of the License, or
@@ -28,6 +31,7 @@
 #include <captagent/modules_api.h>
 #include <captagent/modules.h>
 #include <captagent/log.h>
+#include <captagent/xmlread.h>
 
 #include <sys/types.h>
 #include <limits.h>
@@ -108,13 +112,24 @@ static int ss7_unload_module(void);
 static int ss7_description(char *description);
 static int ss7_statistic(char *buf, size_t len);
 static uint64_t ss7_serial_module(void);
+static void free_module_xml_config();
+static int load_module_xml_config();
+static int free_profile(unsigned int idx);
+
+#define MAX_PROTOCOLS 10
+profile_protocol_t profile_protocol[MAX_PROTOCOLS];
 
 char correlation[100];
-
+bool enableCorrelation = FALSE;
 static const char *isup_last = NULL;
 static srjson_doc_t *isup_json = NULL;
-
 static uint64_t module_serial = 0;
+xml_node *module_xml_config = NULL;
+char *module_description = NULL;
+unsigned int profile_size = 0;
+
+extern char* global_config_path;
+
 
 static cmd_export_t ss7_cmds[] = {
 	{
@@ -387,8 +402,6 @@ static uint8_t *extract_from_mtp(uint8_t *data, size_t *len, int *opc, int *dpc,
 	*type = hdr->ser_ind;
 	*len -= sizeof(*hdr);
 	
-	LDEBUG("RR OPC: %d - DPC: %d - TYPE: %d", opc, dpc, type);
-	
 	return &hdr->data[0];
 }
 
@@ -497,16 +510,16 @@ static int ss7_parse_isup_to_json(msg_t *msg, char *param1, char *param2)
         isup_last = srjson_PrintUnformatted(isup_state.json, isup_state.json->root);
         isup_json = isup_state.json;
         
-        //LDEBUG("RR OPC: %d - DPC: %d - TYPE: %d, CIC: %d", opc, dpc, type, cic);
-        //LDEBUG("JSON: %s", isup_last);
-        //LDEBUG("CORRELATION: %s", correlation);
-        
-        msg->rcinfo.correlation_id.len = snprintf(correlation, sizeof(correlation), "%d:%d:%d", opc <= dpc ? opc : dpc, opc > dpc ? opc : dpc, cic);
-                
         msg->rcinfo.proto_type = PROTO_M2UA_JSON;
         msg->len = strlen(isup_last);
         msg->data = isup_last;
-        msg->rcinfo.correlation_id.s = correlation;
+        
+        /* if the correlation_id has been enabled */
+        if(enableCorrelation) 
+        {
+        	msg->rcinfo.correlation_id.len = snprintf(correlation, sizeof(correlation), "%d:%d:%d", opc <= dpc ? opc : dpc, opc > dpc ? opc : dpc, cic);
+                msg->rcinfo.correlation_id.s = correlation;
+	}
 
 	/* data[0:1] is now the CIC and data[2] the type */
 	return 1;
@@ -518,14 +531,176 @@ static int w_isup_to_json(msg_t *msg, char *param1, char *param2)
 	return 1;
 }
 
-static int ss7_load_module(xml_node *config)
-{
+
+static int load_module_xml_config() {
+
+	char module_config_name[500];
+	xml_node *next;
+	int i = 0;
+
+	snprintf(module_config_name, 500, "%s/%s.xml", global_config_path, exports.name);
+
+	if ((module_xml_config = xml_parse(module_config_name)) == NULL) {
+		LERR("Unable to open configuration file: %s", module_config_name);
+		return -1;
+	}
+
+	/* check if this module is our */
+	next = xml_get("module", module_xml_config, 1);
+
+	if (next == NULL) {
+		LERR("wrong config for module: %s", exports.name);
+		return -2;
+	}
+
+	for (i = 0; next->attr[i]; i++) {
+			if (!strncmp(next->attr[i], "name", 4)) {
+				if (strncmp(next->attr[i + 1], exports.name, strlen(exports.name))) {
+					return -3;
+				}
+			}
+			else if (!strncmp(next->attr[i], "serial", 6)) {
+				module_serial = atol(next->attr[i + 1]);
+			}
+			else if (!strncmp(next->attr[i], "description", 11)) {
+				module_description = next->attr[i + 1];
+			}
+	}
+
+	return 1;
+}
+
+static void free_module_xml_config() {
+
+	/* now we are free */
+	if(module_xml_config) xml_free(module_xml_config);
+}
+
+
+
+static int ss7_load_module(xml_node *config) {
+
+	xml_node *params, *profile, *settings;
+	char *key, *value = NULL;
+
+	LNOTICE("Loaded %s", exports.name);
+
+	load_module_xml_config();
+	/* READ CONFIG */
+	profile = module_xml_config;
+
+	/* reset profile */
+	profile_size = 0;
+
+	while (profile) {
+
+		profile = xml_get("profile", profile, 1);
+
+		if (profile == NULL)
+			break;
+
+		if (!profile->attr[4] || strncmp(profile->attr[4], "enable", 6)) {
+			goto nextprofile;
+		}
+
+		/* if not equals "true" */
+		if (!profile->attr[5] || strncmp(profile->attr[5], "true", 4)) {
+			goto nextprofile;
+		}
+
+		/* set values */
+		profile_protocol[profile_size].name = strdup(profile->attr[1]);
+		profile_protocol[profile_size].description = strdup(profile->attr[3]);
+		profile_protocol[profile_size].serial = atoi(profile->attr[7]);
+		profile_protocol[profile_size].dialog_type = 0;
+		profile_protocol[profile_size].dialog_timeout = 180;
+
+		/* SETTINGS */
+		settings = xml_get("settings", profile, 1);
+
+		if (settings != NULL) {
+
+			params = settings;
+
+			while (params) {
+
+				params = xml_get("param", params, 1);
+				if (params == NULL)
+					break;
+
+				if (params->attr[0] != NULL) {
+
+					/* bad parser */
+					if (strncmp(params->attr[0], "name", 4)) {
+						LERR("bad keys in the config");
+						goto nextparam;
+					}
+
+					key = params->attr[1];
+
+					if (params->attr[2] && params->attr[3] && !strncmp(params->attr[2], "value", 5)) {
+						value = params->attr[3];
+					} else {
+						value = params->child->value;
+					}
+
+					if (key == NULL || value == NULL) {
+						LERR("bad values in the config");
+						goto nextparam;
+
+					}
+
+					if (!strncmp(key, "ignore", strlen("ignore"))) 
+						profile_protocol[profile_size].ignore = strdup(value);
+					else if (!strncmp(key, "dialog-type", strlen("dialog-type")))
+						profile_protocol[profile_size].dialog_type = atoi(value);
+					else if (!strncmp(key, "dialog-timeout", strlen("dialog-timeout")))
+						profile_protocol[profile_size].dialog_timeout = atoi(value);
+					else if (!strncmp(key, "generate-sid", strlen("generate-sid")) && !strncmp(value, "true", 4))
+					         enableCorrelation = TRUE;
+				}
+
+				nextparam: params = params->next;
+
+			}
+		}
+
+		profile_size++;
+
+		nextprofile: profile = profile->next;
+	}
+
+	/* free it */
+	free_module_xml_config();
+
+
 	return 0;
 }
 
 static int ss7_unload_module(void)
 {
+
+	LNOTICE("unloaded module protocol_ss7");
+
+	unsigned int i = 0;
+
+	for (i = 0; i < profile_size; i++) {
+
+		free_profile(i);
+	}
+	
 	return 0;
+}
+
+static int free_profile(unsigned int idx) {
+
+        /*free profile chars **/
+
+        if (profile_protocol[idx].name)  free(profile_protocol[idx].name);
+        if (profile_protocol[idx].description) free(profile_protocol[idx].description);
+        if (profile_protocol[idx].ignore) free(profile_protocol[idx].ignore);
+
+        return 1;
 }
 
 static int ss7_description(char *description)
