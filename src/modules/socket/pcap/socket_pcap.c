@@ -609,7 +609,8 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
     _msg.rcinfo.dst_mac = mac_dst;
     _msg.rcinfo.ip_family = ip_ver == 4 ? AF_INET : AF_INET6;
     _msg.rcinfo.ip_proto = ip_proto;
-    _msg.rcinfo.time_sec = pkthdr->ts.tv_sec;
+    //_msg.rcinfo.time_sec = pkthdr->ts.tv_sec;
+    _msg.rcinfo.time_sec = time(0);
     _msg.rcinfo.time_usec = pkthdr->ts.tv_usec;
     _msg.tcpflag = 0;
     _msg.parse_it = 1;
