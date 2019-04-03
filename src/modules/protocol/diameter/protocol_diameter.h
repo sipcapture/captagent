@@ -49,6 +49,5 @@ int load_module_xml_config();
 
 /** Functions for DIAMETER **/
 int w_parse_diameter_to_json(msg_t *msg);
-int w_is_diameter(msg_t *msg);
 
 #endif /* PROTOCOL_DIAMETER_H_ */
