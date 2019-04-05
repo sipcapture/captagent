@@ -105,7 +105,7 @@ int w_parse_diameter_to_json(msg_t *msg)
         }
         return -1;
     }
-    LERR("JSON DIAMETER %s\n", json_diameter_buffer);
+    LINFO("JSON DIAMETER %s\n", json_diameter_buffer);
 
     return 0;
 }
