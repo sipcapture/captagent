@@ -317,6 +317,15 @@ int w_proto_check_size(msg_t *_m, char *param1, char *param2)
                     ret = 1;             
              }
         }
+        else if(!strncmp("any_ip", param1, strlen("any_ip")))
+        {                     
+             if(param2 != NULL 
+             		&& (!strncmp(_m->rcinfo.src_ip, param2, strlen(param2)) 
+             		|| !strncmp(_m->rcinfo.dst_ip, param2, strlen(param2))))
+             {             
+                    ret = 1;             
+             }             
+        }
         else if(!strncmp("src_port", param1, strlen("src_port")))
         {                   
              if(param2 != NULL) intval = atoi(param2);                               
