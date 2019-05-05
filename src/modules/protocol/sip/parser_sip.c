@@ -22,6 +22,12 @@ set_hname (str * hname, int len, char *s)
     return 0;
   }
 
+ /* check if len is in our range */
+  if(len < 1 || len > MAX_PARSE_LEN) {
+        LDEBUG("Too big len: %u", len);
+        return 0;
+  }
+
   end = s + len;
   for (; s < end; s++) {
     len--;
@@ -50,6 +56,12 @@ parseSdpMLine (miprtcp_t * mp, char *data, int len)
 
   st = ST_TYPE;
   last_offset = 0;
+  
+  /* check if len is in our range */
+  if(len < 1 || len > MAX_PARSE_LEN) {
+        LDEBUG("Too big parse len: %u", len);
+        return 0;
+  }
 
   for (i = 0; i < len; i++) {
 
@@ -111,6 +123,12 @@ parseSdpALine (miprtcp_t * mp, char *data, int len)
 
   st = ST_START;
   last_offset = 0;
+  
+  /* check if len is in our range */
+  if(len < 1 || len > MAX_PARSE_LEN) {
+        LDEBUG("Too big parse len: %u", len);
+        return 0;
+  }
 
   for (i = 0; i < len; i++) {
 
@@ -171,6 +189,12 @@ parseSdpARtpMapLine (codecmap_t * cp, char *data, int len)
   st = ST_START;
   last_offset = 0;
 
+  /* check if len is in our range */
+  if(len < 1 || len > MAX_PARSE_LEN) {
+        LDEBUG("Too big parse len: %u", len);
+        return 0;
+  }
+
   for (i = 0; i < len; i++) {
 
     switch (st) {
@@ -221,6 +245,12 @@ parseSdpCLine (miprtcp_t * mp, char *data, int len)
 
   st = ST_NETTYPE;
   last_offset = 0;
+
+  /* check if len is in our range */
+  if(len < 1 || len > MAX_PARSE_LEN) {
+        LDEBUG("Too big parse len: %u", len);
+        return 0;
+  }
 
   for (i = 0; i < len; i++) {
 
@@ -315,10 +345,15 @@ getUser (str * user, str * domain, char *s, int len)
   unsigned int i;
   bool foundUser = FALSE, foundHost = FALSE, foundAtValue = FALSE;
   st = URI_BEGIN;
-  //host_end_offset = len;
+
+  /* check if len is in our range */
+  if(len < 1 || len > MAX_PARSE_LEN) {
+        LDEBUG("Too big parse len: %u", len);
+        return FALSE;
+  }
 
   for (i = 0; i < len; i++) {
-
+  
     switch (st) {
 
     case URI_BEGIN:
@@ -440,6 +475,12 @@ getTag (str * hname, char *uri, int len)
 
   st = ST_TAG;
   last_offset = len;
+
+  /* check if len is in our range */
+  if(len < 1 || len > MAX_PARSE_LEN) {
+        LDEBUG("Too big parse len: %u", len);
+        return FALSE;
+  }
 
   for (i = 0; i < len; i++) {
 
@@ -833,7 +874,8 @@ parse_message (char *message, unsigned int blen, unsigned int *bytes_parsed, sip
 	  header_offset = 1;
 	else
 	  header_offset = CALLID_LEN;
-	set_hname (&psip->callId, (offset - last_offset - CALLID_LEN), tmp + CALLID_LEN);
+	  
+	set_hname (&psip->callId, (offset - last_offset - header_offset), tmp + header_offset);
 	continue;
       }
       /* Content-Length */
@@ -904,7 +946,9 @@ parse_message (char *message, unsigned int blen, unsigned int *bytes_parsed, sip
 	  header_offset = 1;
 	else
 	  header_offset = FROM_LEN;
-	set_hname (&psip->fromURI, (offset - last_offset - FROM_LEN), tmp + FROM_LEN);
+	  
+
+	set_hname (&psip->fromURI, (offset - last_offset - header_offset), tmp + header_offset);
 	psip->hasFrom = TRUE;
 	
 	if ( !(psip->fromURI.len == 0) && getTag (&psip->fromTag, psip->fromURI.s, psip->fromURI.len) ) {
@@ -912,7 +956,7 @@ parse_message (char *message, unsigned int blen, unsigned int *bytes_parsed, sip
 	  }
 	/* extract user */
 	getUser (&psip->fromUser, &psip->fromDomain, psip->fromURI.s, psip->fromURI.len);
-
+	
 	continue;
       }
       else if ((*tmp == 't' && *(tmp + 1) == ':')
@@ -923,6 +967,7 @@ parse_message (char *message, unsigned int blen, unsigned int *bytes_parsed, sip
 	  header_offset = 1;
 	else
 	  header_offset = TO_LEN;
+	  
 	if (set_hname (&psip->toURI, (offset - last_offset - header_offset), tmp + header_offset)) {
 	  psip->hasTo = TRUE;
 	  if ( !(psip->toURI.len == 0) && getTag (&psip->toTag, psip->toURI.s, psip->toURI.len) ) {
@@ -1016,7 +1061,7 @@ light_parse_message (char *message, unsigned int blen, unsigned int *bytes_parse
 	else
 	  header_offset = CALLID_LEN;
 
-	set_hname (&psip->callId, (offset - last_offset - CALLID_LEN), tmp + CALLID_LEN);
+	set_hname (&psip->callId, (offset - last_offset - header_offset), tmp + header_offset);
 	continue;
       }
       else if ((*tmp == 'l' && *(tmp + 1) == ':')

@@ -10,6 +10,8 @@
 
 #include <captagent/api.h>
 
+#define MAX_PARSE_LEN 256
+
 int set_hname(str *hname, int len, char *s);
 int parse_message(char *message, unsigned int blen, unsigned int* bytes_parsed, sip_msg_t *psip, unsigned int type);
 int parseSdp(char *body, sip_msg_t *psip);
