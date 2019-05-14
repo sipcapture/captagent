@@ -896,8 +896,10 @@ parse_message (char *message, unsigned int blen, unsigned int *bytes_parsed, sip
 	       && (*(tmp + 1) == 'S' || *(tmp + 1) == 's')
 	       && *(tmp + CSEQ_LEN) == ':') {
 
-	set_hname (&psip->cSeq, (offset - last_offset - CSEQ_LEN), tmp + CSEQ_LEN);
-	splitCSeq (psip, psip->cSeq.s, psip->cSeq.len);
+	if(set_hname (&psip->cSeq, (offset - last_offset - CSEQ_LEN), tmp + CSEQ_LEN))
+	{
+	     splitCSeq (psip, psip->cSeq.s, psip->cSeq.len);	                
+        }
       }
       /* content type  Content-Type: application/sdp  CONTENTTYPE_LEN */
       else if (((*tmp == 'C' || *tmp == 'c') && (*(tmp + 7) == '-')
@@ -948,14 +950,15 @@ parse_message (char *message, unsigned int blen, unsigned int *bytes_parsed, sip
 	  header_offset = FROM_LEN;
 	  
 
-	set_hname (&psip->fromURI, (offset - last_offset - header_offset), tmp + header_offset);
-	psip->hasFrom = TRUE;
-	
-	if ( !(psip->fromURI.len == 0) && getTag (&psip->fromTag, psip->fromURI.s, psip->fromURI.len) ) {
-	    psip->hasFromTag = TRUE;
-	  }
-	/* extract user */
-	getUser (&psip->fromUser, &psip->fromDomain, psip->fromURI.s, psip->fromURI.len);
+	if(set_hname (&psip->fromURI, (offset - last_offset - header_offset), tmp + header_offset))
+	{
+        	psip->hasFrom = TRUE;	
+        	if ( !(psip->fromURI.len == 0) && getTag (&psip->fromTag, psip->fromURI.s, psip->fromURI.len) ) {
+        	        psip->hasFromTag = TRUE;
+                }
+                /* extract user */
+                getUser (&psip->fromUser, &psip->fromDomain, psip->fromURI.s, psip->fromURI.len);
+        }
 	
 	continue;
       }
@@ -987,11 +990,12 @@ parse_message (char *message, unsigned int blen, unsigned int *bytes_parsed, sip
 	     && (*(tmp + 13) == 'i' || *(tmp + 13) == 'I')
 	     && *(tmp + PPREFERREDIDENTITY_LEN) == ':')) {
 
-	  set_hname (&psip->pidURI, (offset - last_offset - PPREFERREDIDENTITY_LEN), tmp + PPREFERREDIDENTITY_LEN);
-	  psip->hasPid = TRUE;
-
-	  /* extract user */
-	  getUser (&psip->paiUser, &psip->paiDomain, psip->pidURI.s, psip->pidURI.len);
+	  if(set_hname (&psip->pidURI, (offset - last_offset - PPREFERREDIDENTITY_LEN), tmp + PPREFERREDIDENTITY_LEN))
+	  {
+	          psip->hasPid = TRUE;
+	          /* extract user */
+	          getUser (&psip->paiUser, &psip->paiDomain, psip->pidURI.s, psip->pidURI.len);
+          }
 
 	  continue;
 	}
@@ -1000,11 +1004,12 @@ parse_message (char *message, unsigned int blen, unsigned int *bytes_parsed, sip
 		  && (*(tmp + 13) == 'i' || *(tmp + 13) == 'I')
 		  && *(tmp + PASSERTEDIDENTITY_LEN) == ':')) {
 
-	  set_hname (&psip->pidURI, (offset - last_offset - PASSERTEDIDENTITY_LEN), tmp + PASSERTEDIDENTITY_LEN);
-	  psip->hasPid = TRUE;
-
-	  /* extract user */
-	  getUser (&psip->paiUser, &psip->paiDomain, psip->pidURI.s, psip->pidURI.len);
+	  if(set_hname (&psip->pidURI, (offset - last_offset - PASSERTEDIDENTITY_LEN), tmp + PASSERTEDIDENTITY_LEN))
+	  {
+	          psip->hasPid = TRUE;
+	          /* extract user */
+	          getUser (&psip->paiUser, &psip->paiDomain, psip->pidURI.s, psip->pidURI.len);
+          }
 
 	  continue;
 	}
