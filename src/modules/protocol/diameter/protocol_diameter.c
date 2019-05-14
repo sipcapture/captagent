@@ -92,7 +92,7 @@ int w_parse_diameter_to_json(msg_t *msg)
                                       json_diameter_buffer,
                                       JSON_BUFFER_LEN)) > 0) {
 
-        /* msg->rcinfo.proto_type = diameter_proto_type; */
+        msg->rcinfo.proto_type = PROTO_DIAMETER;
         msg->data = json_diameter_buffer; // JSON buff --> Msg data
         msg->len = json_len;
         msg->mfree = 1;
