@@ -31,6 +31,8 @@
 #include <captagent/xmlread.h>
 #include "parser_diameter.h"
 
+#define PROTO_DIAMETER  0x38
+
 typedef struct protocol_diameter_stats {
 	uint64_t received_packets_total;
 	uint64_t parsed_packets;
