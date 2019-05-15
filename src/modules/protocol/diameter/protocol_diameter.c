@@ -107,7 +107,7 @@ int w_parse_diameter_to_json(msg_t *msg)
     }
     LINFO("JSON DIAMETER %s\n", json_diameter_buffer);
 
-    return 0;
+    return 1;
 }
 
 int reload_config(char *erbuf, int erlen)
