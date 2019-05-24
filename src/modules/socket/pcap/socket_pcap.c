@@ -46,7 +46,7 @@
 #ifndef __FAVOR_BSD
 #define __FAVOR_BSD
 #endif /* __FAVOR_BSD */
-#include <net/ethernet.h> 
+#include <net/ethernet.h>
 #include <netinet/in.h>
 #include <netinet/ip.h>
 #include <netinet/tcp.h>
@@ -113,20 +113,20 @@ int verbose = 0;
 int stats_interval = 300;
 int drop_limit = 25;
 
-char ipcheck_in[10][80] =  {0,0}; 
-char ipcheck_out[10][80]={0,0}; 
-int port_in[10] ={0}; 
-int port_out[10] = {0}; 
+char ipcheck_in[10][80] =  {0,0};
+char ipcheck_out[10][80]={0,0};
+int port_in[10] ={0};
+int port_out[10] = {0};
 int ipindex = -1;
 
 bind_protocol_module_api_t proto_bind_api;
 
-static cmd_export_t cmds[] = { 
-        { "socket_pcap_bind_api", (cmd_function) bind_api, 1, 0, 0, 0 }, 
-        { "socket_pcap_check", (cmd_function) bind_check_size, 3, 0, 0, 0 }, 
-        { "bind_socket_pcap",  (cmd_function)bind_socket_pcap,  0, 0, 0, 0}, 
-        {"tzsp_payload_extract", (cmd_function) w_tzsp_payload_extract, 0, 0, 0, 0 },                                   
-        { 0, 0, 0, 0, 0, 0 } 
+static cmd_export_t cmds[] = {
+        { "socket_pcap_bind_api", (cmd_function) bind_api, 1, 0, 0, 0 },
+        { "socket_pcap_check", (cmd_function) bind_check_size, 3, 0, 0, 0 },
+        { "bind_socket_pcap",  (cmd_function)bind_socket_pcap,  0, 0, 0, 0},
+        {"tzsp_payload_extract", (cmd_function) w_tzsp_payload_extract, 0, 0, 0, 0 },
+        { 0, 0, 0, 0, 0, 0 }
 };
 
 struct module_exports exports = {
@@ -180,24 +180,24 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
 
   int vlan_count = 0, mpls_count = 0;
   uint8_t  hdr_preset = 0;
-    
+
   // define MPLS struct
   //union mpls mpls;
-  
+
   uint8_t hdr_offset = 0; // offset for VLAN or MPLS
   u_int16_t type = 0, vlan_id;
   uint8_t vlan = 0;
-    
+
   unsigned char* ethaddr = NULL;
   unsigned char* mplsaddr = NULL;
   unsigned char* cooked = NULL;
-         
+
   uint8_t erspan_offset = 0;
   uint8_t tmp_ip_proto = 0;
   uint8_t tmp_ip_len = 0;
-  
+
   uint8_t loc_index = (uint8_t) *useless;
-  
+
   if (profile_socket[loc_index].erspan == 1) {
     memcpy(&tmp_ip_proto, (packet + ETHHDR_SIZE + IPPROTO_OFFSET), 1);
     if (tmp_ip_proto == GRE_PROTO) {
@@ -210,13 +210,13 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
       packet += erspan_offset;
     }
   }
-  
+
   struct run_act_ctx ctx;
   struct ether_header *eth = (struct ether_header *) packet;
-    
-  
+
+
   /* check for ethernet type */
-  
+
   // VLAN
   /* Need to check the code - it produce the errors in some scenarios!!! */
   /*
@@ -243,13 +243,13 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
     hdr_offset += 4;
     mpls_count++;
 
-    // in case of multiples MPLS fields (s == 0) 
+    // in case of multiples MPLS fields (s == 0)
     while(mpls.mpls.s == 0) {
       mpls.u32 = *((uint32_t *) &packet[link_offset+hdr_offset]);
       mpls.u32 = ntohl(mpls.u32);
       hdr_offset += 4;
     }
-  }  
+  }
   */
 
   memcpy(&cooked, (packet + link_offset + IPV4_SIZE + 2), 2);
@@ -270,7 +270,7 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
           /* LINK_OFFSET + IPV4_SIZE + GRE_ERSPAN + ERSPAN INFO */
           hdr_offset = hdr_preset = link_offset + IPV4_SIZE + ERSPANHDR_SIZE ;
           vlan = 3;
-  }    
+  }
 
   // IP
   struct ip      *ip4_pkt = (struct ip *)(packet + link_offset + hdr_offset);
@@ -289,11 +289,11 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
   char ip_src[INET6_ADDRSTRLEN + 1], ip_dst[INET6_ADDRSTRLEN + 1];
   char mac_src[20], mac_dst[20];
   u_char *pack = NULL;
-  unsigned char *data, *datatcp;	        
-  int action_idx = 0;	
+  unsigned char *data, *datatcp;
+  int action_idx = 0;
   uint32_t len = pkthdr->caplen;
   uint8_t  psh = 0;
-	        
+
   /* stats */
   stats.received_packets_total++;
 
@@ -323,12 +323,12 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
   //BSD
   snprintf(mac_src, sizeof(mac_src), "%.2X-%.2X-%.2X-%.2X-%.2X-%.2X",eth->ether_shost[0] , eth->ether_shost[1] , eth->ether_shost[2] , eth->ether_shost[3] , eth->ether_shost[4] , eth->ether_shost[5]);
   snprintf(mac_dst, sizeof(mac_dst), "%.2X-%.2X-%.2X-%.2X-%.2X-%.2X",eth->ether_dhost[0] , eth->ether_dhost[1] , eth->ether_dhost[2] , eth->ether_dhost[3] , eth->ether_dhost[4] , eth->ether_dhost[5]);
-        
+
   memset(&_msg, 0, sizeof(msg_t));
   memset(&ctx, 0, sizeof(struct run_act_ctx));
-        
+
   _msg.cap_packet = (void *) packet;
-  _msg.cap_header = (void *) pkthdr;                
+  _msg.cap_header = (void *) pkthdr;
 
   switch (ip_ver) {
 
@@ -382,9 +382,9 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
     uint16_t tcphdr_offset = frag_offset ? 0 : (uint16_t) (tcp_pkt->th_off * 4);
 
     data = (unsigned char *) tcp_pkt + tcphdr_offset;
-		
+
     _msg.hdr_len = link_offset + hdr_offset + ip_hl + tcphdr_offset;
-		
+
     len -= link_offset + hdr_offset + ip_hl + tcphdr_offset;
 
     stats.received_tcp_packets++;
@@ -405,21 +405,21 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
       unsigned new_len;
       u_char *new_p_2 = malloc(len+10);
       memcpy(new_p_2, data, len);
-        
+
       if((tcp_pkt->th_flags & TH_PUSH)) psh = 1;
 
-                                        
+
       if(debug_socket_pcap_enable) LDEBUG("DEFRAG TCP process: LEN:[%u], ACK:[%u], PSH[%u]\n", len, (tcp_pkt->th_flags & TH_ACK), psh);
-                        
+
       datatcp = tcpreasm_ip_next_tcp(tcpreasm[loc_index], new_p_2, len , (tcpreasm_time_t) 1000000UL * pkthdr->ts.tv_sec + pkthdr->ts.tv_usec, &new_len, &ip4_pkt->ip_src, &ip4_pkt->ip_dst, ntohs(tcp_pkt->th_sport), ntohs(tcp_pkt->th_dport), psh);
 
       if (datatcp == NULL) return;
-                                                
+
       len = new_len;
-                        
+
       if(debug_socket_pcap_enable)
 	LDEBUG("COMPLETE TCP DEFRAG: LEN[%u], PACKET:[%s]\n", len, datatcp);
-                        
+
 
       if(!profile_socket[profile_size].full_packet) {
 	_msg.data = datatcp;
@@ -429,7 +429,7 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
 	// _msg.len = pkthdr->caplen - link_offset;
 	// _msg.data = (packet + link_offset);
 	_msg.data = datatcp;
-	_msg.len = len;		        
+	_msg.len = len;
       }
 
 
@@ -445,7 +445,7 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
       _msg.rcinfo.time_usec = pkthdr->ts.tv_usec;
       _msg.tcpflag = tcp_pkt->th_flags;
       _msg.parse_it = 1;
-      
+
 
       /* replace IP */
       if(ipindex) {
@@ -456,17 +456,17 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
       }
 
 
-      action_idx = profile_socket[loc_index].action;		
+      action_idx = profile_socket[loc_index].action;
       run_actions(&ctx, main_ct.clist[action_idx], &_msg);
-			
+
       /**
 	 hook to function process_packet:
 	 in process_packet I have to prepare the Key
-	 and the Handshake for Hashtable 
+	 and the Handshake for Hashtable
       */
-			
+
       /* clear datatcp */
-      free(datatcp);                    
+      free(datatcp);
     }
     else {
 
@@ -500,9 +500,9 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
           check_ip_data(_msg.rcinfo.dst_ip, &_msg.rcinfo.dst_port);
       }
 
-      action_idx = profile_socket[loc_index].action;		
+      action_idx = profile_socket[loc_index].action;
       run_actions(&ctx, main_ct.clist[action_idx], &_msg);
-		        
+
       stats.send_packets++;
 
     }
@@ -515,18 +515,18 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
     uint16_t udphdr_offset = (frag_offset) ? 0 : sizeof(*udp_pkt);
 
     data = (unsigned char *) (udp_pkt) + udphdr_offset;
-		
+
     _msg.hdr_len = link_offset + ip_hl + hdr_offset + udphdr_offset;
-		
+
     len -= link_offset + ip_hl + udphdr_offset + hdr_offset;
-		
-		
+
+
 #if USE_IPv6
     /*if (ip_ver == 6) {
       len -= ntohs(ip6_pkt->ip6_plen);
       _msg.hdr_len += ntohs(ip6_pkt->ip6_plen);
       }
-    */		
+    */
 #endif
 
     /* stats */
@@ -541,10 +541,10 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
     else {
       _msg.len = pkthdr->caplen - link_offset - hdr_offset;
       _msg.data = (packet + link_offset + hdr_offset);
-		        
+
     }
-	  
-    _msg.rcinfo.src_port = ntohs(udp_pkt->uh_sport);	  
+
+    _msg.rcinfo.src_port = ntohs(udp_pkt->uh_sport);
     _msg.rcinfo.dst_port = ntohs(udp_pkt->uh_dport);
     _msg.rcinfo.src_ip = ip_src;
     _msg.rcinfo.dst_ip = ip_dst;
@@ -622,7 +622,7 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
           /* dst */
           check_ip_data(_msg.rcinfo.dst_ip, &_msg.rcinfo.dst_port);
      }
-     
+
     /* default the full packet */
     _msg.len = pkthdr->caplen - link_offset - hdr_offset;
     _msg.data = (packet + link_offset + hdr_offset);
@@ -673,50 +673,50 @@ int init_socket(unsigned int loc_idx) {
 	int len=0, buffer_size = 0;
 
 	LDEBUG("Activating device: %s\n", profile_socket[loc_idx].device);
-        
+
 	if (profile_socket[loc_idx].device) {
-	
+
 	        buffer_size =  1024 * 1024 * profile_socket[loc_idx].ring_buffer;
-	
+
 		if ((sniffer_proto[loc_idx] = pcap_create((char *) profile_socket[loc_idx].device, errbuf)) == NULL) {
 			LERR("Failed to open packet sniffer on %s: pcap_create(): %s", (char * )profile_socket[loc_idx].device, errbuf);
 			return -1;
 		};
-		
+
 		if (pcap_set_promisc(sniffer_proto[loc_idx], profile_socket[loc_idx].promisc) == -1) {
 			LERR("Failed to set promisc \"%s\": %s", (char *) profile_socket[loc_idx].device, pcap_geterr(sniffer_proto[loc_idx]));
 			return -1;
 		};
-		
+
 		if (pcap_set_timeout(sniffer_proto[loc_idx], profile_socket[loc_idx].timeout) == -1) {
 			LERR("Failed to set timeout \"%s\": %s", (char *) profile_socket[loc_idx].device, pcap_geterr(sniffer_proto[loc_idx]));
 			return -1;
 		};
-		
+
 		if (pcap_set_snaplen(sniffer_proto[loc_idx], profile_socket[loc_idx].snap_len) == -1) {
 			LERR("Failed to set snap_len [%u], \"%s\": %s", profile_socket[loc_idx].snap_len, (char *) profile_socket[loc_idx].device, pcap_geterr(sniffer_proto[loc_idx]));
-			return -1;						
+			return -1;
 		};
-		
+
 		if (pcap_set_buffer_size(sniffer_proto[loc_idx], buffer_size) == -1) {
 			LERR("Failed to set buffer_size [%u] \"%s\": %s", buffer_size,  (char *) profile_socket[loc_idx].device, pcap_geterr(sniffer_proto[loc_idx]));
-			return -1;									
+			return -1;
 		};
-		
+
 		if (pcap_activate(sniffer_proto[loc_idx]) != 0) {
 			LERR("Failed to activate  \"%s\": %s", (char *) profile_socket[loc_idx].device, pcap_geterr(sniffer_proto[loc_idx]));
-			return -1;									
+			return -1;
 		};
-		
+
 		LDEBUG("Activated device: [%s]\n", profile_socket[loc_idx].device);
-						
+
 	} else {
 
 		if ((sniffer_proto[loc_idx] = pcap_open_offline(usefile, errbuf)) == NULL) {
 			LERR("%s: Failed to open packet sniffer on %s: pcap_open_offline(): %s", module_name, usefile, errbuf);
 			return -1;
 		}
-		
+
 		LNOTICE("Sending file: %s", usefile);
 	}
 
@@ -764,7 +764,7 @@ int init_socket(unsigned int loc_idx) {
 		LERR("Failed to install filter: %s", pcap_geterr(sniffer_proto[loc_idx]));
 		return -1;
 	}
-	
+
 	//disabled temporaly
 	//pcap_freecode(&filter);
 
@@ -785,9 +785,9 @@ int set_raw_filter(unsigned int loc_idx, char *filter) {
         int linktype;
         //struct pcap_t *aa;
         int fd = -1;
-                
+
         LERR("APPLY FILTER [%u]\n", loc_idx);
-        if(loc_idx >= MAX_SOCKETS || sniffer_proto[loc_idx] == NULL) return 0;         
+        if(loc_idx >= MAX_SOCKETS || sniffer_proto[loc_idx] == NULL) return 0;
 
         fd = pcap_get_selectable_fd(sniffer_proto[loc_idx]);
 
@@ -866,22 +866,23 @@ void* proto_collect(void *arg) {
 	LDEBUG("Link offset interface type [%u] [%d] [%u]", dl, dl, link_offset);
 
 	while(1) {
+
 		ret = pcap_loop(sniffer_proto[loc_idx], 0, (pcap_handler) callback_proto, (u_char *) &loc_idx);
-		if (ret == 0)
+
+        if (ret == 0 && usefile)
 		{
 			LDEBUG("loop stopped by EOF");
 			pcap_close(sniffer_proto[loc_idx]);
 			break;
-		} else if (ret == -2)
+		}
+
+        else if (ret == -2)
 		{
 			LDEBUG("loop stopped by breakloop");
-			pcap_close(sniffer_proto[loc_idx]);	
+			pcap_close(sniffer_proto[loc_idx]);
 			break;
 		}
 	}
-
-	//printf("------- OUT OF CALLBACK PROTO ------\n");
-
 
 	/* free arg */
 	//if(arg) free(arg);
@@ -896,7 +897,15 @@ void* proto_collect(void *arg) {
 	//handler(1);
 
 	LDEBUG("exit loop");
-	
+
+    if(loc_idx == 1 && usefile)
+	{
+        LDEBUG("Process, pid=%d\n",getpid());
+        kill(getpid(), SIGTERM);
+    }
+
+	pthread_exit(0); // exit the thread signalling normal return
+
 	return NULL;
 }
 
@@ -918,11 +927,11 @@ static void stat_collect(void* arg) {
                               if(stat.ps_recv >= last_stat[i].ps_recv) {
 
                                       if(stat.ps_drop > last_stat[i].ps_drop) pcap_drop = 1;
-                                      if(stat.ps_ifdrop > last_stat[i].ps_ifdrop && (stat.ps_ifdrop - last_stat[i].ps_ifdrop) > (stat.ps_recv - last_stat[i].ps_recv) * drop_limit / 100) 
+                                      if(stat.ps_ifdrop > last_stat[i].ps_ifdrop && (stat.ps_ifdrop - last_stat[i].ps_ifdrop) > (stat.ps_recv - last_stat[i].ps_recv) * drop_limit / 100)
 				      {
                                                       interface_drop = true;
                                       }
-                                      if(pcap_drop == 1 || interface_drop == 1) {                                         
+                                      if(pcap_drop == 1 || interface_drop == 1) {
                                               LERR("Packet drops on interface [%s], index: [%d], received: [%d]", profile_socket[i].device, i,
                                                        (stat.ps_recv - last_stat[i].ps_recv));
                                               if(pcap_drop) {
@@ -940,17 +949,17 @@ static void stat_collect(void* arg) {
                               }
 
                               last_stat[i] = stat;
-                       }     
+                       }
                        else {
                                LERR("Couldn't get stats on interface [%s], index [%d]", profile_socket[i].device, i);
                        }
               }
-       
+
               sleep(stats_interval);
       }
 
       LDEBUG("EXIT stats");
-      pthread_exit(0); // exit the thread signalling normal return                   
+      pthread_exit(0); // exit the thread signalling normal return
       return;
 }
 
@@ -1027,8 +1036,8 @@ static int load_module(xml_node *config) {
 	profile_size = 0;
 
 	memset(sniffer_proto, 0, sizeof sniffer_proto);
-	        
-	
+
+
 	//global_scripts_path
 
 
@@ -1067,7 +1076,7 @@ static int load_module(xml_node *config) {
 		profile_socket[profile_size].promisc = 0;
 		profile_socket[profile_size].timeout = 100;
 		profile_socket[profile_size].full_packet = 0;
-		profile_socket[profile_size].reasm = 0;         		                
+		profile_socket[profile_size].reasm = 0;
 		profile_socket[profile_size].erspan = 0;
 
 		/* SETTINGS */
@@ -1115,14 +1124,14 @@ static int load_module(xml_node *config) {
 						user_data[profile_size].ipv6fragments = 1;
                                         else if(!strncmp(key, "tcpdefrag", 9) && !strncmp(value, "true", 4))
                                                 profile_socket[profile_size].reasm |= REASM_TCP;
-					else if (!strncmp(key, "ring-buffer", 11))					        
-						profile_socket[profile_size].ring_buffer = atoi(value);		
-					else if (!strncmp(key, "full-packet",11) && !strncmp(value, "true", 4))					        
-						profile_socket[profile_size].full_packet = 1;												
-					else if (!strncmp(key, "timeout", 7))					        
-						profile_socket[profile_size].timeout = atoi(value);												
-					else if (!strncmp(key, "snap-len", 8))					        
-						profile_socket[profile_size].snap_len = atoi(value);												
+					else if (!strncmp(key, "ring-buffer", 11))
+						profile_socket[profile_size].ring_buffer = atoi(value);
+					else if (!strncmp(key, "full-packet",11) && !strncmp(value, "true", 4))
+						profile_socket[profile_size].full_packet = 1;
+					else if (!strncmp(key, "timeout", 7))
+						profile_socket[profile_size].timeout = atoi(value);
+					else if (!strncmp(key, "snap-len", 8))
+						profile_socket[profile_size].snap_len = atoi(value);
 					else if (!strncmp(key, "promisc", 7) && !strncmp(value, "true", 4))
 						profile_socket[profile_size].promisc = 1;
 					else if (!strncmp(key, "filter", 6))
@@ -1132,11 +1141,11 @@ static int load_module(xml_node *config) {
                                         else if (!strncmp(key, "capture-filter", 14))
 						profile_socket[profile_size].capture_filter = strdup(value);
 					else if(!strncmp(key, "debug", 5) && !strncmp(value, "true", 4))
-                                                debug_socket_pcap_enable = 1;	
+                                                debug_socket_pcap_enable = 1;
 					else if (!strncmp(key, "erspan", 6) && !strncmp(value, "true", 4))
 						profile_socket[profile_size].erspan = 1;
-					else if (!strncmp(key, "stats-interval", 14))					        
-						stats_interval = atoi(value);				
+					else if (!strncmp(key, "stats-interval", 14))
+						stats_interval = atoi(value);
 					else if (!strncmp(key, "ip-replace", 10))
 					{
 					        load_ip_data(value);
@@ -1158,10 +1167,10 @@ static int load_module(xml_node *config) {
 
 	for (i = 0; i < profile_size; i++) {
 
-		unsigned int *arg = malloc(sizeof(arg));		
+		unsigned int *arg = malloc(sizeof(arg));
 
 		*arg = i;
-		
+
 		/* DEV || FILE */
 		if (!usefile) {
 			if (!profile_socket[i].device)
@@ -1171,7 +1180,7 @@ static int load_module(xml_node *config) {
 				exit(-1);
 			}
 		}
-		
+
 		// start thread
 		if (!init_socket(i)) {
 			LERR("couldn't init pcap");
@@ -1209,10 +1218,10 @@ static int load_module(xml_node *config) {
 			}
 
 			profile_socket[i].action = main_ct.idx;
-			
+
 		}
 
-		pthread_create(&call_thread[i], NULL, proto_collect, arg);		
+		pthread_create(&call_thread[i], NULL, proto_collect, arg);
 	}
 
 	pthread_create(&stat_thread, NULL, stat_collect, i);
@@ -1225,7 +1234,7 @@ static int unload_module(void) {
 
 	LNOTICE("unloaded module %s", module_name);
 
-	pthread_cancel(stat_thread);     
+	pthread_cancel(stat_thread);
 
 	for (i = 0; i < profile_size; i++) {
 
@@ -1235,7 +1244,7 @@ static int unload_module(void) {
 		}
 
 		if (reasm[i] != NULL) {
-                	reasm_ip_free(reasm[i]);  
+                	reasm_ip_free(reasm[i]);
                         reasm[i] = NULL;
                 }
 
@@ -1311,29 +1320,29 @@ int w_tzsp_payload_extract(msg_t *_m)
 
         recv_buffer = _m->data;
         readsz = _m->len;
-        
+
         char *end = recv_buffer + readsz;
         char *p = recv_buffer;
-        
-        if (p + sizeof(struct tzsp_header) > end) 
+
+        if (p + sizeof(struct tzsp_header) > end)
         {
                 LERR("Malformed packet (truncated header)");
                 return -1;
         }
-        
+
 	struct tzsp_header *hdr = (struct tzsp_header *) recv_buffer;
-	p += sizeof(struct tzsp_header);        
-	
+	p += sizeof(struct tzsp_header);
+
 	char got_end_tag = 0;
 	if (hdr->version == 1 && hdr->type == TZSP_TYPE_RECEIVED_TAG_LIST)
 	{
-		while (p < end) 
+		while (p < end)
 		{
 			struct tzsp_tag *tag = (struct tzsp_tag *) p;
 
 			if (verbose) LERR("\ttag { type = %s(%u) }", name_tag(tag->type, tzsp_tag_names, ARRAYSZ(tzsp_tag_names)), tag->type);
 
-			if (tag->type == TZSP_TAG_END) 
+			if (tag->type == TZSP_TAG_END)
 			{
 				got_end_tag = 1;
 				p++;
@@ -1361,7 +1370,7 @@ int w_tzsp_payload_extract(msg_t *_m)
 		LERR("Packet truncated (no END tag)");
 		return -1;
 	}
-		
+
 	if (verbose) {
 		LERR("\tpacket data begins at offset 0x%.4lx, length 0x%.4lx\n",(p - recv_buffer),readsz - (p - recv_buffer));
 	}
@@ -1372,9 +1381,9 @@ int w_tzsp_payload_extract(msg_t *_m)
 		.len = readsz - (p - recv_buffer),
 	};
 	gettimeofday(&pcap_hdr.ts, NULL);
-	
+
 	proccess_packet(_m,  &pcap_hdr, (unsigned char *) p);
- 
+
         return 1;
 }
 
@@ -1398,7 +1407,7 @@ void proccess_packet(msg_t *_m, struct pcap_pkthdr *pkthdr, u_char *packet) {
         }
 
         struct ether_header *eth = (struct ether_header *)packet;
-        
+
         struct ip      *ip4_pkt = (struct ip *)    (packet + link_offset + hdr_offset);
 #if USE_IPv6
         struct ip6_hdr *ip6_pkt = (struct ip6_hdr*)(packet + link_offset + hdr_offset);
@@ -1414,14 +1423,14 @@ void proccess_packet(msg_t *_m, struct pcap_pkthdr *pkthdr, u_char *packet) {
 	char mac_src[20], mac_dst[20];
 	uint32_t len = pkthdr->caplen;
 	unsigned char *data = NULL;
-	        
+
 	ip_ver = ip4_pkt->ip_v;
 
         snprintf(mac_src, sizeof(mac_src), "%.2X-%.2X-%.2X-%.2X-%.2X-%.2X",eth->ether_shost[0] , eth->ether_shost[1] , eth->ether_shost[2] , eth->ether_shost[3] , eth->ether_shost[4] , eth->ether_shost[5]);
         snprintf(mac_dst, sizeof(mac_dst), "%.2X-%.2X-%.2X-%.2X-%.2X-%.2X",eth->ether_dhost[0] , eth->ether_dhost[1] , eth->ether_dhost[2] , eth->ether_dhost[3] , eth->ether_dhost[4] , eth->ether_dhost[5]);
-        
+
         _m->cap_packet = (void *) packet;
-        _m->cap_header = (void *) pkthdr;                
+        _m->cap_header = (void *) pkthdr;
 
 	switch (ip_ver) {
 
@@ -1465,18 +1474,18 @@ void proccess_packet(msg_t *_m, struct pcap_pkthdr *pkthdr, u_char *packet) {
                 break;
 #endif
 	}
-	
+
 	switch (ip_proto) {
 
         	case IPPROTO_TCP: {
 	        	struct tcphdr *tcp_pkt = (struct tcphdr *) ((unsigned char *) (ip4_pkt) + ip_hl);
-        		uint16_t tcphdr_offset = frag_offset ? 0 : (uint16_t) (tcp_pkt->th_off * 4);        		
-        		//data = (unsigned char *) tcp_pkt + tcphdr_offset;		
+        		uint16_t tcphdr_offset = frag_offset ? 0 : (uint16_t) (tcp_pkt->th_off * 4);
+        		//data = (unsigned char *) tcp_pkt + tcphdr_offset;
         		_m->hdr_len = link_offset + hdr_offset + ip_hl + tcphdr_offset;
         		len -= link_offset + hdr_offset + ip_hl + tcphdr_offset;
 
         		if ((int32_t) len < 0) len = 0;
-        		
+
         		_m->len = pkthdr->caplen - link_offset - hdr_offset;
 	        	_m->data = (packet + link_offset + hdr_offset);
 
@@ -1491,7 +1500,7 @@ void proccess_packet(msg_t *_m, struct pcap_pkthdr *pkthdr, u_char *packet) {
         		//_m->rcinfo.time_sec = pkthdr->ts.tv_sec;
         		//_m->rcinfo.time_usec = pkthdr->ts.tv_usec;
         		_m->tcpflag = tcp_pkt->th_flags;
-        		_m->parse_it = 1;        		
+        		_m->parse_it = 1;
         	}
         	break;
 
@@ -1499,17 +1508,17 @@ void proccess_packet(msg_t *_m, struct pcap_pkthdr *pkthdr, u_char *packet) {
 	        	struct udphdr *udp_pkt = (struct udphdr *) ((unsigned char *) (ip4_pkt) + ip_hl);
         		uint16_t udphdr_offset = (frag_offset) ? 0 : sizeof(*udp_pkt);
 	        	data = (unsigned char *) (udp_pkt) + udphdr_offset;
-		
+
         		_m->hdr_len = link_offset + ip_hl + hdr_offset + udphdr_offset;
-	        	
+
         		len -= link_offset + ip_hl + udphdr_offset + hdr_offset;
-				
+
 	        	/* stats */
         		if ((int32_t) len < 0) len = 0;
 
         		_m->data = data;
         		_m->len = len;
-        		                                  
+
 	        	_m->rcinfo.src_port = ntohs(udp_pkt->uh_sport);
         		_m->rcinfo.dst_port = ntohs(udp_pkt->uh_dport);
         		_m->rcinfo.src_ip = ip_src;
@@ -1521,14 +1530,14 @@ void proccess_packet(msg_t *_m, struct pcap_pkthdr *pkthdr, u_char *packet) {
         		//_m->rcinfo.time_sec = pkthdr->ts.tv_sec;
         		//_m->rcinfo.time_usec = pkthdr->ts.tv_usec;
         		_m->tcpflag = 0;
-        		_m->parse_it = 1;        		
+        		_m->parse_it = 1;
         	}
 		break;
-		
+
         	default:
 	        	break;
         }
-	
+
 	return;
 }
 
@@ -1586,7 +1595,7 @@ void load_ip_data(char *ips)
         int i;
         for (i = 0; *(tokens1 + i); i++)
         {
-            tokens2 = str_split(*(tokens1 + i), '-', 1);            
+            tokens2 = str_split(*(tokens1 + i), '-', 1);
             if (tokens2)
             {
                 int j;
@@ -1598,32 +1607,32 @@ void load_ip_data(char *ips)
                         int z;
                         for (z = 0; *(tokens3 + z); z++)
                         {
-                            if(j == 0) {                                
-                                if(z == 0) {                                
+                            if(j == 0) {
+                                if(z == 0) {
                                     ipindex++;
                                     snprintf(ipcheck_in[ipindex], 80, "%s", *(tokens3 + z));
                                 }
                                 else {
-                                    port_in[ipindex] = atoi(*(tokens3 + z));        
+                                    port_in[ipindex] = atoi(*(tokens3 + z));
                                 }
                             }
                             else if(j == 1) {
-                                if(z == 0) {                                
+                                if(z == 0) {
                                     snprintf(ipcheck_out[ipindex], 80, "%s", *(tokens3 + z));
                                 }
                                 else {
-                                    port_out[ipindex] = atoi(*(tokens3 + z));        
-                                }                            
-                            }                            
-                            
+                                    port_out[ipindex] = atoi(*(tokens3 + z));
+                                }
+                            }
+
                             free(*(tokens3 + z));
-                        }                
+                        }
                         free(tokens3);
                     }
-                    
+
                     free(*(tokens2 + j));
                 }
-                
+
                 free(tokens2);
             }
 
@@ -1631,7 +1640,7 @@ void load_ip_data(char *ips)
         }
         free(tokens1);
     }
-    
+
     return;
 }
 
