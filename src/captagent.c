@@ -61,7 +61,9 @@ int debug = 0;
 int nofork = 1;
 int foreground = 0;
 int debug_level = 1;
+int is_x = -1;
 char *usefile = NULL;
+char *set_debug = NULL;
 char *global_license = NULL;
 char *global_chroot = NULL;
 char *global_config_path = NULL;
@@ -204,16 +206,15 @@ int daemonize(int nofork) {
 
 void usage(int8_t e) {
 	printf(
-			"usage: captagent <-vh> <-f config>\n"
-					"   -h  is help/usage\n"
-					"   -v  is version information\n"
-					"   -f  is the config file\n"
-					"   -D  is use specified pcap file instead of a device from the config\n"
-					"   -c  is checkout\n"
-					"   -d  is daemon mode\n"
-					"   -n  is foreground mode\n"
-					"   -K  is hardware key of your system\n"
-					"");
+        "usage: Captagent <-vh> <-f config>\n"
+        "   -h  display help/usage\n"
+        "   -v  display version information\n"
+        "   -c  validate configuration and exit\n"
+        "   -d  enable daemon mode\n"
+        "   -n  enable foreground mode\n"
+        "   -f  [/path/to/rtpagent.xml] to specify a config file\n"
+        "   -D  [/path/to/file.pcap] to specify a pcap file as input\n"
+        "   -x  [1 - 10] set debug level\n");
 	exit(e);
 }
 
@@ -240,8 +241,8 @@ int main(int argc, char *argv[]) {
 	timestart = time(0);
 
 	captagent_config = DEFAULT_CAPT_CONFIG;
-	
-	while ((c = getopt(argc, argv, "dcvhnEKf:D:")) != EOF) {
+
+	while ((c = getopt(argc, argv, "dcvhnEKf:D:x:")) != EOF) {
 
 		switch (c) {
 		case 'v':
@@ -274,6 +275,11 @@ int main(int argc, char *argv[]) {
 		case 'n':
 			foreground = 1;
 			break;
+        case 'x':
+            is_x = 1;
+            set_debug = optarg;
+			break;
+
 
 		default:
 			abort();
@@ -450,8 +456,10 @@ int core_config(xml_node *config) {
 				goto next;
 			}
 
-			if (!strncmp(key, "debug", 5))
-				debug_level = atoi(value);
+			if (!strncmp(key, "debug", 5)) {
+                if(is_x == -1) debug_level = atoi(value);
+                else debug_level = atoi(set_debug);
+            }
 			else if (!strncmp(key, "serial", 6))
 						serial = atoi(value);
 			else if (!strncmp(key, "daemon", 6) && !strncmp(value, "true", 4)
@@ -473,7 +481,7 @@ int core_config(xml_node *config) {
 			else if (!strncmp(key, "config_path", 11))
 				global_config_path = strdup(value);
 			else if (!strncmp(key, "node", 4))
-				global_node_name = strdup(value);				
+				global_node_name = strdup(value);
 			else if (!strncmp(key, "capture_plans_path", 18))
 				global_capture_plan_path = strdup(value);
 			else if (!strncmp(key, "backup", 6))
@@ -496,9 +504,9 @@ int core_config(xml_node *config) {
 		global_config_path = strdup(AGENT_CONFIG_DIR);
 	}
 
-	if(!global_capture_plan_path) {	
-		global_capture_plan_path = strdup(AGENT_PLAN_DIR);		
-	}	
+	if(!global_capture_plan_path) {
+		global_capture_plan_path = strdup(AGENT_PLAN_DIR);
+	}
 
 	/* reinit syslog */
 	destroy_log();
