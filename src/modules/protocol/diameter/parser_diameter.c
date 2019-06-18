@@ -39,6 +39,27 @@ static const char* com_diam_3gpp_arr[] = { "UA", "SA", "LI", "MA", "RT", "PP", "
 static const char* com_diam_CC_arr[]   = { "CC" };
 static const char* com_diam_sip_arr[]  = { "UA", "SA", "LI", "MA", "RT", "PP" };
 
+
+/**
+   Swap endian value of passed variable
+   @param  number to be change
+   @return number after endian swap
+**/
+static u_int32_t swap_endian(u_int32_t num) {
+
+    // Swap endian (big to little) or (little to big)
+    uint32_t z0, z1, z2, z3;
+    uint32_t res;
+
+    z0 = (num & 0x000000ff) << 24;
+    z1 = (num & 0x0000ff00) << 8;
+    z2 = (num & 0x00ff0000) >> 8;
+    z3 = (num & 0xff000000) >> 24;
+    res = z0 | z1 | z2 | z3;
+
+    return res;
+}
+
 /**
    check if the passed variable is a diameter command
    @param  command code to check
@@ -54,29 +75,57 @@ static int check_command(u_int16_t com_code, const char* com_string) {
         snprintf(com_string, 3, "CC");
         return CC;
     }
+
     // check for DIAM_BASE command
-    for (i = AC, j = 0; i <= ST; i++, j++) {
-        if(i == com_code) {
-            snprintf(com_string, 3, "%s", com_diam_base_arr[j]);
-            return DIAM_BASE;
-        }
+    switch(com_code) {
+    case CE: {
+        snprintf(com_string, 3, "%s", com_diam_base_arr[0]);
+        return DIAM_BASE;
     }
-    // check for 3GPP command
-    for (i = UA, j = 0; i <= EC; i++, j++) {
-        if(i == com_code) {
-            /* printf("string = %s\n", com_diam_base_arr[j]); */
-            snprintf(com_string, 3, "%s", com_diam_3gpp_arr[j]);
-            return _3GPP;
-        }
+    case RA: {
+        snprintf(com_string, 3, "%s", com_diam_base_arr[1]);
+        return DIAM_BASE;
     }
-    // check for SIP command
-    for (i = UAS, j = 0; i <= PPS; i++, j++) {
-        if(i == com_code) {
-            snprintf(com_string, 3, "%s", com_diam_sip_arr[j]);
-            return SIP;
-        }
+    case AC: {
+        snprintf(com_string, 3, "%s", com_diam_base_arr[2]);
+        return DIAM_BASE;
+    }
+    case AS: {
+        snprintf(com_string, 3, "%s", com_diam_base_arr[3]);
+        return DIAM_BASE;
+    }
+    case ST: {
+        snprintf(com_string, 3, "%s", com_diam_base_arr[4]);
+        return DIAM_BASE;
+    }
+    case DW: {
+        snprintf(com_string, 3, "%s", com_diam_base_arr[5]);
+        return DIAM_BASE;
+    }
+    case DP: {
+        snprintf(com_string, 3, "%s", com_diam_base_arr[6]);
+        return DIAM_BASE;
     }
 
+        // check for 3GPP command
+        for (i = UA, j = 0; i <= EC; i++, j++) {
+            if(i == com_code) {
+                if(i <= MP)
+                    snprintf(com_string, 3, "%s", com_diam_3gpp_arr[j]);
+                else
+                    snprintf(com_string, 3, "%s", com_diam_3gpp_arr[j-4]);
+                return _3GPP;
+            }
+        }
+
+        // check for SIP command
+        for (i = UAS, j = 0; i <= PPS; i++, j++) {
+            if(i == com_code) {
+                snprintf(com_string, 3, "%s", com_diam_sip_arr[j]);
+                return SIP;
+            }
+        }
+    }
     return -1;
 }
 
@@ -159,7 +208,8 @@ int diameter_dissector(const u_char *packet, int size_payload, char *json_buffer
     }
 
     // check if Applicaption ID is correct
-    app_id = diameter->app_id[3] + (diameter->app_id[2] << 8) + (diameter->app_id[1] << 8) + (diameter->app_id[0] << 8);
+    app_id = diameter->app_id;
+    app_id = swap_endian(app_id);
     classApp = check_appID(app_id);
     if(classApp == UNK) {
         LERR("::Warning:: Command unknown for Diameter protocol\n");

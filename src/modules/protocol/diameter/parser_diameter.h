@@ -54,13 +54,13 @@
 **/
 // Diameter protocol base
 typedef enum {
+    CE = 257,
+    RA = 258,
     AC = 271,
     AS = 274,
-    CE = 257,
+    ST = 275,
     DW = 280,
-    DP = 282,
-    RA = 258,
-    ST = 275
+    DP = 282
 } com_diam_base_t;
 
 // 3GPP
@@ -158,7 +158,7 @@ struct diameter_header_t
     u_int8_t  length[3];
     u_int8_t  flags;
     u_int8_t  com_code[3];
-    u_int8_t  app_id[4];
+    u_int32_t app_id;
     u_int32_t hop_id;
     u_int32_t end_id;
 };
