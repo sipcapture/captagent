@@ -35,7 +35,7 @@ If you have specific questions or require professional support please contact us
 
 
 ### Developers
-Contributions to our project are always welcome! If you intend to participate and help us improve CAPTANGENT, we kindly ask you to sign a [CLA (Contributor License Agreement)](http://cla.qxip.net) and coordinate at best with the existing team via the [homer-dev](http://groups.google.com/group/homer-dev) mailing list.
+Contributions to our project are always welcome! If you intend to participate and help us improve CAPTAGENT, we kindly ask you to sign a [CLA (Contributor License Agreement)](http://cla.qxip.net) and coordinate at best with the existing team via the [homer-dev](http://groups.google.com/group/homer-dev) mailing list.
 
 
 ----------
