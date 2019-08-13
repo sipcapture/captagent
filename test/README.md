@@ -9,6 +9,7 @@ NOTICE: `sudo` rights are required to spawn the agent and test sockets on interf
 ### Usage
 ```
 npm install -g mocha
+npm install hep-js
 sudo npm test
 ```
 
