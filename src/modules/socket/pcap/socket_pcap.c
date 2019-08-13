@@ -898,7 +898,7 @@ void* proto_collect(void *arg) {
 
 	LDEBUG("exit loop");
 
-    if(loc_idx == 1 && usefile)
+    if(usefile)
 	{
         LDEBUG("Process, pid=%d\n",getpid());
         kill(getpid(), SIGTERM);
