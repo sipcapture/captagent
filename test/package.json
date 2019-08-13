@@ -17,10 +17,10 @@
   "author": "Lorenzo Mangani <lorenzo.mangani@gmail.com> (http://qxip.net/)",
   "license": "GPL-3.0",
   "devDependencies": {
-    "hep-js": "^1.0.12",
+    "hep-js": "^1.0.16",
     "mocha": "^5.0.1"
   },
   "dependencies": {
-    "mixin-deep": "^1.3.1"
+    "mixin-deep": "^1.3.2"
   }
 }
