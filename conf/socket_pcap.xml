@@ -6,7 +6,7 @@
 		<param name="dev" value="any"/>
 		<param name="promisc" value="true"/>
 		<param name="reasm" value="false"/>
-		<param name="tcpdefrag" value="false"/>
+		<param name="tcpdefrag" value="true"/>
 		<param name="capture-plan" value="sip_capture_plan.cfg"/>
 		<param name="filter">
 		    <value>port 5060</value>
@@ -19,7 +19,7 @@
 		<param name="promisc" value="true"/>
 		<param name="reasm" value="false"/>
 		<param name="tcpdefrag" value="true"/>
-		<param name="capture-plan" value="tcp_capture_plan.cfg"/>
+		<param name="capture-plan" value="tls_capture_plan.cfg"/>
 		<param name="filter">
 		    <value>tcp port 5061</value>
 		</param>

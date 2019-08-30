@@ -2,8 +2,8 @@ AC_CONFIG_FILES([
 	src/modules/protocol/sip/Makefile
 	src/modules/protocol/sip/captureplan/Makefile
 	src/modules/protocol/ss7/Makefile
-	src/modules/protocol/tcp/Makefile
-	src/modules/protocol/tcp/captureplan/Makefile
+	src/modules/protocol/tls/Makefile
+	src/modules/protocol/tls/captureplan/Makefile
 	src/modules/protocol/rtcp/Makefile
 	src/modules/protocol/rtcp/captureplan/Makefile
 	src/modules/protocol/rtcpxr/Makefile
@@ -16,7 +16,7 @@ AC_CONFIG_FILES([
 	src/modules/socket/tzsp/Makefile
 	src/modules/socket/tzsp/captureplan/Makefile
 	src/modules/transport/hep/Makefile
-	src/modules/transport/json/Makefile	
+	src/modules/transport/json/Makefile
 	src/modules/interface/http/Makefile
 	src/modules/database/redis/Makefile
 	src/modules/database/hash/Makefile

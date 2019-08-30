@@ -49,7 +49,7 @@
 #include <captagent/log.h>
 #include <captagent/md5.h>
 #include "localapi.h"
-#include "protocol_tcp.h"
+#include "protocol_tls.h"
 
 /* #include <openssl/md5.h> */
 

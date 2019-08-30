@@ -30,20 +30,6 @@
 #include <captagent/log.h>
 #include <captagent/export_function.h>
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 /* ### CAPTAGENT FUNCTIONS ### */
 
 typedef char* (*hashapi_lookup_f)(char *ip, int port);
