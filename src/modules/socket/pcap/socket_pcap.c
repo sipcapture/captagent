@@ -21,7 +21,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
-*/
+ */
 
 #include <stdio.h>
 #include <string.h>
@@ -122,22 +122,23 @@ int ipindex = -1;
 bind_protocol_module_api_t proto_bind_api;
 
 static cmd_export_t cmds[] = {
-        { "socket_pcap_bind_api", (cmd_function) bind_api, 1, 0, 0, 0 },
-        { "socket_pcap_check", (cmd_function) bind_check_size, 3, 0, 0, 0 },
-        { "bind_socket_pcap",  (cmd_function)bind_socket_pcap,  0, 0, 0, 0},
-        {"tzsp_payload_extract", (cmd_function) w_tzsp_payload_extract, 0, 0, 0, 0 },
-        { 0, 0, 0, 0, 0, 0 }
+    { "socket_pcap_bind_api", (cmd_function) bind_api, 1, 0, 0, 0 },
+    { "socket_pcap_check", (cmd_function) bind_check_size, 3, 0, 0, 0 },
+    { "bind_socket_pcap",  (cmd_function)bind_socket_pcap,  0, 0, 0, 0},
+    {"tzsp_payload_extract", (cmd_function) w_tzsp_payload_extract, 0, 0, 0, 0 },
+    { 0, 0, 0, 0, 0, 0 }
 };
 
 struct module_exports exports = {
-        "protocol_sip",
-        cmds,        /* Exported functions */
-        load_module,    /* module initialization function */
-        unload_module,
-        description,
-        statistic,
-        serial_module
+    "protocol_sip",
+    cmds,        /* Exported functions */
+    load_module,    /* module initialization function */
+    unload_module,
+    description,
+    statistic,
+    serial_module
 };
+
 
 int bind_api(socket_module_api_t* api)
 {
@@ -149,7 +150,7 @@ int bind_api(socket_module_api_t* api)
 
 int bind_check_size(msg_t *_m, char *param1, char *param2)
 {
-        return 0;
+    return 0;
 }
 
 int apply_filter (filter_msg_t *filter) {
@@ -175,494 +176,572 @@ int reload_config (char *erbuf, int erlen) {
 	return 0;
 }
 
+
+static void websocket_decode(char *dst, const char *src, size_t len, const char mask[4])
+{
+    int i;
+    for(i = 0; i < len; i++)
+        dst[i] = src[i] ^ mask[i % 4];
+}
+
 /* Callback function that is passed to pcap_loop() */
 void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet) {
 
-  int vlan_count = 0, mpls_count = 0;
-  uint8_t  hdr_preset = 0;
+    int vlan_count = 0, mpls_count = 0;
+    uint8_t  hdr_preset = 0;
 
-  // define MPLS struct
-  //union mpls mpls;
+    // define MPLS struct
+    //union mpls mpls;
 
-  uint8_t hdr_offset = 0; // offset for VLAN or MPLS
-  u_int16_t type = 0, vlan_id;
-  uint8_t vlan = 0;
+    uint8_t hdr_offset = 0; // offset for VLAN or MPLS
+    u_int16_t type = 0, vlan_id;
+    uint8_t vlan = 0;
 
-  unsigned char* ethaddr = NULL;
-  unsigned char* mplsaddr = NULL;
-  unsigned char* cooked = NULL;
+    unsigned char* ethaddr = NULL;
+    unsigned char* mplsaddr = NULL;
+    unsigned char* cooked = NULL;
 
-  uint8_t erspan_offset = 0;
-  uint8_t tmp_ip_proto = 0;
-  uint8_t tmp_ip_len = 0;
+    uint8_t erspan_offset = 0;
+    uint8_t tmp_ip_proto = 0;
+    uint8_t tmp_ip_len = 0;
 
-  uint8_t loc_index = (uint8_t) *useless;
+    uint8_t loc_index = (uint8_t) *useless;
 
-  if (profile_socket[loc_index].erspan == 1) {
-    memcpy(&tmp_ip_proto, (packet + ETHHDR_SIZE + IPPROTO_OFFSET), 1);
-    if (tmp_ip_proto == GRE_PROTO) {
-      memcpy(&tmp_ip_len, (packet + ETHHDR_SIZE), 1);
-      tmp_ip_len = (tmp_ip_len & IPLEN_MASK) * 4; // LSB 4 bits: length in 32-bit words
-      //printf("ip.proto: %u, ip header len: %u\n", tmp_ip_proto, tmp_ip_len);
-      erspan_offset = ETHHDR_SIZE + tmp_ip_len + GREHDR_SIZE; // Ethernet + IP + GRE
-      pkthdr->len -= erspan_offset;
-      pkthdr->caplen -= erspan_offset;
-      packet += erspan_offset;
+    if (profile_socket[loc_index].erspan == 1) {
+        memcpy(&tmp_ip_proto, (packet + ETHHDR_SIZE + IPPROTO_OFFSET), 1);
+        if (tmp_ip_proto == GRE_PROTO) {
+            memcpy(&tmp_ip_len, (packet + ETHHDR_SIZE), 1);
+            tmp_ip_len = (tmp_ip_len & IPLEN_MASK) * 4; // LSB 4 bits: length in 32-bit words
+            //printf("ip.proto: %u, ip header len: %u\n", tmp_ip_proto, tmp_ip_len);
+            erspan_offset = ETHHDR_SIZE + tmp_ip_len + GREHDR_SIZE; // Ethernet + IP + GRE
+            pkthdr->len -= erspan_offset;
+            pkthdr->caplen -= erspan_offset;
+            packet += erspan_offset;
+        }
     }
-  }
 
-  struct run_act_ctx ctx;
-  struct ether_header *eth = (struct ether_header *) packet;
+    struct run_act_ctx ctx;
+    struct ether_header *eth = (struct ether_header *) packet;
 
 
-  /* check for ethernet type */
+    /* check for ethernet type */
 
-  // VLAN
-  /* Need to check the code - it produce the errors in some scenarios!!! */
-  /*
-  if(ntohs(eth->ether_type == VLAN)) {
-    vlan_id = ((packet[link_offset] << 8) + packet[link_offset+1]) & 0xFFF;
-    type = (packet[link_offset+2] << 8) + packet[link_offset+3];
-    hdr_offset += 4;
-    vlan_count++;
-    // double tagging for 802.1Q
-    if(type == VLAN) {
-      vlan_id = ((packet[link_offset+hdr_offset] << 8) +
-		 packet[link_offset+hdr_offset+1]) & 0xFFF;
-      type = (packet[link_offset+hdr_offset+2] << 8) +
-	packet[link_offset+hdr_offset+3];
+    // VLAN
+    /* Need to check the code - it produce the errors in some scenarios!!! */
+    /*
+      if(ntohs(eth->ether_type == VLAN)) {
+      vlan_id = ((packet[link_offset] << 8) + packet[link_offset+1]) & 0xFFF;
+      type = (packet[link_offset+2] << 8) + packet[link_offset+3];
       hdr_offset += 4;
-    }
-  }
-  // MPLS
-  else if(ntohs(eth->ether_type == MPLS_UNI) ||
+      vlan_count++;
+      // double tagging for 802.1Q
+      if(type == VLAN) {
+      vlan_id = ((packet[link_offset+hdr_offset] << 8) +
+      packet[link_offset+hdr_offset+1]) & 0xFFF;
+      type = (packet[link_offset+hdr_offset+2] << 8) +
+      packet[link_offset+hdr_offset+3];
+      hdr_offset += 4;
+      }
+      }
+      // MPLS
+      else if(ntohs(eth->ether_type == MPLS_UNI) ||
 	  ntohs(eth->ether_type == MPLS_MULTI)) {
 
-    mpls.u32 = *((uint32_t *) &packet[link_offset]);
-    mpls.u32 = ntohl(mpls.u32);
-    hdr_offset += 4;
-    mpls_count++;
+      mpls.u32 = *((uint32_t *) &packet[link_offset]);
+      mpls.u32 = ntohl(mpls.u32);
+      hdr_offset += 4;
+      mpls_count++;
 
-    // in case of multiples MPLS fields (s == 0)
-    while(mpls.mpls.s == 0) {
+      // in case of multiples MPLS fields (s == 0)
+      while(mpls.mpls.s == 0) {
       mpls.u32 = *((uint32_t *) &packet[link_offset+hdr_offset]);
       mpls.u32 = ntohl(mpls.u32);
       hdr_offset += 4;
+      }
+      }
+    */
+
+    memcpy(&cooked, (packet + link_offset + IPV4_SIZE + 2), 2);
+    memcpy(&ethaddr, (packet + 12), 2);
+    memcpy(&mplsaddr, (packet + 16), 2);
+
+    if (ntohs((uint16_t)*(&ethaddr)) == VLAN) {
+        if (ntohs((uint16_t)*(&mplsaddr)) == MPLS_UNI) {
+            hdr_offset = 8;
+            vlan = 1;
+        } else {
+            hdr_offset = 4;
+            vlan = 2;
+        }
     }
-  }
-  */
+    else if(ntohs((uint16_t)*(&cooked)) == COOKED_INT)
+    {
+        /* LINK_OFFSET + IPV4_SIZE + GRE_ERSPAN + ERSPAN INFO */
+        hdr_offset = hdr_preset = link_offset + IPV4_SIZE + ERSPANHDR_SIZE ;
+        vlan = 3;
+    }
 
-  memcpy(&cooked, (packet + link_offset + IPV4_SIZE + 2), 2);
-  memcpy(&ethaddr, (packet + 12), 2);
-  memcpy(&mplsaddr, (packet + 16), 2);
+    // IP
+    struct ip      *ip4_pkt = (struct ip *)(packet + link_offset + hdr_offset);
+    #if USE_IPv6
+    struct ip6_hdr *ip6_pkt = (struct ip6_hdr*)(packet + link_offset + hdr_offset);
+    #endif
 
-  if (ntohs((uint16_t)*(&ethaddr)) == VLAN) {
-          if (ntohs((uint16_t)*(&mplsaddr)) == MPLS_UNI) {
-             hdr_offset = 8;
-             vlan = 1;
-          } else {
-             hdr_offset = 4;
-             vlan = 2;
+    msg_t _msg;
+    uint32_t ip_ver;
+    uint8_t ip_proto = 0;
+    uint32_t ip_hl = 0;
+    uint32_t ip_off = 0;
+    uint8_t fragmented = 0;
+    uint16_t frag_offset = 0;
+    //uint32_t frag_id = 0;
+    char ip_src[INET6_ADDRSTRLEN + 1], ip_dst[INET6_ADDRSTRLEN + 1];
+    char mac_src[20], mac_dst[20];
+    u_char *pack = NULL;
+    unsigned char *data, *datatcp;
+    int action_idx = 0;
+    uint32_t len = pkthdr->caplen;
+    uint8_t  psh = 0;
+
+    /* stats */
+    stats.received_packets_total++;
+
+    if (profile_socket[loc_index].reasm && reasm[loc_index] != NULL) {
+        unsigned new_len;
+
+        u_char *new_p = malloc(len - link_offset - hdr_offset);
+        memcpy(new_p, ip4_pkt, len - link_offset - hdr_offset);
+
+        pack = reasm_ip_next(reasm[loc_index], new_p, len - link_offset - hdr_offset,
+                             (reasm_time_t) 1000000UL * pkthdr->ts.tv_sec + pkthdr->ts.tv_usec, &new_len);
+
+        if (pack == NULL) return;
+
+        len = new_len + link_offset + hdr_offset;
+        pkthdr->len = new_len;
+        pkthdr->caplen = new_len;
+
+        ip4_pkt = (struct ip *) pack;
+        #if USE_IPv6
+        ip6_pkt = (struct ip6_hdr*)pack;
+        #endif
+    }
+
+    ip_ver = ip4_pkt->ip_v;
+
+    //BSD
+    snprintf(mac_src, sizeof(mac_src), "%.2X-%.2X-%.2X-%.2X-%.2X-%.2X",eth->ether_shost[0] , eth->ether_shost[1] , eth->ether_shost[2] , eth->ether_shost[3] , eth->ether_shost[4] , eth->ether_shost[5]);
+    snprintf(mac_dst, sizeof(mac_dst), "%.2X-%.2X-%.2X-%.2X-%.2X-%.2X",eth->ether_dhost[0] , eth->ether_dhost[1] , eth->ether_dhost[2] , eth->ether_dhost[3] , eth->ether_dhost[4] , eth->ether_dhost[5]);
+
+    memset(&_msg, 0, sizeof(msg_t));
+    memset(&ctx, 0, sizeof(struct run_act_ctx));
+
+    _msg.cap_packet = (void *) packet;
+    _msg.cap_header = (void *) pkthdr;
+
+    switch (ip_ver) {
+
+    case 4: {
+        #if defined(AIX)
+        #undef ip_hl
+        ip_hl = ip4_pkt->ip_ff.ip_fhl * 4;
+        #else
+        ip_hl = ip4_pkt->ip_hl * 4;
+        #endif
+        ip_proto = ip4_pkt->ip_p;
+        ip_off = ntohs(ip4_pkt->ip_off);
+
+        fragmented = ip_off & (IP_MF | IP_OFFMASK);
+        frag_offset = (fragmented) ? (ip_off & IP_OFFMASK) * 8 : 0;
+        //frag_id = ntohs(ip4_pkt->ip_id);
+
+        inet_ntop(AF_INET, (const void *) &ip4_pkt->ip_src, ip_src, sizeof(ip_src));
+        inet_ntop(AF_INET, (const void *) &ip4_pkt->ip_dst, ip_dst, sizeof(ip_dst));
+    }
+        break;
+
+        #if USE_IPv6
+    case 6: {
+        ip_hl = sizeof(struct ip6_hdr);
+        ip_proto = ip6_pkt->ip6_nxt;
+
+        if (ip_proto == IPPROTO_FRAGMENT) {
+            struct ip6_frag *ip6_fraghdr;
+
+            ip6_fraghdr = (struct ip6_frag *)((unsigned char *)(ip6_pkt) + ip_hl);
+            ip_hl += sizeof(struct ip6_frag);
+            ip_proto = ip6_fraghdr->ip6f_nxt;
+
+            fragmented = 1;
+            frag_offset = ntohs(ip6_fraghdr->ip6f_offlg & IP6F_OFF_MASK);
+            //frag_id = ntohl(ip6_fraghdr->ip6f_ident);
+        }
+
+        inet_ntop(AF_INET6, (const void *)&ip6_pkt->ip6_src, ip_src, sizeof(ip_src));
+        inet_ntop(AF_INET6, (const void *)&ip6_pkt->ip6_dst, ip_dst, sizeof(ip_dst));
+    }
+        break;
+        #endif
+    }
+
+    switch (ip_proto) {
+
+    case IPPROTO_TCP: {
+
+        struct tcphdr *tcp_pkt = (struct tcphdr *) ((unsigned char *) (ip4_pkt) + ip_hl);
+
+        //uint16_t tcphdr_offset = (frag_offset) ? 0 : (tcp_pkt->th_off * 4);
+        uint16_t tcphdr_offset = frag_offset ? 0 : (uint16_t) (tcp_pkt->th_off * 4);
+
+        data = (unsigned char *) tcp_pkt + tcphdr_offset;
+
+        _msg.hdr_len = link_offset + hdr_offset + ip_hl + tcphdr_offset;
+
+        len -= link_offset + hdr_offset + ip_hl + tcphdr_offset;
+
+        stats.received_tcp_packets++;
+
+        #if USE_IPv6
+        /* if (ip_ver == 6)
+           {
+           len -= ntohs(ip6_pkt->ip6_plen);
+           _msg.hdr_len += ntohs(ip6_pkt->ip6_plen);
+           }
+        */
+        #endif
+
+        if ((int32_t) len < 0) len = 0;
+
+        /* TCP without payload */
+        if(pkthdr->len == link_offset + hdr_offset + ip_hl + tcphdr_offset) {
+            LERR("This is a TCP packet without payload - SKIP IT\n");
+            goto error;
+        }
+        /* HTTP pkt */
+        if((strncmp(data, "GET", 3) == 0) || (strncmp(data, "HTTP", 4) == 0)) {
+            LERR("This is a HTTP packet - SKIP IT\n");
+            goto error;
+        }
+
+        /******************* Check for Websocket layer (skip it) **************************/
+        int skip = 0, ws_len = 0;
+        uint8_t mask_key[4] = {0};
+        uint8_t *decode = NULL;
+        uint8_t *p_websock = packet + link_offset + hdr_offset + ip_hl + tcphdr_offset;
+        
+        if(((*p_websock >> 7) & 1) == 1) { // check the FIN bit
+            LDEBUG("WEBSOCKET layer found!\n");
+            p_websock++;
+            if(((*p_websock >> 7) & 1) == 0) { // check the MASK bit
+                ws_len = 4;
+                p_websock++;
+                skip = p_websock[1] + (p_websock[0] << 8);
+                p_websock += 2;                
+            }
+            else { /* ((*p_websock >> 7) & 1) == 1 MASKING-KEY */
+                LDEBUG("masking-key present\n");
+                ws_len = 8;
+                p_websock++;
+                skip = p_websock[1] + (p_websock[0] << 8);
+                p_websock += 2;
+                memcpy(mask_key, p_websock, 4);
+                p_websock += 4;
+                LINFO("SIP is masked - decoding payload...\n");
+                decode = calloc(skip+1, sizeof(uint8_t));
+                websocket_decode(decode, p_websock, skip, mask_key);
+            }
+        }
+        /* *************************************************************************** */
+
+        if(tcpreasm[loc_index] != NULL &&  (len > 0) && (tcp_pkt->th_flags & TH_ACK)) {
+
+            unsigned new_len;
+            u_char *new_p_2 = malloc(len+10);
+            memcpy(new_p_2, data, len);
+
+            if((tcp_pkt->th_flags & TH_PUSH)) psh = 1;
+
+
+            if(debug_socket_pcap_enable) LDEBUG("DEFRAG TCP process: LEN:[%u], ACK:[%u], PSH[%u]\n", len, (tcp_pkt->th_flags & TH_ACK), psh);
+
+            datatcp = tcpreasm_ip_next_tcp(tcpreasm[loc_index], new_p_2, len , (tcpreasm_time_t) 1000000UL * pkthdr->ts.tv_sec + pkthdr->ts.tv_usec, &new_len, &ip4_pkt->ip_src, &ip4_pkt->ip_dst, ntohs(tcp_pkt->th_sport), ntohs(tcp_pkt->th_dport), psh);
+
+            if (datatcp == NULL) return;
+
+            len = new_len;
+
+            if(debug_socket_pcap_enable)
+                LDEBUG("COMPLETE TCP DEFRAG: LEN[%u], PACKET:[%s]\n", len, datatcp);
+
+
+            if(!profile_socket[profile_size].full_packet) {
+                if(ws_len == 0)
+                      _msg.data = datatcp;
+                  else {
+                      if(decode == NULL)
+                          _msg.data = p_websock;
+                      else {
+                          _msg.data = decode;
+                          free(decode);
+                      }
+                  }
+                  _msg.len = len - ws_len;
+            }
+            else {
+                if(ws_len == 0)
+                    _msg.data = datatcp;
+                else {
+                    if(decode == NULL)
+                        _msg.data = p_websock;
+                    else {
+                        _msg.data = decode;
+                        free(decode);
+                    }
+                }
+            }
+            
+            _msg.rcinfo.src_port = ntohs(tcp_pkt->th_sport);
+            _msg.rcinfo.dst_port = ntohs(tcp_pkt->th_dport);
+            _msg.rcinfo.src_ip = ip_src;
+            _msg.rcinfo.dst_ip = ip_dst;
+            _msg.rcinfo.src_mac = mac_src;
+            _msg.rcinfo.dst_mac = mac_dst;
+            _msg.rcinfo.ip_family = ip_ver == 4 ? AF_INET : AF_INET6;
+            _msg.rcinfo.ip_proto = ip_proto;
+            _msg.rcinfo.time_sec = pkthdr->ts.tv_sec;
+            _msg.rcinfo.time_usec = pkthdr->ts.tv_usec;
+            _msg.tcpflag = tcp_pkt->th_flags;
+            _msg.parse_it = 1;
+
+
+            /* replace IP */
+            if(ipindex) {
+                /* src */
+                check_ip_data(_msg.rcinfo.src_ip, &_msg.rcinfo.src_port);
+                /* dst */
+                check_ip_data(_msg.rcinfo.dst_ip, &_msg.rcinfo.dst_port);
+            }
+
+
+            action_idx = profile_socket[loc_index].action;
+            run_actions(&ctx, main_ct.clist[action_idx], &_msg);
+
+            /**
+               hook to function process_packet:
+               in process_packet I have to prepare the Key
+               and the Handshake for Hashtable
+            */
+
+            /* clear datatcp */
+            free(datatcp);
+        }
+        else {
+
+            if(!profile_socket[profile_size].full_packet) {
+                if(ws_len == 0)
+                    _msg.data = data;
+                else {
+                    if(decode == NULL)
+                        _msg.data = p_websock;
+                    else {
+                        _msg.data = decode;
+                        free(decode);
+                    }
+                }
+                _msg.len = len - ws_len;
+            }
+            else {
+                if(ws_len == 0)
+                    _msg.data = (packet + link_offset + hdr_offset);
+                else {
+                    if(decode == NULL)
+                        _msg.data = p_websock;
+                    else {
+                        _msg.data = decode;
+                        free(decode);
+                    }
+                }
+                _msg.len = pkthdr->caplen - link_offset - hdr_offset - ws_len;
+            }
+
+            _msg.rcinfo.src_port = ntohs(tcp_pkt->th_sport);
+            _msg.rcinfo.dst_port = ntohs(tcp_pkt->th_dport);
+            _msg.rcinfo.src_ip = ip_src;
+            _msg.rcinfo.dst_ip = ip_dst;
+            _msg.rcinfo.src_mac = mac_src;
+            _msg.rcinfo.dst_mac = mac_dst;
+            _msg.rcinfo.ip_family = ip_ver == 4 ? AF_INET : AF_INET6;
+            _msg.rcinfo.ip_proto = ip_proto;
+            _msg.rcinfo.time_sec = pkthdr->ts.tv_sec;
+            _msg.rcinfo.time_usec = pkthdr->ts.tv_usec;
+            _msg.tcpflag = tcp_pkt->th_flags;
+            _msg.parse_it = 1;
+
+            /* replace IP */
+            if(ipindex) {
+                /* src */
+                check_ip_data(_msg.rcinfo.src_ip, &_msg.rcinfo.src_port);
+                /* dst */
+                check_ip_data(_msg.rcinfo.dst_ip, &_msg.rcinfo.dst_port);
+            }
+
+            action_idx = profile_socket[loc_index].action;
+            run_actions(&ctx, main_ct.clist[action_idx], &_msg);
+
+            stats.send_packets++;
+        }
+    }
+        break;
+
+    case IPPROTO_UDP: {
+        struct udphdr *udp_pkt = (struct udphdr *) ((unsigned char *) (ip4_pkt) + ip_hl);
+        uint16_t udphdr_offset = (frag_offset) ? 0 : sizeof(*udp_pkt);
+
+        data = (unsigned char *) (udp_pkt) + udphdr_offset;
+
+        _msg.hdr_len = link_offset + ip_hl + hdr_offset + udphdr_offset;
+
+        len -= link_offset + ip_hl + udphdr_offset + hdr_offset;
+
+        #if USE_IPv6
+        /*if (ip_ver == 6) {
+          len -= ntohs(ip6_pkt->ip6_plen);
+          _msg.hdr_len += ntohs(ip6_pkt->ip6_plen);
           }
-  }
-  else if(ntohs((uint16_t)*(&cooked)) == COOKED_INT)
-  {
-          /* LINK_OFFSET + IPV4_SIZE + GRE_ERSPAN + ERSPAN INFO */
-          hdr_offset = hdr_preset = link_offset + IPV4_SIZE + ERSPANHDR_SIZE ;
-          vlan = 3;
-  }
+        */
+        #endif
 
-  // IP
-  struct ip      *ip4_pkt = (struct ip *)(packet + link_offset + hdr_offset);
-#if USE_IPv6
-  struct ip6_hdr *ip6_pkt = (struct ip6_hdr*)(packet + link_offset + hdr_offset);
-#endif
+        /* stats */
+        stats.received_udp_packets++;
 
-  msg_t _msg;
-  uint32_t ip_ver;
-  uint8_t ip_proto = 0;
-  uint32_t ip_hl = 0;
-  uint32_t ip_off = 0;
-  uint8_t fragmented = 0;
-  uint16_t frag_offset = 0;
-  //uint32_t frag_id = 0;
-  char ip_src[INET6_ADDRSTRLEN + 1], ip_dst[INET6_ADDRSTRLEN + 1];
-  char mac_src[20], mac_dst[20];
-  u_char *pack = NULL;
-  unsigned char *data, *datatcp;
-  int action_idx = 0;
-  uint32_t len = pkthdr->caplen;
-  uint8_t  psh = 0;
+        if ((int32_t) len < 0) len = 0;
 
-  /* stats */
-  stats.received_packets_total++;
+        if(!profile_socket[profile_size].full_packet) {
+            _msg.data = data;
+            _msg.len = len;
+        }
+        else {
+            _msg.len = pkthdr->caplen - link_offset - hdr_offset;
+            _msg.data = (packet + link_offset + hdr_offset);
 
-  if (profile_socket[loc_index].reasm && reasm[loc_index] != NULL) {
-    unsigned new_len;
+        }
 
-    u_char *new_p = malloc(len - link_offset - hdr_offset);
-    memcpy(new_p, ip4_pkt, len - link_offset - hdr_offset);
+        _msg.rcinfo.src_port = ntohs(udp_pkt->uh_sport);
+        _msg.rcinfo.dst_port = ntohs(udp_pkt->uh_dport);
+        _msg.rcinfo.src_ip = ip_src;
+        _msg.rcinfo.dst_ip = ip_dst;
+        _msg.rcinfo.src_mac = mac_src;
+        _msg.rcinfo.dst_mac = mac_dst;
+        _msg.rcinfo.ip_family = ip_ver == 4 ? AF_INET : AF_INET6;
+        _msg.rcinfo.ip_proto = ip_proto;
+        _msg.rcinfo.time_sec = pkthdr->ts.tv_sec;
+        _msg.rcinfo.time_usec = pkthdr->ts.tv_usec;
+        _msg.tcpflag = 0;
+        _msg.parse_it = 1;
 
-    pack = reasm_ip_next(reasm[loc_index], new_p, len - link_offset - hdr_offset,
-			 (reasm_time_t) 1000000UL * pkthdr->ts.tv_sec + pkthdr->ts.tv_usec, &new_len);
+        /* replace IP */
+        if(ipindex) {
+            /* src */
+            check_ip_data(_msg.rcinfo.src_ip, &_msg.rcinfo.src_port);
+            /* dst */
+            check_ip_data(_msg.rcinfo.dst_ip, &_msg.rcinfo.dst_port);
+        }
 
-    if (pack == NULL) return;
+        action_idx = profile_socket[loc_index].action;
+        run_actions(&ctx, main_ct.clist[action_idx], &_msg);
 
-    len = new_len + link_offset + hdr_offset;
-    pkthdr->len = new_len;
-    pkthdr->caplen = new_len;
-
-    ip4_pkt = (struct ip *) pack;
-#if USE_IPv6
-    ip6_pkt = (struct ip6_hdr*)pack;
-#endif
-  }
-
-  ip_ver = ip4_pkt->ip_v;
-
-  //BSD
-  snprintf(mac_src, sizeof(mac_src), "%.2X-%.2X-%.2X-%.2X-%.2X-%.2X",eth->ether_shost[0] , eth->ether_shost[1] , eth->ether_shost[2] , eth->ether_shost[3] , eth->ether_shost[4] , eth->ether_shost[5]);
-  snprintf(mac_dst, sizeof(mac_dst), "%.2X-%.2X-%.2X-%.2X-%.2X-%.2X",eth->ether_dhost[0] , eth->ether_dhost[1] , eth->ether_dhost[2] , eth->ether_dhost[3] , eth->ether_dhost[4] , eth->ether_dhost[5]);
-
-  memset(&_msg, 0, sizeof(msg_t));
-  memset(&ctx, 0, sizeof(struct run_act_ctx));
-
-  _msg.cap_packet = (void *) packet;
-  _msg.cap_header = (void *) pkthdr;
-
-  switch (ip_ver) {
-
-  case 4: {
-#if defined(AIX)
-#undef ip_hl
-    ip_hl = ip4_pkt->ip_ff.ip_fhl * 4;
-#else
-    ip_hl = ip4_pkt->ip_hl * 4;
-#endif
-    ip_proto = ip4_pkt->ip_p;
-    ip_off = ntohs(ip4_pkt->ip_off);
-
-    fragmented = ip_off & (IP_MF | IP_OFFMASK);
-    frag_offset = (fragmented) ? (ip_off & IP_OFFMASK) * 8 : 0;
-    //frag_id = ntohs(ip4_pkt->ip_id);
-
-    inet_ntop(AF_INET, (const void *) &ip4_pkt->ip_src, ip_src, sizeof(ip_src));
-    inet_ntop(AF_INET, (const void *) &ip4_pkt->ip_dst, ip_dst, sizeof(ip_dst));
-  }
-    break;
-
-#if USE_IPv6
-  case 6: {
-    ip_hl = sizeof(struct ip6_hdr);
-    ip_proto = ip6_pkt->ip6_nxt;
-
-    if (ip_proto == IPPROTO_FRAGMENT) {
-      struct ip6_frag *ip6_fraghdr;
-
-      ip6_fraghdr = (struct ip6_frag *)((unsigned char *)(ip6_pkt) + ip_hl);
-      ip_hl += sizeof(struct ip6_frag);
-      ip_proto = ip6_fraghdr->ip6f_nxt;
-
-      fragmented = 1;
-      frag_offset = ntohs(ip6_fraghdr->ip6f_offlg & IP6F_OFF_MASK);
-      //frag_id = ntohl(ip6_fraghdr->ip6f_ident);
+        stats.send_packets++;
     }
+        break;
 
-    inet_ntop(AF_INET6, (const void *)&ip6_pkt->ip6_src, ip_src, sizeof(ip_src));
-    inet_ntop(AF_INET6, (const void *)&ip6_pkt->ip6_dst, ip_dst, sizeof(ip_dst));
-  }break;
-#endif
-  }
+    case IPPROTO_SCTP: {
+        struct sctp_common_hdr *sctp_hdr;
+        uint8_t *chunk_data;
+        int plen;
+        uint32_t chunk_read = 0;
 
-  switch (ip_proto) {
-  case IPPROTO_TCP: {
-    struct tcphdr *tcp_pkt = (struct tcphdr *) ((unsigned char *) (ip4_pkt) + ip_hl);
+        /* attempt at input validation */
+        if (len <= link_offset + ip_hl + hdr_offset) {
+            LDEBUG("sctp: offset handling %zu vs. %zu",
+                   len, link_offset + ip_hl + hdr_offset);
+            goto error;
+        }
 
-    //uint16_t tcphdr_offset = (frag_offset) ? 0 : (tcp_pkt->th_off * 4);
-    uint16_t tcphdr_offset = frag_offset ? 0 : (uint16_t) (tcp_pkt->th_off * 4);
+        len -= link_offset + ip_hl + hdr_offset;
+        sctp_hdr = (struct sctp_common_hdr *) ((uint8_t *)(ip4_pkt) + ip_hl);
+        plen = sctp_parse_common(&_msg, (uint8_t *)sctp_hdr, len);
 
-    data = (unsigned char *) tcp_pkt + tcphdr_offset;
+        if (plen < 0)
+            goto error;
+        len -= plen;
 
-    _msg.hdr_len = link_offset + hdr_offset + ip_hl + tcphdr_offset;
+        /* stats */
+        stats.received_sctp_packets++;
 
-    len -= link_offset + hdr_offset + ip_hl + tcphdr_offset;
+        /* I don't understand the frag_offset in other protos */
 
-    stats.received_tcp_packets++;
+        /* same for the entire package */
+        _msg.hdr_len = link_offset + hdr_offset + ip_hl + sizeof(struct sctp_common_hdr);
+        _msg.rcinfo.src_ip = ip_src;
+        _msg.rcinfo.dst_ip = ip_dst;
+        _msg.rcinfo.src_mac = mac_src;
+        _msg.rcinfo.dst_mac = mac_dst;
+        _msg.rcinfo.ip_family = ip_ver == 4 ? AF_INET : AF_INET6;
+        _msg.rcinfo.ip_proto = ip_proto;
+        //_msg.rcinfo.time_sec = pkthdr->ts.tv_sec;
+        _msg.rcinfo.time_sec = time(0);
+        _msg.rcinfo.time_usec = pkthdr->ts.tv_usec;
+        _msg.tcpflag = 0;
+        _msg.parse_it = 1;
 
-#if USE_IPv6
-    /* if (ip_ver == 6)
-       {
-       len -= ntohs(ip6_pkt->ip6_plen);
-       _msg.hdr_len += ntohs(ip6_pkt->ip6_plen);
-       }
-    */
-#endif
+        /* replace IP */
+        if(ipindex) {
+            /* src */
+            check_ip_data(_msg.rcinfo.src_ip, &_msg.rcinfo.src_port);
+            /* dst */
+            check_ip_data(_msg.rcinfo.dst_ip, &_msg.rcinfo.dst_port);
+        }
 
-    if ((int32_t) len < 0) len = 0;
+        /* default the full packet */
+        _msg.len = pkthdr->caplen - link_offset - hdr_offset;
+        _msg.data = (packet + link_offset + hdr_offset);
 
-    if(tcpreasm[loc_index] != NULL &&  (len > 0) && (tcp_pkt->th_flags & TH_ACK)) {
+        chunk_data = &sctp_hdr->data[0];
 
-      unsigned new_len;
-      u_char *new_p_2 = malloc(len+10);
-      memcpy(new_p_2, data, len);
+        while (chunk_read < len) {
+            bool send_data;
+            uint8_t padding;
 
-      if((tcp_pkt->th_flags & TH_PUSH)) psh = 1;
+            plen = sctp_parse_chunk(&_msg, chunk_data, len - chunk_read, &send_data);
+            if (plen < 0)
+                goto error;
+            /* a chunk but no data chunk */
+            if (!send_data)
+                goto next;
 
+            if (!profile_socket[profile_size].full_packet) {
+                _msg.len = plen - 16;
+                _msg.data = chunk_data + 16;
+            }
+            action_idx = profile_socket[loc_index].action;
+            run_actions(&ctx, main_ct.clist[action_idx], &_msg);
 
-      if(debug_socket_pcap_enable) LDEBUG("DEFRAG TCP process: LEN:[%u], ACK:[%u], PSH[%u]\n", len, (tcp_pkt->th_flags & TH_ACK), psh);
+        next:
+            padding = (4 - (plen % 4)) & 0x3;
+            chunk_read += plen + padding;
+            chunk_data += plen + padding;
+        }
 
-      datatcp = tcpreasm_ip_next_tcp(tcpreasm[loc_index], new_p_2, len , (tcpreasm_time_t) 1000000UL * pkthdr->ts.tv_sec + pkthdr->ts.tv_usec, &new_len, &ip4_pkt->ip_src, &ip4_pkt->ip_dst, ntohs(tcp_pkt->th_sport), ntohs(tcp_pkt->th_dport), psh);
-
-      if (datatcp == NULL) return;
-
-      len = new_len;
-
-      if(debug_socket_pcap_enable)
-	LDEBUG("COMPLETE TCP DEFRAG: LEN[%u], PACKET:[%s]\n", len, datatcp);
-
-
-      if(!profile_socket[profile_size].full_packet) {
-	_msg.data = datatcp;
-	_msg.len = len;
-      }
-      else {
-	// _msg.len = pkthdr->caplen - link_offset;
-	// _msg.data = (packet + link_offset);
-	_msg.data = datatcp;
-	_msg.len = len;
-      }
-
-
-      _msg.rcinfo.src_port = ntohs(tcp_pkt->th_sport);
-      _msg.rcinfo.dst_port = ntohs(tcp_pkt->th_dport);
-      _msg.rcinfo.src_ip = ip_src;
-      _msg.rcinfo.dst_ip = ip_dst;
-      _msg.rcinfo.src_mac = mac_src;
-      _msg.rcinfo.dst_mac = mac_dst;
-      _msg.rcinfo.ip_family = ip_ver == 4 ? AF_INET : AF_INET6;
-      _msg.rcinfo.ip_proto = ip_proto;
-      _msg.rcinfo.time_sec = pkthdr->ts.tv_sec;
-      _msg.rcinfo.time_usec = pkthdr->ts.tv_usec;
-      _msg.tcpflag = tcp_pkt->th_flags;
-      _msg.parse_it = 1;
-
-
-      /* replace IP */
-      if(ipindex) {
-          /* src */
-          check_ip_data(_msg.rcinfo.src_ip, &_msg.rcinfo.src_port);
-          /* dst */
-          check_ip_data(_msg.rcinfo.dst_ip, &_msg.rcinfo.dst_port);
-      }
-
-
-      action_idx = profile_socket[loc_index].action;
-      run_actions(&ctx, main_ct.clist[action_idx], &_msg);
-
-      /**
-	 hook to function process_packet:
-	 in process_packet I have to prepare the Key
-	 and the Handshake for Hashtable
-      */
-
-      /* clear datatcp */
-      free(datatcp);
+        stats.send_packets++;
     }
-    else {
+        break;
 
-      if(!profile_socket[profile_size].full_packet) {
-	_msg.data = data;
-	_msg.len = len;
-      }
-      else {
-	_msg.len = pkthdr->caplen - link_offset - hdr_offset;
-	_msg.data = (packet + link_offset + hdr_offset);
-      }
-
-      _msg.rcinfo.src_port = ntohs(tcp_pkt->th_sport);
-      _msg.rcinfo.dst_port = ntohs(tcp_pkt->th_dport);
-      _msg.rcinfo.src_ip = ip_src;
-      _msg.rcinfo.dst_ip = ip_dst;
-      _msg.rcinfo.src_mac = mac_src;
-      _msg.rcinfo.dst_mac = mac_dst;
-      _msg.rcinfo.ip_family = ip_ver == 4 ? AF_INET : AF_INET6;
-      _msg.rcinfo.ip_proto = ip_proto;
-      _msg.rcinfo.time_sec = pkthdr->ts.tv_sec;
-      _msg.rcinfo.time_usec = pkthdr->ts.tv_usec;
-      _msg.tcpflag = tcp_pkt->th_flags;
-      _msg.parse_it = 1;
-
-      /* replace IP */
-      if(ipindex) {
-          /* src */
-          check_ip_data(_msg.rcinfo.src_ip, &_msg.rcinfo.src_port);
-          /* dst */
-          check_ip_data(_msg.rcinfo.dst_ip, &_msg.rcinfo.dst_port);
-      }
-
-      action_idx = profile_socket[loc_index].action;
-      run_actions(&ctx, main_ct.clist[action_idx], &_msg);
-
-      stats.send_packets++;
-
+    default:
+        break;
     }
-
-  }
-    break;
-
-  case IPPROTO_UDP: {
-    struct udphdr *udp_pkt = (struct udphdr *) ((unsigned char *) (ip4_pkt) + ip_hl);
-    uint16_t udphdr_offset = (frag_offset) ? 0 : sizeof(*udp_pkt);
-
-    data = (unsigned char *) (udp_pkt) + udphdr_offset;
-
-    _msg.hdr_len = link_offset + ip_hl + hdr_offset + udphdr_offset;
-
-    len -= link_offset + ip_hl + udphdr_offset + hdr_offset;
-
-
-#if USE_IPv6
-    /*if (ip_ver == 6) {
-      len -= ntohs(ip6_pkt->ip6_plen);
-      _msg.hdr_len += ntohs(ip6_pkt->ip6_plen);
-      }
-    */
-#endif
-
-    /* stats */
-    stats.received_udp_packets++;
-
-    if ((int32_t) len < 0) len = 0;
-
-    if(!profile_socket[profile_size].full_packet) {
-      _msg.data = data;
-      _msg.len = len;
-    }
-    else {
-      _msg.len = pkthdr->caplen - link_offset - hdr_offset;
-      _msg.data = (packet + link_offset + hdr_offset);
-
-    }
-
-    _msg.rcinfo.src_port = ntohs(udp_pkt->uh_sport);
-    _msg.rcinfo.dst_port = ntohs(udp_pkt->uh_dport);
-    _msg.rcinfo.src_ip = ip_src;
-    _msg.rcinfo.dst_ip = ip_dst;
-    _msg.rcinfo.src_mac = mac_src;
-    _msg.rcinfo.dst_mac = mac_dst;
-    _msg.rcinfo.ip_family = ip_ver == 4 ? AF_INET : AF_INET6;
-    _msg.rcinfo.ip_proto = ip_proto;
-    _msg.rcinfo.time_sec = pkthdr->ts.tv_sec;
-    _msg.rcinfo.time_usec = pkthdr->ts.tv_usec;
-    _msg.tcpflag = 0;
-    _msg.parse_it = 1;
-
-      /* replace IP */
-      if(ipindex) {
-          /* src */
-          check_ip_data(_msg.rcinfo.src_ip, &_msg.rcinfo.src_port);
-          /* dst */
-          check_ip_data(_msg.rcinfo.dst_ip, &_msg.rcinfo.dst_port);
-      }
-
-
-    action_idx = profile_socket[loc_index].action;
-    run_actions(&ctx, main_ct.clist[action_idx], &_msg);
-
-
-    stats.send_packets++;
-
-  }
-    break;
-
-  case IPPROTO_SCTP: {
-    struct sctp_common_hdr *sctp_hdr;
-    uint8_t *chunk_data;
-    int plen;
-    uint32_t chunk_read = 0;
-
-    /* attempt at input validation */
-    if (len <= link_offset + ip_hl + hdr_offset) {
-      LDEBUG("sctp: offset handling %zu vs. %zu",
-	     len, link_offset + ip_hl + hdr_offset);
-      goto error;
-    }
-
-    len -= link_offset + ip_hl + hdr_offset;
-    sctp_hdr = (struct sctp_common_hdr *) ((uint8_t *)(ip4_pkt) + ip_hl);
-    plen = sctp_parse_common(&_msg, (uint8_t *)sctp_hdr, len);
-
-    if (plen < 0)
-      goto error;
-    len -= plen;
-
-    /* stats */
-    stats.received_sctp_packets++;
-
-    /* I don't understand the frag_offset in other protos */
-
-    /* same for the entire package */
-    _msg.hdr_len = link_offset + hdr_offset + ip_hl + sizeof(struct sctp_common_hdr);
-    _msg.rcinfo.src_ip = ip_src;
-    _msg.rcinfo.dst_ip = ip_dst;
-    _msg.rcinfo.src_mac = mac_src;
-    _msg.rcinfo.dst_mac = mac_dst;
-    _msg.rcinfo.ip_family = ip_ver == 4 ? AF_INET : AF_INET6;
-    _msg.rcinfo.ip_proto = ip_proto;
-    //_msg.rcinfo.time_sec = pkthdr->ts.tv_sec;
-    _msg.rcinfo.time_sec = time(0);
-    _msg.rcinfo.time_usec = pkthdr->ts.tv_usec;
-    _msg.tcpflag = 0;
-    _msg.parse_it = 1;
-
-     /* replace IP */
-     if(ipindex) {
-          /* src */
-          check_ip_data(_msg.rcinfo.src_ip, &_msg.rcinfo.src_port);
-          /* dst */
-          check_ip_data(_msg.rcinfo.dst_ip, &_msg.rcinfo.dst_port);
-     }
-
-    /* default the full packet */
-    _msg.len = pkthdr->caplen - link_offset - hdr_offset;
-    _msg.data = (packet + link_offset + hdr_offset);
-
-    chunk_data = &sctp_hdr->data[0];
-
-    while (chunk_read < len) {
-      bool send_data;
-      uint8_t padding;
-
-      plen = sctp_parse_chunk(&_msg, chunk_data, len - chunk_read, &send_data);
-      if (plen < 0)
-	goto error;
-      /* a chunk but no data chunk */
-      if (!send_data)
-	goto next;
-
-      if (!profile_socket[profile_size].full_packet) {
-	_msg.len = plen - 16;
-	_msg.data = chunk_data + 16;
-      }
-      action_idx = profile_socket[loc_index].action;
-      run_actions(&ctx, main_ct.clist[action_idx], &_msg);
-
-    next:
-      padding = (4 - (plen % 4)) & 0x3;
-      chunk_read += plen + padding;
-      chunk_data += plen + padding;
-    }
-
-    stats.send_packets++;
-  }
-    break;
-
-  default:
-    break;
-  }
 
  error:
-  if(pack != NULL) free(pack);
+    if(pack != NULL) free(pack);
 }
 
 int init_socket(unsigned int loc_idx) {
@@ -676,7 +755,7 @@ int init_socket(unsigned int loc_idx) {
 
 	if (profile_socket[loc_idx].device) {
 
-	        buffer_size =  1024 * 1024 * profile_socket[loc_idx].ring_buffer;
+        buffer_size =  1024 * 1024 * profile_socket[loc_idx].ring_buffer;
 
 		if ((sniffer_proto[loc_idx] = pcap_create((char *) profile_socket[loc_idx].device, errbuf)) == NULL) {
 			LERR("Failed to open packet sniffer on %s: pcap_create(): %s", (char * )profile_socket[loc_idx].device, errbuf);
@@ -773,42 +852,42 @@ int init_socket(unsigned int loc_idx) {
 
 pcap_t* get_pcap_handler(unsigned int loc_idx) {
 
-        if(loc_idx >= MAX_SOCKETS || sniffer_proto[loc_idx] == NULL) return NULL;
-        return sniffer_proto[loc_idx];
+    if(loc_idx >= MAX_SOCKETS || sniffer_proto[loc_idx] == NULL) return NULL;
+    return sniffer_proto[loc_idx];
 }
 
 
 int set_raw_filter(unsigned int loc_idx, char *filter) {
 
-        struct bpf_program raw_filter;
-        //uint16_t snaplen = 65535;
-        int linktype;
-        //struct pcap_t *aa;
-        int fd = -1;
+    struct bpf_program raw_filter;
+    //uint16_t snaplen = 65535;
+    int linktype;
+    //struct pcap_t *aa;
+    int fd = -1;
 
-        LERR("APPLY FILTER [%u]\n", loc_idx);
-        if(loc_idx >= MAX_SOCKETS || sniffer_proto[loc_idx] == NULL) return 0;
+    LERR("APPLY FILTER [%u]\n", loc_idx);
+    if(loc_idx >= MAX_SOCKETS || sniffer_proto[loc_idx] == NULL) return 0;
 
-        fd = pcap_get_selectable_fd(sniffer_proto[loc_idx]);
+    fd = pcap_get_selectable_fd(sniffer_proto[loc_idx]);
 
-        linktype  = profile_socket[loc_idx].link_type ? profile_socket[loc_idx].link_type : DLT_EN10MB;
+    linktype  = profile_socket[loc_idx].link_type ? profile_socket[loc_idx].link_type : DLT_EN10MB;
 
-        if (pcap_compile_nopcap(profile_socket[loc_idx].snap_len ? profile_socket[loc_idx].snap_len : 0xffff, linktype, &raw_filter, filter, 1, 0) == -1) {
-                LERR("Failed to compile filter '%s'", filter);
-                return -1;
-        }
+    if (pcap_compile_nopcap(profile_socket[loc_idx].snap_len ? profile_socket[loc_idx].snap_len : 0xffff, linktype, &raw_filter, filter, 1, 0) == -1) {
+        LERR("Failed to compile filter '%s'", filter);
+        return -1;
+    }
 
-#if ( defined (OS_LINUX) || defined (OS_SOLARIS) )
-        if(setsockopt(fd, SOL_SOCKET, SO_ATTACH_FILTER, &raw_filter, sizeof(raw_filter)) < 0 ) {
-                LERR(" setsockopt filter: [%s] [%d]", strerror(errno), errno);
-                return -1;
-        }
-#endif
+    #if ( defined (OS_LINUX) || defined (OS_SOLARIS) )
+    if(setsockopt(fd, SOL_SOCKET, SO_ATTACH_FILTER, &raw_filter, sizeof(raw_filter)) < 0 ) {
+        LERR(" setsockopt filter: [%s] [%d]", strerror(errno), errno);
+        return -1;
+    }
+    #endif
 
-        //free(BPF_code);
-        pcap_freecode( (struct bpf_program *) &raw_filter);
+    //free(BPF_code);
+    pcap_freecode( (struct bpf_program *) &raw_filter);
 
-        return 1;
+    return 1;
 
 }
 
@@ -912,55 +991,55 @@ void* proto_collect(void *arg) {
 
 static void stat_collect(void* arg) {
 
-      LDEBUG("STARTING STATS....");
-      int i = 0;
+    LDEBUG("STARTING STATS....");
+    int i = 0;
 
-      while (1)
-      {
-              for (i = 0; i < profile_size; i++) {
-                      /* statistics */
-                      uint8_t pcap_drop = 0, interface_drop = 0;
-                      struct pcap_stat stat;
+    while (1)
+    {
+        for (i = 0; i < profile_size; i++) {
+            /* statistics */
+            uint8_t pcap_drop = 0, interface_drop = 0;
+            struct pcap_stat stat;
 
-                      if(pcap_stats(sniffer_proto[i], &stat) == 0)
-                      {
-                              if(stat.ps_recv >= last_stat[i].ps_recv) {
+            if(pcap_stats(sniffer_proto[i], &stat) == 0)
+            {
+                if(stat.ps_recv >= last_stat[i].ps_recv) {
 
-                                      if(stat.ps_drop > last_stat[i].ps_drop) pcap_drop = 1;
-                                      if(stat.ps_ifdrop > last_stat[i].ps_ifdrop && (stat.ps_ifdrop - last_stat[i].ps_ifdrop) > (stat.ps_recv - last_stat[i].ps_recv) * drop_limit / 100)
-				      {
-                                                      interface_drop = true;
-                                      }
-                                      if(pcap_drop == 1 || interface_drop == 1) {
-                                              LERR("Packet drops on interface [%s], index: [%d], received: [%d]", profile_socket[i].device, i,
-                                                       (stat.ps_recv - last_stat[i].ps_recv));
-                                              if(pcap_drop) {
-                                                      LERR("pcap drop: [%d] = [%d]%%", (stat.ps_drop - last_stat[i].ps_drop),
-                                                       ((double)(stat.ps_drop - last_stat[i].ps_drop) / (stat.ps_recv - last_stat[i].ps_recv) * 100));
-                                              }
-                                              if(interface_drop) {
-                                                      LERR("interface drop: [%d] = [%d]%%", (stat.ps_ifdrop - last_stat[i].ps_ifdrop),
-                                                       ((double)(stat.ps_ifdrop - last_stat[i].ps_ifdrop) / (stat.ps_recv - last_stat[i].ps_recv) * 100));
-                                              }
-                                      }
-                                      else {
-                                             LNOTICE("No packet drops on interface [%s], index: [%d], received: [%d]", profile_socket[i].device, i, (stat.ps_recv - last_stat[i].ps_recv));
-                                      }
-                              }
+                    if(stat.ps_drop > last_stat[i].ps_drop) pcap_drop = 1;
+                    if(stat.ps_ifdrop > last_stat[i].ps_ifdrop && (stat.ps_ifdrop - last_stat[i].ps_ifdrop) > (stat.ps_recv - last_stat[i].ps_recv) * drop_limit / 100)
+                    {
+                        interface_drop = true;
+                    }
+                    if(pcap_drop == 1 || interface_drop == 1) {
+                        LERR("Packet drops on interface [%s], index: [%d], received: [%d]", profile_socket[i].device, i,
+                             (stat.ps_recv - last_stat[i].ps_recv));
+                        if(pcap_drop) {
+                            LERR("pcap drop: [%d] = [%d]%%", (stat.ps_drop - last_stat[i].ps_drop),
+                                 ((double)(stat.ps_drop - last_stat[i].ps_drop) / (stat.ps_recv - last_stat[i].ps_recv) * 100));
+                        }
+                        if(interface_drop) {
+                            LERR("interface drop: [%d] = [%d]%%", (stat.ps_ifdrop - last_stat[i].ps_ifdrop),
+                                 ((double)(stat.ps_ifdrop - last_stat[i].ps_ifdrop) / (stat.ps_recv - last_stat[i].ps_recv) * 100));
+                        }
+                    }
+                    else {
+                        LNOTICE("No packet drops on interface [%s], index: [%d], received: [%d]", profile_socket[i].device, i, (stat.ps_recv - last_stat[i].ps_recv));
+                    }
+                }
 
-                              last_stat[i] = stat;
-                       }
-                       else {
-                               LERR("Couldn't get stats on interface [%s], index [%d]", profile_socket[i].device, i);
-                       }
-              }
+                last_stat[i] = stat;
+            }
+            else {
+                LERR("Couldn't get stats on interface [%s], index [%d]", profile_socket[i].device, i);
+            }
+        }
 
-              sleep(stats_interval);
-      }
+        sleep(stats_interval);
+    }
 
-      LDEBUG("EXIT stats");
-      pthread_exit(0); // exit the thread signalling normal return
-      return;
+    LDEBUG("EXIT stats");
+    pthread_exit(0); // exit the thread signalling normal return
+    return;
 }
 
 
@@ -987,17 +1066,17 @@ int load_module_xml_config() {
 	}
 
 	for (i = 0; next->attr[i]; i++) {
-			if (!strncmp(next->attr[i], "name", 4)) {
-				if (strncmp(next->attr[i + 1], module_name, strlen(module_name))) {
-					return -3;
-				}
-			}
-			else if (!strncmp(next->attr[i], "serial", 6)) {
-				module_serial = atol(next->attr[i + 1]);
-			}
-			else if (!strncmp(next->attr[i], "description", 11)) {
-				module_description = next->attr[i + 1];
-			}
+        if (!strncmp(next->attr[i], "name", 4)) {
+            if (strncmp(next->attr[i + 1], module_name, strlen(module_name))) {
+                return -3;
+            }
+        }
+        else if (!strncmp(next->attr[i], "serial", 6)) {
+            module_serial = atol(next->attr[i + 1]);
+        }
+        else if (!strncmp(next->attr[i], "description", 11)) {
+            module_description = next->attr[i + 1];
+        }
 	}
 
 	return 1;
@@ -1013,7 +1092,7 @@ void free_module_xml_config() {
 
 static uint64_t serial_module(void)
 {
-	 return module_serial;
+    return module_serial;
 }
 
 static int load_module(xml_node *config) {
@@ -1023,7 +1102,7 @@ static int load_module(xml_node *config) {
 	char *key, *value = NULL;
 	unsigned int i = 0;
 	char loadplan[1024];
-        FILE* cfg_stream;
+    FILE* cfg_stream;
 
 	LNOTICE("Loaded %s", module_name);
 
@@ -1118,12 +1197,12 @@ static int load_module(xml_node *config) {
 						profile_socket[profile_size].device = strdup(value);
 					else if (!strncmp(key, "reasm", 5) && !strncmp(value, "true", 4))
 						profile_socket[profile_size].reasm |= REASM_UDP;
-                                        else if (!strncmp(key, "ipv4fragments", 13) && !strncmp(value, "true", 4))
+                    else if (!strncmp(key, "ipv4fragments", 13) && !strncmp(value, "true", 4))
 						user_data[profile_size].ipv4fragments = 1;
-                                        else if (!strncmp(key, "ipv6fragments", 13) && !strncmp(value, "true", 4))
+                    else if (!strncmp(key, "ipv6fragments", 13) && !strncmp(value, "true", 4))
 						user_data[profile_size].ipv6fragments = 1;
-                                        else if(!strncmp(key, "tcpdefrag", 9) && !strncmp(value, "true", 4))
-                                                profile_socket[profile_size].reasm |= REASM_TCP;
+                    else if(!strncmp(key, "tcpdefrag", 9) && !strncmp(value, "true", 4))
+                        profile_socket[profile_size].reasm |= REASM_TCP;
 					else if (!strncmp(key, "ring-buffer", 11))
 						profile_socket[profile_size].ring_buffer = atoi(value);
 					else if (!strncmp(key, "full-packet",11) && !strncmp(value, "true", 4))
@@ -1138,28 +1217,28 @@ static int load_module(xml_node *config) {
 						profile_socket[profile_size].filter = strdup(value);
 					else if (!strncmp(key, "capture-plan", 12))
 						profile_socket[profile_size].capture_plan = strdup(value);
-                                        else if (!strncmp(key, "capture-filter", 14))
+                    else if (!strncmp(key, "capture-filter", 14))
 						profile_socket[profile_size].capture_filter = strdup(value);
 					else if(!strncmp(key, "debug", 5) && !strncmp(value, "true", 4))
-                                                debug_socket_pcap_enable = 1;
+                        debug_socket_pcap_enable = 1;
 					else if (!strncmp(key, "erspan", 6) && !strncmp(value, "true", 4))
 						profile_socket[profile_size].erspan = 1;
 					else if (!strncmp(key, "stats-interval", 14))
 						stats_interval = atoi(value);
 					else if (!strncmp(key, "ip-replace", 10))
 					{
-					        load_ip_data(value);
-                                        }
+                        load_ip_data(value);
+                    }
 				}
 
-				nextparam: params = params->next;
+            nextparam: params = params->next;
 
 			}
 		}
 
 		profile_size++;
 
-		nextprofile: profile = profile->next;
+    nextprofile: profile = profile->next;
 	}
 
 	/* free */
@@ -1187,34 +1266,34 @@ static int load_module(xml_node *config) {
 			return -1;
 		}
 
-		 /* REASM */
-                if (profile_socket[i].reasm & REASM_UDP) {
-                        reasm[i] = reasm_ip_new();
-                        reasm_ip_set_timeout(reasm[i], 30000000);
-                }
-                else reasm[i] = NULL;
+        /* REASM */
+        if (profile_socket[i].reasm & REASM_UDP) {
+            reasm[i] = reasm_ip_new();
+            reasm_ip_set_timeout(reasm[i], 30000000);
+        }
+        else reasm[i] = NULL;
 
-                /* TCPREASM */
-                if (profile_socket[i].reasm & REASM_TCP) {
-                        tcpreasm[i] = tcpreasm_ip_new ();
-                        tcpreasm_ip_set_timeout(tcpreasm[i], 30000000);
-                }
-                else tcpreasm[i] = NULL;
+        /* TCPREASM */
+        if (profile_socket[i].reasm & REASM_TCP) {
+            tcpreasm[i] = tcpreasm_ip_new ();
+            tcpreasm_ip_set_timeout(tcpreasm[i], 30000000);
+        }
+        else tcpreasm[i] = NULL;
 
 		if(profile_socket[i].capture_plan != NULL)
 		{
 
 			snprintf(loadplan, sizeof(loadplan), "%s/%s", global_capture_plan_path, profile_socket[i].capture_plan);
 
-						cfg_stream=fopen (loadplan, "r");
+            cfg_stream=fopen (loadplan, "r");
 			if (cfg_stream==0){
-			   fprintf(stderr, "ERROR: loading config file(%s): %s\n", loadplan, strerror(errno));
+                fprintf(stderr, "ERROR: loading config file(%s): %s\n", loadplan, strerror(errno));
 			}
 
 			yyin=cfg_stream;
 			if ((yyparse()!=0)||(cfg_errors)){
-			          fprintf(stderr, "ERROR: bad config file (%d errors)\n", cfg_errors);
-			          //goto error;
+                fprintf(stderr, "ERROR: bad config file (%d errors)\n", cfg_errors);
+                //goto error;
 			}
 
 			profile_socket[i].action = main_ct.idx;
@@ -1244,14 +1323,14 @@ static int unload_module(void) {
 		}
 
 		if (reasm[i] != NULL) {
-                	reasm_ip_free(reasm[i]);
-                        reasm[i] = NULL;
-                }
+            reasm_ip_free(reasm[i]);
+            reasm[i] = NULL;
+        }
 
-                if (tcpreasm[i] != NULL) {
-                        tcpreasm_ip_free(tcpreasm[i]);
-                        tcpreasm[i] = NULL;
-                }
+        if (tcpreasm[i] != NULL) {
+            tcpreasm_ip_free(tcpreasm[i]);
+            tcpreasm[i] = NULL;
+        }
 
 
 		free_profile(i);
@@ -1299,36 +1378,36 @@ static int statistic(char *buf, size_t len) {
 static inline const char* name_tag(int tag,
                                    const char * const names[],
                                    int names_len) {
-        if (tag >= 0 && tag < names_len) {
-                return names[tag];
-        }
-        else {
-                return "<UNKNOWN>";
-        }
+    if (tag >= 0 && tag < names_len) {
+        return names[tag];
+    }
+    else {
+        return "<UNKNOWN>";
+    }
 }
 
 static inline int max(int x, int y) {
-        return (x > y) ? x : y;
+    return (x > y) ? x : y;
 }
 
 
 int w_tzsp_payload_extract(msg_t *_m)
 {
-        int readsz = 0;
-        char *recv_buffer = NULL;
+    int readsz = 0;
+    char *recv_buffer = NULL;
 
 
-        recv_buffer = _m->data;
-        readsz = _m->len;
+    recv_buffer = _m->data;
+    readsz = _m->len;
 
-        char *end = recv_buffer + readsz;
-        char *p = recv_buffer;
+    char *end = recv_buffer + readsz;
+    char *p = recv_buffer;
 
-        if (p + sizeof(struct tzsp_header) > end)
-        {
-                LERR("Malformed packet (truncated header)");
-                return -1;
-        }
+    if (p + sizeof(struct tzsp_header) > end)
+    {
+        LERR("Malformed packet (truncated header)");
+        return -1;
+    }
 
 	struct tzsp_header *hdr = (struct tzsp_header *) recv_buffer;
 	p += sizeof(struct tzsp_header);
@@ -1384,7 +1463,7 @@ int w_tzsp_payload_extract(msg_t *_m)
 
 	proccess_packet(_m,  &pcap_hdr, (unsigned char *) p);
 
-        return 1;
+    return 1;
 }
 
 
@@ -1396,22 +1475,22 @@ void proccess_packet(msg_t *_m, struct pcap_pkthdr *pkthdr, u_char *packet) {
 
 	/* Pat Callahan's patch for MPLS */
 	memcpy(&ethaddr, (packet + 12), 2);
-        memcpy(&mplsaddr, (packet + 16), 2);
+    memcpy(&mplsaddr, (packet + 16), 2);
 
-        if (ntohs(ethaddr) == 0x8100) {
-          if (ntohs(mplsaddr) == 0x8847) {
-             hdr_offset = 8;
-          } else {
-             hdr_offset = 4;
-          }
+    if (ntohs(ethaddr) == 0x8100) {
+        if (ntohs(mplsaddr) == 0x8847) {
+            hdr_offset = 8;
+        } else {
+            hdr_offset = 4;
         }
+    }
 
-        struct ether_header *eth = (struct ether_header *)packet;
+    struct ether_header *eth = (struct ether_header *)packet;
 
-        struct ip      *ip4_pkt = (struct ip *)    (packet + link_offset + hdr_offset);
-#if USE_IPv6
-        struct ip6_hdr *ip6_pkt = (struct ip6_hdr*)(packet + link_offset + hdr_offset);
-#endif
+    struct ip      *ip4_pkt = (struct ip *)    (packet + link_offset + hdr_offset);
+    #if USE_IPv6
+    struct ip6_hdr *ip6_pkt = (struct ip6_hdr*)(packet + link_offset + hdr_offset);
+    #endif
 
 	uint32_t ip_ver;
 	uint8_t ip_proto = 0;
@@ -1426,117 +1505,117 @@ void proccess_packet(msg_t *_m, struct pcap_pkthdr *pkthdr, u_char *packet) {
 
 	ip_ver = ip4_pkt->ip_v;
 
-        snprintf(mac_src, sizeof(mac_src), "%.2X-%.2X-%.2X-%.2X-%.2X-%.2X",eth->ether_shost[0] , eth->ether_shost[1] , eth->ether_shost[2] , eth->ether_shost[3] , eth->ether_shost[4] , eth->ether_shost[5]);
-        snprintf(mac_dst, sizeof(mac_dst), "%.2X-%.2X-%.2X-%.2X-%.2X-%.2X",eth->ether_dhost[0] , eth->ether_dhost[1] , eth->ether_dhost[2] , eth->ether_dhost[3] , eth->ether_dhost[4] , eth->ether_dhost[5]);
+    snprintf(mac_src, sizeof(mac_src), "%.2X-%.2X-%.2X-%.2X-%.2X-%.2X",eth->ether_shost[0] , eth->ether_shost[1] , eth->ether_shost[2] , eth->ether_shost[3] , eth->ether_shost[4] , eth->ether_shost[5]);
+    snprintf(mac_dst, sizeof(mac_dst), "%.2X-%.2X-%.2X-%.2X-%.2X-%.2X",eth->ether_dhost[0] , eth->ether_dhost[1] , eth->ether_dhost[2] , eth->ether_dhost[3] , eth->ether_dhost[4] , eth->ether_dhost[5]);
 
-        _m->cap_packet = (void *) packet;
-        _m->cap_header = (void *) pkthdr;
+    _m->cap_packet = (void *) packet;
+    _m->cap_header = (void *) pkthdr;
 
 	switch (ip_ver) {
 
-        	case 4: {
+    case 4: {
         #if defined(AIX)
-#undef ip_hl
-        		ip_hl = ip4_pkt->ip_ff.ip_fhl * 4;
-#else
-	        	ip_hl = ip4_pkt->ip_hl * 4;
-#endif
-		        ip_proto = ip4_pkt->ip_p;
-        		ip_off = ntohs(ip4_pkt->ip_off);
+        #undef ip_hl
+        ip_hl = ip4_pkt->ip_ff.ip_fhl * 4;
+        #else
+        ip_hl = ip4_pkt->ip_hl * 4;
+        #endif
+        ip_proto = ip4_pkt->ip_p;
+        ip_off = ntohs(ip4_pkt->ip_off);
 
-	        	fragmented = ip_off & (IP_MF | IP_OFFMASK);
-        		frag_offset = (fragmented) ? (ip_off & IP_OFFMASK) * 8 : 0;
-	        	//frag_id = ntohs(ip4_pkt->ip_id);
+        fragmented = ip_off & (IP_MF | IP_OFFMASK);
+        frag_offset = (fragmented) ? (ip_off & IP_OFFMASK) * 8 : 0;
+        //frag_id = ntohs(ip4_pkt->ip_id);
 
-	        	inet_ntop(AF_INET, (const void *) &ip4_pkt->ip_src, ip_src, sizeof(ip_src));
-        		inet_ntop(AF_INET, (const void *) &ip4_pkt->ip_dst, ip_dst, sizeof(ip_dst));
-                }
+        inet_ntop(AF_INET, (const void *) &ip4_pkt->ip_src, ip_src, sizeof(ip_src));
+        inet_ntop(AF_INET, (const void *) &ip4_pkt->ip_dst, ip_dst, sizeof(ip_dst));
+    }
 		break;
 
-#if USE_IPv6
-                case 6: {
-	                ip_hl = sizeof(struct ip6_hdr);
-	                ip_proto = ip6_pkt->ip6_nxt;
+        #if USE_IPv6
+    case 6: {
+        ip_hl = sizeof(struct ip6_hdr);
+        ip_proto = ip6_pkt->ip6_nxt;
 
-        		if (ip_proto == IPPROTO_FRAGMENT) {
-	        	        struct ip6_frag *ip6_fraghdr;
-		                ip6_fraghdr = (struct ip6_frag *)((unsigned char *)(ip6_pkt) + ip_hl);
-		                ip_hl += sizeof(struct ip6_frag);
-        			ip_proto = ip6_fraghdr->ip6f_nxt;
-	        		fragmented = 1;
-		        	frag_offset = ntohs(ip6_fraghdr->ip6f_offlg & IP6F_OFF_MASK);
-        			//frag_id = ntohl(ip6_fraghdr->ip6f_ident);
-                        }
+        if (ip_proto == IPPROTO_FRAGMENT) {
+            struct ip6_frag *ip6_fraghdr;
+            ip6_fraghdr = (struct ip6_frag *)((unsigned char *)(ip6_pkt) + ip_hl);
+            ip_hl += sizeof(struct ip6_frag);
+            ip_proto = ip6_fraghdr->ip6f_nxt;
+            fragmented = 1;
+            frag_offset = ntohs(ip6_fraghdr->ip6f_offlg & IP6F_OFF_MASK);
+            //frag_id = ntohl(ip6_fraghdr->ip6f_ident);
+        }
 
-                        inet_ntop(AF_INET6, (const void *)&ip6_pkt->ip6_src, ip_src, sizeof(ip_src));
-        		inet_ntop(AF_INET6, (const void *)&ip6_pkt->ip6_dst, ip_dst, sizeof(ip_dst));
-                }
-                break;
-#endif
+        inet_ntop(AF_INET6, (const void *)&ip6_pkt->ip6_src, ip_src, sizeof(ip_src));
+        inet_ntop(AF_INET6, (const void *)&ip6_pkt->ip6_dst, ip_dst, sizeof(ip_dst));
+    }
+        break;
+        #endif
 	}
 
 	switch (ip_proto) {
 
-        	case IPPROTO_TCP: {
-	        	struct tcphdr *tcp_pkt = (struct tcphdr *) ((unsigned char *) (ip4_pkt) + ip_hl);
-        		uint16_t tcphdr_offset = frag_offset ? 0 : (uint16_t) (tcp_pkt->th_off * 4);
-        		//data = (unsigned char *) tcp_pkt + tcphdr_offset;
-        		_m->hdr_len = link_offset + hdr_offset + ip_hl + tcphdr_offset;
-        		len -= link_offset + hdr_offset + ip_hl + tcphdr_offset;
+    case IPPROTO_TCP: {
+        struct tcphdr *tcp_pkt = (struct tcphdr *) ((unsigned char *) (ip4_pkt) + ip_hl);
+        uint16_t tcphdr_offset = frag_offset ? 0 : (uint16_t) (tcp_pkt->th_off * 4);
+        //data = (unsigned char *) tcp_pkt + tcphdr_offset;
+        _m->hdr_len = link_offset + hdr_offset + ip_hl + tcphdr_offset;
+        len -= link_offset + hdr_offset + ip_hl + tcphdr_offset;
 
-        		if ((int32_t) len < 0) len = 0;
+        if ((int32_t) len < 0) len = 0;
 
-        		_m->len = pkthdr->caplen - link_offset - hdr_offset;
-	        	_m->data = (packet + link_offset + hdr_offset);
+        _m->len = pkthdr->caplen - link_offset - hdr_offset;
+        _m->data = (packet + link_offset + hdr_offset);
 
-	        	_m->rcinfo.src_port = ntohs(tcp_pkt->th_sport);
-        		_m->rcinfo.dst_port = ntohs(tcp_pkt->th_dport);
-	        	_m->rcinfo.src_ip = ip_src;
-	        	_m->rcinfo.dst_ip = ip_dst;
-        		_m->rcinfo.src_mac = mac_src;
-	        	_m->rcinfo.dst_mac = mac_dst;
-        		_m->rcinfo.ip_family = ip_ver == 4 ? AF_INET : AF_INET6;
-        		_m->rcinfo.ip_proto = ip_proto;
-        		//_m->rcinfo.time_sec = pkthdr->ts.tv_sec;
-        		//_m->rcinfo.time_usec = pkthdr->ts.tv_usec;
-        		_m->tcpflag = tcp_pkt->th_flags;
-        		_m->parse_it = 1;
-        	}
-        	break;
+        _m->rcinfo.src_port = ntohs(tcp_pkt->th_sport);
+        _m->rcinfo.dst_port = ntohs(tcp_pkt->th_dport);
+        _m->rcinfo.src_ip = ip_src;
+        _m->rcinfo.dst_ip = ip_dst;
+        _m->rcinfo.src_mac = mac_src;
+        _m->rcinfo.dst_mac = mac_dst;
+        _m->rcinfo.ip_family = ip_ver == 4 ? AF_INET : AF_INET6;
+        _m->rcinfo.ip_proto = ip_proto;
+        //_m->rcinfo.time_sec = pkthdr->ts.tv_sec;
+        //_m->rcinfo.time_usec = pkthdr->ts.tv_usec;
+        _m->tcpflag = tcp_pkt->th_flags;
+        _m->parse_it = 1;
+    }
+        break;
 
-        	case IPPROTO_UDP: {
-	        	struct udphdr *udp_pkt = (struct udphdr *) ((unsigned char *) (ip4_pkt) + ip_hl);
-        		uint16_t udphdr_offset = (frag_offset) ? 0 : sizeof(*udp_pkt);
-	        	data = (unsigned char *) (udp_pkt) + udphdr_offset;
+    case IPPROTO_UDP: {
+        struct udphdr *udp_pkt = (struct udphdr *) ((unsigned char *) (ip4_pkt) + ip_hl);
+        uint16_t udphdr_offset = (frag_offset) ? 0 : sizeof(*udp_pkt);
+        data = (unsigned char *) (udp_pkt) + udphdr_offset;
 
-        		_m->hdr_len = link_offset + ip_hl + hdr_offset + udphdr_offset;
+        _m->hdr_len = link_offset + ip_hl + hdr_offset + udphdr_offset;
 
-        		len -= link_offset + ip_hl + udphdr_offset + hdr_offset;
+        len -= link_offset + ip_hl + udphdr_offset + hdr_offset;
 
-	        	/* stats */
-        		if ((int32_t) len < 0) len = 0;
+        /* stats */
+        if ((int32_t) len < 0) len = 0;
 
-        		_m->data = data;
-        		_m->len = len;
+        _m->data = data;
+        _m->len = len;
 
-	        	_m->rcinfo.src_port = ntohs(udp_pkt->uh_sport);
-        		_m->rcinfo.dst_port = ntohs(udp_pkt->uh_dport);
-        		_m->rcinfo.src_ip = ip_src;
-        		_m->rcinfo.dst_ip = ip_dst;
-        		_m->rcinfo.src_mac = mac_src;
-        		_m->rcinfo.dst_mac = mac_dst;
-        		_m->rcinfo.ip_family = ip_ver == 4 ? AF_INET : AF_INET6;
-        		_m->rcinfo.ip_proto = ip_proto;
-        		//_m->rcinfo.time_sec = pkthdr->ts.tv_sec;
-        		//_m->rcinfo.time_usec = pkthdr->ts.tv_usec;
-        		_m->tcpflag = 0;
-        		_m->parse_it = 1;
-        	}
+        _m->rcinfo.src_port = ntohs(udp_pkt->uh_sport);
+        _m->rcinfo.dst_port = ntohs(udp_pkt->uh_dport);
+        _m->rcinfo.src_ip = ip_src;
+        _m->rcinfo.dst_ip = ip_dst;
+        _m->rcinfo.src_mac = mac_src;
+        _m->rcinfo.dst_mac = mac_dst;
+        _m->rcinfo.ip_family = ip_ver == 4 ? AF_INET : AF_INET6;
+        _m->rcinfo.ip_proto = ip_proto;
+        //_m->rcinfo.time_sec = pkthdr->ts.tv_sec;
+        //_m->rcinfo.time_usec = pkthdr->ts.tv_usec;
+        _m->tcpflag = 0;
+        _m->parse_it = 1;
+    }
 		break;
 
-        	default:
-	        	break;
-        }
+    default:
+        break;
+    }
 
 	return;
 }
@@ -1656,9 +1735,9 @@ int check_ip_data(char *ip, uint16_t *port)
         if(strlen(ipcheck_in[j]) == 0) break;
 
         if((strncmp(ipcheck_in[j], ip, len) == 0) && (port_in[j] == *port || port_in[j] == 0)) {
-                *port = port_out[j];
-                len = snprintf(ip, 80, "%s", ipcheck_out[j]);
-                return len;
+            *port = port_out[j];
+            len = snprintf(ip, 80, "%s", ipcheck_out[j]);
+            return len;
         }
     }
 
