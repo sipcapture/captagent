@@ -35,7 +35,7 @@ echo $DEPENDENCY;
 
 # create deb pkg with fpm
 fpm -s dir -t deb -C $TMP_DIR/captagent_install --name captagent --version $CODEVERSION --iteration 1 \
-    -p "captagent_${CODEVERSION}.${OS}.amd64.deb" \
+    -p "captagent-${CODEVERSION}.${OS}.amd64.deb" \
     --deb-no-default-config-files --depends ${DEPENDENCY} --description "captagent" .
 ls -alF *.deb
 cp -v *.deb /scripts/
