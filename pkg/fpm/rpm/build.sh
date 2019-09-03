@@ -1,21 +1,23 @@
 #!/bin/bash
 # CaptAgent 6 - CentOS Builder for Docker
 
-VERSION_MAJOR="6.4"
-VERSION_MINOR="0"
+VERSION_MAJOR="6.3"
+VERSION_MINOR="1"
 OS="centos"
 VERSION_OS="el7"
 
+export TMP_DIR=/tmp
+export EXEC_DIR=$(pwd)
+
 # install libs
-cd /tmp
-# cp -Rp /tmp/libuv-* .
-# rpm -i libuv-1.8.0-1.el7.centos.x86_64.rpm
-# rpm -i libuv-devel-1.8.0-1.el7.centos.x86_64.rpm
-# cp -Rp /tmp/epel-release-latest-7.noarch.rpm .
-# rpm -Uvh epel-release-latest-7.noarch.rpm
+cd $TMP_DIR
+
 yum update
 yum -y install epel-release
-yum -y install json-c-devel expat-devel libpcap-devel flex-devel automake libtool bison libuv-devel openssl-devel libgcrypt-devel
+yum -y install gcc make git json-c-devel expat-devel libpcap-devel flex-devel automake libtool bison libuv-devel openssl-devel
+
+yum -y install ruby-devel rpm-build rubygems
+gem install --no-ri --no-rdoc fpm
 
 # clone captagent and build it
 git clone https://github.com/sipcapture/captagent captagent
@@ -25,21 +27,22 @@ cd captagent/
 make
 
 # version
-mkdir -p /tmp/captagent
+mkdir -p $TMP_DIR/captagent
 make DESTDIR=$TMP_DIR/captagent_install install
-export CODEVERSION=$(./src/captagent -v | cut -c10-)
+export CODEVERSION="${VERSION_MAJOR}.${VERSION_MINOR}"
 
 DEPENDENCY="expat,json-c,libpcap,libuv";
 echo $DEPENDENCY;
 
 # create deb pkg with fpm
-fpm -s dir -t rpm -C /tmp/captagent_install	--name captagent --version $CODEVERSION \
-    -p "captagent-${VERSION_MAJOR}.${VERSION_MINOR}-${INV}.${VERSION_OS}.${OS}.x86_64.rpm" \
+fpm -s dir -t rpm -C $TMP_DIR/captagent_install --name captagent --version $CODEVERSION \
+    -p "captagent-${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_OS}.${OS}.x86_64.rpm" \
 	--iteration 1 --depends ${DEPENDENCY} --description "captagent" .
-ls -alF *.rpm
-cp -v *.rpm /scripts/
 
-# clean up temp files
-cd /tmp; rm -rf ./captagent ./captagent-installer
+ls -alF *.rpm
+cp -v *.rpm ${EXEC_DIR}
+
+cd $TMP_DIR; rm -rf ./captagent ./captagent-installer
+
 
 echo "done!"
