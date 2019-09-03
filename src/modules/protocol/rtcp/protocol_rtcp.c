@@ -280,14 +280,10 @@ static int load_module(xml_node *config) {
 	    else if (!strncmp(key, "dialog-timeout", 14))
 	    profile_protocol[profile_size].dialog_timeout = atoi(value);
 	  */
-
 	}
-
       nextparam: params = params->next;
-
       }
     }
-
     profile_size++;
 
   nextprofile: profile = profile->next;
@@ -302,7 +298,7 @@ static int load_module(xml_node *config) {
 static int unload_module(void)
 {
 
-  LNOTICE("Unloaded %s", module_name);
+  LNOTICE("unloaded module %s", module_name);
 
   unsigned int i = 0;
 

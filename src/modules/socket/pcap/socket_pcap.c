@@ -125,13 +125,13 @@ static cmd_export_t cmds[] = {
     { "socket_pcap_bind_api", (cmd_function) bind_api, 1, 0, 0, 0 },
     { "socket_pcap_check", (cmd_function) bind_check_size, 3, 0, 0, 0 },
     { "bind_socket_pcap",  (cmd_function)bind_socket_pcap,  0, 0, 0, 0},
-    {"tzsp_payload_extract", (cmd_function) w_tzsp_payload_extract, 0, 0, 0, 0 },
+    { "tzsp_payload_extract", (cmd_function) w_tzsp_payload_extract, 0, 0, 0, 0 },
     { 0, 0, 0, 0, 0, 0 }
 };
 
 struct module_exports exports = {
-    "protocol_sip",
-    cmds,        /* Exported functions */
+    "socket_pcap",
+    cmds,           /* Exported functions */
     load_module,    /* module initialization function */
     unload_module,
     description,
@@ -980,7 +980,7 @@ void* proto_collect(void *arg) {
 
     if(usefile)
 	{
-        LDEBUG("Process, pid=%d\n",getpid());
+        LDEBUG("Process, pid=%d\n", getpid());
         kill(getpid(), SIGTERM);
     }
 

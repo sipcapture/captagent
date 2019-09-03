@@ -676,14 +676,13 @@ static int load_module(xml_node *config) {
 	/* free it */
 	free_module_xml_config();
 
-
 	return 0;
 }
 
 static int unload_module(void)
 {
 
-	LNOTICE("unloaded module protocol_sip");
+	LNOTICE("unloaded module %s\n", module_name);
 
 	unsigned int i = 0;
 
