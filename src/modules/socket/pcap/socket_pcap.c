@@ -412,17 +412,6 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
 
         if ((int32_t) len < 0) len = 0;
 
-        /* TCP without payload */
-        if(pkthdr->len == link_offset + hdr_offset + ip_hl + tcphdr_offset) {
-            LERR("This is a TCP packet without payload - SKIP IT\n");
-            goto error;
-        }
-        /* HTTP pkt */
-        if((strncmp(data, "GET", 3) == 0) || (strncmp(data, "HTTP", 4) == 0)) {
-            LERR("This is a HTTP packet - SKIP IT\n");
-            goto error;
-        }
-
         /******************* Check for Websocket layer (skip it) **************************/
         int skip = 0, ws_len = 0;
         uint8_t mask_key[4] = {0};
@@ -430,6 +419,18 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
         uint8_t *p_websock = packet + link_offset + hdr_offset + ip_hl + tcphdr_offset;
         
         if(((*p_websock >> 7) & 1) == 1) { // check the FIN bit
+
+            /* TCP without payload */
+            if(pkthdr->len == link_offset + hdr_offset + ip_hl + tcphdr_offset) {
+                LERR("This is a TCP packet without payload - SKIP IT\n");
+                goto error;
+            }
+            /* HTTP pkt */
+            if((strncmp(data, "GET", 3) == 0) || (strncmp(data, "HTTP", 4) == 0)) {
+                LERR("This is a HTTP packet - SKIP IT\n");
+                goto error;
+            }
+            
             LDEBUG("WEBSOCKET layer found!\n");
             p_websock++;
             if(((*p_websock >> 7) & 1) == 0) { // check the MASK bit
