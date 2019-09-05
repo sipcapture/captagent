@@ -87,6 +87,7 @@ char *module_name="socket_pcap";
 uint64_t module_serial = 0;
 char *module_description;
 int debug_socket_pcap_enable = 0;
+int websocket_detection = 0;
 
 static socket_pcap_stats_t stats;
 static socket_pcap_user_data_t user_data[MAX_SOCKETS];
@@ -417,43 +418,52 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
         uint8_t mask_key[4] = {0};
         uint8_t *decode = NULL;
         uint8_t *p_websock = packet + link_offset + hdr_offset + ip_hl + tcphdr_offset;
-        
-        if(((*p_websock >> 7) & 1) == 1) { // check the FIN bit
 
-            /* TCP without payload */
-            if(pkthdr->len == link_offset + hdr_offset + ip_hl + tcphdr_offset) {
-                LERR("This is a TCP packet without payload - SKIP IT\n");
-                goto error;
-            }
-            /* HTTP pkt */
-            if((strncmp(data, "GET", 3) == 0) || (strncmp(data, "HTTP", 4) == 0)) {
-                LERR("This is a HTTP packet - SKIP IT\n");
-                goto error;
-            }
-            
-            LDEBUG("WEBSOCKET layer found!\n");
-            p_websock++;
-            if(((*p_websock >> 7) & 1) == 0) { // check the MASK bit
-                ws_len = 4;
+        if(websocket_detection == 1) {
+            /**
+               NOTE: in our case, the first byte is valid ONLY if the value is 129 (0x81) or 130 (0x82)
+               this means the 1st bit FIN == 1 and 4 less-significant bits could be 0x01 (utf-8 text data) or 0x02 (binary data)
+               
+               Mask 7   to get the 1st most-significant bit (fin check)
+               Mask 0xF to get the 4 less-significant bit (opcode check)
+            **/
+            if((((*p_websock >> 7) & 1) == 1) && (((*p_websock & 0xF) == 0x01) || ((*p_websock & 0xF) == 0x02))) {
+                
+                /* TCP without payload */
+                if(pkthdr->len == link_offset + hdr_offset + ip_hl + tcphdr_offset) {
+                    LERR("This is a TCP packet without payload - SKIP IT\n");
+                    goto error;
+                }
+                /* HTTP pkt */
+                if((strncmp(data, "GET", 3) == 0) || (strncmp(data, "HTTP", 4) == 0)) {
+                    LERR("This is a HTTP packet - SKIP IT\n");
+                    goto error;
+                }
+                
+                LDEBUG("WEBSOCKET layer found!\n");
                 p_websock++;
-                skip = p_websock[1] + (p_websock[0] << 8);
-                p_websock += 2;                
+                if(((*p_websock >> 7) & 1) == 0) { // check the MASK bit
+                    ws_len = 4;
+                    p_websock++;
+                    skip = p_websock[1] + (p_websock[0] << 8);
+                    p_websock += 2;                
+                }
+                else { /* ((*p_websock >> 7) & 1) == 1 MASKING-KEY */
+                    LDEBUG("masking-key present\n");
+                    ws_len = 8;
+                    p_websock++;
+                    skip = p_websock[1] + (p_websock[0] << 8);
+                    p_websock += 2;
+                    memcpy(mask_key, p_websock, 4);
+                    p_websock += 4;
+                    LINFO("SIP is masked - decoding payload...\n");
+                    decode = calloc(skip+1, sizeof(uint8_t));
+                    websocket_decode(decode, p_websock, skip, mask_key);
+                }
             }
-            else { /* ((*p_websock >> 7) & 1) == 1 MASKING-KEY */
-                LDEBUG("masking-key present\n");
-                ws_len = 8;
-                p_websock++;
-                skip = p_websock[1] + (p_websock[0] << 8);
-                p_websock += 2;
-                memcpy(mask_key, p_websock, 4);
-                p_websock += 4;
-                LINFO("SIP is masked - decoding payload...\n");
-                decode = calloc(skip+1, sizeof(uint8_t));
-                websocket_decode(decode, p_websock, skip, mask_key);
-            }
-        }
+        } // websocket-detection 
         /* *************************************************************************** */
-
+        
         if(tcpreasm[loc_index] != NULL &&  (len > 0) && (tcp_pkt->th_flags & TH_ACK)) {
 
             unsigned new_len;
@@ -1202,6 +1212,8 @@ static int load_module(xml_node *config) {
 						user_data[profile_size].ipv4fragments = 1;
                     else if (!strncmp(key, "ipv6fragments", 13) && !strncmp(value, "true", 4))
 						user_data[profile_size].ipv6fragments = 1;
+                    else if (!strncmp(key, "websocket-detection", strlen("websocket-detection")) && !strncmp(value, "true", 4))
+                        websocket_detection = 1;
                     else if(!strncmp(key, "tcpdefrag", 9) && !strncmp(value, "true", 4))
                         profile_socket[profile_size].reasm |= REASM_TCP;
 					else if (!strncmp(key, "ring-buffer", 11))
