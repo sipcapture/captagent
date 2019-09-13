@@ -32,6 +32,7 @@
 #include <signal.h>
 #include <time.h>
 #include <ctype.h>
+#include <pcap.h>
 
 #include <sys/ioctl.h>
 #include <net/if.h>
@@ -75,8 +76,6 @@ char *pid_file = NULL;
 int timestart;
 int serial;
 const char *captagent_config;
-
-
 struct capture_list main_ct;
 struct action* clist[20];
 
@@ -109,8 +108,34 @@ void handler(int value) {
 	exit(0);
 }
 
-int get_basestat(char *module, char *buf, size_t len) {
 
+// Print the list of availlable devices
+static void print_all_devices()
+{
+    int i = 0;
+    pcap_if_t *all_devs, *d = NULL;
+    char err_buff[PCAP_ERRBUF_SIZE];
+
+    printf("\nList of available devices on your system:\n\n");
+    if(pcap_findalldevs(&all_devs, err_buff) == -1) {
+        fprintf(stderr,"Error in pcap_findalldevs: %s\n", err_buff);
+        usage(0);
+        exit(-1);
+    }
+    for(d = all_devs; d; d = d->next) {
+        if((strncmp(d->name, "any", 3) != 0) && (strncmp(d->name, "lo", 2) != 0)) {
+            printf("device %d = %s", ++i, d->name);
+            if(d->description)
+                printf("\t\t (%s)\n", d->description);
+            else
+                printf("\t\t No description available for this device\n");
+        }
+    }
+}
+
+
+int get_basestat(char *module, char *buf, size_t len)
+{
 	char *res;
 	int pos = 0, ret = 0;
 	char stats[200];
@@ -140,8 +165,9 @@ int get_basestat(char *module, char *buf, size_t len) {
 	return ret;
 }
 
-int daemonize(int nofork) {
 
+int daemonize(int nofork)
+{
 	FILE *pid_stream;
 	pid_t pid;
 	int p;
@@ -204,10 +230,12 @@ int daemonize(int nofork) {
 	error: return -1;
 }
 
-void usage(int8_t e) {
+void usage(int8_t e)
+{
 	printf(
         "usage: Captagent <-vh> <-f config>\n"
         "   -h  display help/usage\n"
+        "   -a  print a list of all availlable devices\n"
         "   -v  display version information\n"
         "   -c  validate configuration and exit\n"
         "   -d  enable daemon mode\n"
@@ -242,7 +270,7 @@ int main(int argc, char *argv[]) {
 
 	captagent_config = DEFAULT_CAPT_CONFIG;
 
-	while ((c = getopt(argc, argv, "dcvhnEKf:D:x:")) != EOF) {
+	while ((c = getopt(argc, argv, "adcvhnEKf:D:x:")) != EOF) {
 
 		switch (c) {
 		case 'v':
@@ -279,8 +307,9 @@ int main(int argc, char *argv[]) {
             is_x = 1;
             set_debug = optarg;
 			break;
-
-
+        case 'a':
+            print_all_devices();
+            exit(0);
 		default:
 			abort();
 		}
