@@ -82,6 +82,7 @@ extern struct Hash_Table *HT_Flows;
 xml_node *module_xml_config = NULL;
 
 uint8_t link_offset = 14;
+uint16_t type_datalink = 0;
 
 char *module_name="socket_pcap";
 uint64_t module_serial = 0;
@@ -193,18 +194,22 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
 
     // define MPLS struct
     //union mpls mpls;
-
+    char ip_src[INET6_ADDRSTRLEN + 1], ip_dst[INET6_ADDRSTRLEN + 1];
+    char mac_src[20], mac_dst[20];
     uint8_t hdr_offset = 0; // offset for VLAN or MPLS
     u_int16_t type = 0, vlan_id;
     uint8_t vlan = 0;
-
+    msg_t _msg;
+    uint32_t ip_ver;
+    uint8_t ip_proto = 0;
     unsigned char* ethaddr = NULL;
     unsigned char* mplsaddr = NULL;
     unsigned char* cooked = NULL;
-
+    struct run_act_ctx ctx;
     uint8_t erspan_offset = 0;
     uint8_t tmp_ip_proto = 0;
     uint8_t tmp_ip_len = 0;
+    int action_idx = 0;
 
     uint8_t loc_index = (uint8_t) *useless;
 
@@ -221,9 +226,42 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
         }
     }
 
-    struct run_act_ctx ctx;
-    struct ether_header *eth = (struct ether_header *) packet;
+    if(type_datalink == DLT_MTP2)
+    {
 
+        snprintf(mac_src, sizeof(mac_src), "00-01-02-03-04-05");
+        snprintf(mac_dst, sizeof(mac_dst), "05-04-03-02-01-00");
+        
+        snprintf(ip_src, sizeof(ip_src), "127.0.0.1");
+        snprintf(ip_dst, sizeof(ip_dst), "127.0.0.2");
+
+        memset(&_msg, 0, sizeof(msg_t));
+        memset(&ctx, 0, sizeof(struct run_act_ctx));
+
+        _msg.cap_packet = (void *) packet;
+        _msg.cap_header = (void *) pkthdr;        
+        _msg.hdr_len = link_offset;
+        _msg.rcinfo.src_ip = ip_src;
+        _msg.rcinfo.dst_ip = ip_dst;
+        _msg.rcinfo.src_mac = mac_src;
+        _msg.rcinfo.dst_mac = mac_dst;
+        _msg.rcinfo.ip_family = DLT_MTP2;
+        _msg.rcinfo.ip_proto = DLT_MTP2;
+
+        _msg.rcinfo.time_sec = pkthdr->ts.tv_sec;
+        _msg.rcinfo.time_usec = pkthdr->ts.tv_usec;
+        _msg.tcpflag = 0;
+        _msg.parse_it = 1;
+
+        _msg.len = pkthdr->len;
+        _msg.data = packet;
+        
+        action_idx = profile_socket[loc_index].action;
+        run_actions(&ctx, main_ct.clist[action_idx], &_msg);
+        
+        return;
+    }
+    
 
     /* check for ethernet type */
 
@@ -262,6 +300,7 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
       }
     */
 
+    struct ether_header *eth = (struct ether_header *) packet;
     memcpy(&cooked, (packet + link_offset + IPV4_SIZE + 2), 2);
     memcpy(&ethaddr, (packet + 12), 2);
     memcpy(&mplsaddr, (packet + 16), 2);
@@ -288,19 +327,16 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
     struct ip6_hdr *ip6_pkt = (struct ip6_hdr*)(packet + link_offset + hdr_offset);
     #endif
 
-    msg_t _msg;
-    uint32_t ip_ver;
-    uint8_t ip_proto = 0;
+
     uint32_t ip_hl = 0;
     uint32_t ip_off = 0;
     uint8_t fragmented = 0;
     uint16_t frag_offset = 0;
     //uint32_t frag_id = 0;
-    char ip_src[INET6_ADDRSTRLEN + 1], ip_dst[INET6_ADDRSTRLEN + 1];
-    char mac_src[20], mac_dst[20];
+
     u_char *pack = NULL;
     unsigned char *data, *datatcp;
-    int action_idx = 0;
+
     uint32_t len = pkthdr->caplen;
     uint8_t  psh = 0;
 
@@ -699,8 +735,8 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
         _msg.rcinfo.dst_mac = mac_dst;
         _msg.rcinfo.ip_family = ip_ver == 4 ? AF_INET : AF_INET6;
         _msg.rcinfo.ip_proto = ip_proto;
-        //_msg.rcinfo.time_sec = pkthdr->ts.tv_sec;
-        _msg.rcinfo.time_sec = time(0);
+        _msg.rcinfo.time_sec = pkthdr->ts.tv_sec;
+        //_msg.rcinfo.time_sec = time(0);
         _msg.rcinfo.time_usec = pkthdr->ts.tv_usec;
         _msg.tcpflag = 0;
         _msg.parse_it = 1;
@@ -906,11 +942,12 @@ int set_raw_filter(unsigned int loc_idx, char *filter) {
 void* proto_collect(void *arg) {
 
 	unsigned int loc_idx = *((int *)arg);
-	int ret = 0, dl = 0;
-
-	dl = pcap_datalink(sniffer_proto[loc_idx]);
+	int ret = 0;
+	
+	type_datalink = pcap_datalink(sniffer_proto[loc_idx]);
+	
 	/* detect link_offset. Thanks ngrep for this. */
-	switch (dl) {
+	switch (type_datalink) {
 	case DLT_EN10MB:
 		link_offset = ETHHDR_SIZE;
 		break;
@@ -947,13 +984,17 @@ void* proto_collect(void *arg) {
 	case DLT_IEEE802_11:
 		link_offset = IEEE80211HDR_SIZE;
 		break;
+		
+        case DLT_MTP2:
+		link_offset = RAWHDR_SIZE;
+		break;
 
 	default:
-		LERR("fatal: unsupported interface type [%u] [%d]", dl, dl);
+		LERR("fatal: unsupported interface type [%u]", type_datalink);
 		exit(-1);
 	}
 
-	LDEBUG("Link offset interface type [%u] [%d] [%u]", dl, dl, link_offset);
+	LDEBUG("Link offset interface type [%u] [%u]", type_datalink, link_offset);
 
 	while(1) {
 

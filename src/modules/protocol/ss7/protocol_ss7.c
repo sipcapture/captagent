@@ -38,6 +38,7 @@
 
 #include "isup_parsed.h"
 
+#define MTP_L2		0
 #define SCTP_M2UA_PPID	2
 #define SCTP_M3UA_PPID	3
 #define SCTP_M2PA_PPID	5
@@ -58,6 +59,8 @@
 #define HEP_M2UA                0x08
 #define HEP_M3UA                0x09
 #define HEP_M2PA                0x0d
+
+#define DLT_MTP2		140
 
 //54
 #define PROTO_M2UA_JSON		0x36
@@ -321,6 +324,21 @@ next:
 }
 
 
+static uint8_t *extract_from_mtp2(msg_t *msg, size_t *len)
+{
+	uint8_t *data;
+
+	if (msg->len < 3) {
+		LERR("MTP2 hdr too short %u", msg->len);
+		return NULL;
+	}
+
+	data = msg->data;
+	*len = msg->len - 3;
+	return &data[3];
+}
+
+
 static uint8_t *extract_from_m2pa(msg_t *msg, size_t *len)
 {
 	uint8_t *data;
@@ -430,6 +448,7 @@ static uint8_t *extract_from_m3ua_mtp(uint8_t *data, size_t *len, int *opc, int 
 
 static uint8_t *ss7_extract_payload(msg_t *msg, size_t *len, int *opc, int *dpc, int *type)
 {
+
 	switch (msg->sctp_ppid) {
 	case SCTP_M2UA_PPID:
 		msg->rcinfo.proto_type = 0x08;
@@ -440,11 +459,20 @@ static uint8_t *ss7_extract_payload(msg_t *msg, size_t *len, int *opc, int *dpc,
 		return extract_from_m3ua_mtp(extract_from_m3ua(msg, len), len, opc, dpc, type);
 		break;				
 	case SCTP_M2PA_PPID:
-		msg->rcinfo.proto_type = 0x0d;
+		msg->rcinfo.proto_type = 0x0d;		
 		return extract_from_mtp(extract_from_m2pa(msg, len), len, opc, dpc, type);
 	default:
-		LDEBUG("SS7 SCTP PPID(%u) not known", msg->sctp_ppid);
-		return NULL;
+		{
+			/* FRAME MTPL2 */
+			if(msg->rcinfo.ip_proto == DLT_MTP2)
+		        {
+        		        msg->rcinfo.proto_type = 0x08;
+		                return extract_from_mtp(extract_from_mtp2(msg, len), len, opc, dpc, type);
+	                }
+		
+			LDEBUG("SS7 SCTP PPID(%u) not known", msg->sctp_ppid);
+			return NULL;
+		}
 	}
 }
 
@@ -479,9 +507,8 @@ static int ss7_parse_isup_to_json(msg_t *msg, char *param1, char *param2)
 		return -1;
 	if (type != MTP_ISUP) {
 		LDEBUG("ISUP service indicator not ISUP but %d", type);
-		return -1;
+		return -1;		
 	}
-
 
 	free((char *) isup_last);
         srjson_DeleteDoc(isup_json);
