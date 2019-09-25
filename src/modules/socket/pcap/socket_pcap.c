@@ -1278,7 +1278,7 @@ static int load_module(xml_node *config) {
                         debug_socket_pcap_enable = 1;
 					else if (!strncmp(key, "erspan", 6) && !strncmp(value, "true", 4))
 						profile_socket[profile_size].erspan = 1;
-					else if (!strncmp(key, "stats-enable", 7) && !strncmp(value, "true", 4))
+					else if (!strncmp(key, "stats-enable", strlen("stats-enable")) && !strncmp(value, "true", 4))
 						stats_enable = TRUE;						
 					else if (!strncmp(key, "stats-interval", 14))
 						stats_interval = atoi(value);
