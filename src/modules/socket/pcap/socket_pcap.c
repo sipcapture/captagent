@@ -97,6 +97,7 @@ pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_t call_thread[MAX_SOCKETS];
 pcap_t *sniffer_proto[MAX_SOCKETS];
 pthread_t stat_thread;
+bool stats_enable = FALSE;
 
 struct pcap_stat last_stat[MAX_SOCKETS];
 
@@ -189,7 +190,7 @@ static void websocket_decode(char *dst, const char *src, size_t len, const char 
 /* Callback function that is passed to pcap_loop() */
 void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet) {
 
-    int vlan_count = 0, mpls_count = 0;
+    int vlan_count = 0;
     uint8_t  hdr_preset = 0;
 
     // define MPLS struct
@@ -197,7 +198,7 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
     char ip_src[INET6_ADDRSTRLEN + 1], ip_dst[INET6_ADDRSTRLEN + 1];
     char mac_src[20], mac_dst[20];
     uint8_t hdr_offset = 0; // offset for VLAN or MPLS
-    u_int16_t type = 0, vlan_id;
+    u_int16_t type = 0;
     uint8_t vlan = 0;
     msg_t _msg;
     uint32_t ip_ver;
@@ -1277,6 +1278,8 @@ static int load_module(xml_node *config) {
                         debug_socket_pcap_enable = 1;
 					else if (!strncmp(key, "erspan", 6) && !strncmp(value, "true", 4))
 						profile_socket[profile_size].erspan = 1;
+					else if (!strncmp(key, "stats-enable", 7) && !strncmp(value, "true", 4))
+						stats_enable = TRUE;						
 					else if (!strncmp(key, "stats-interval", 14))
 						stats_interval = atoi(value);
 					else if (!strncmp(key, "ip-replace", 10))
@@ -1357,7 +1360,7 @@ static int load_module(xml_node *config) {
 		pthread_create(&call_thread[i], NULL, proto_collect, arg);
 	}
 
-	pthread_create(&stat_thread, NULL, stat_collect, i);
+	if(stats_enable) pthread_create(&stat_thread, NULL, stat_collect, i);
 
 	return 0;
 }
@@ -1367,7 +1370,7 @@ static int unload_module(void) {
 
 	LNOTICE("unloaded module %s", module_name);
 
-	pthread_cancel(stat_thread);
+	if(stats_enable) pthread_cancel(stat_thread);
 
 	for (i = 0; i < profile_size; i++) {
 
