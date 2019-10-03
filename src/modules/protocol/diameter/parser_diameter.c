@@ -79,31 +79,31 @@ static int check_command(u_int16_t com_code, const char* com_string) {
     // check for DIAM_BASE command
     switch(com_code) {
     case CE: {
-        snprintf(com_string, 3, "%s", com_diam_base_arr[0]);
-        return DIAM_BASE;
-    }
-    case RA: {
-        snprintf(com_string, 3, "%s", com_diam_base_arr[1]);
-        return DIAM_BASE;
-    }
-    case AC: {
         snprintf(com_string, 3, "%s", com_diam_base_arr[2]);
         return DIAM_BASE;
     }
-    case AS: {
-        snprintf(com_string, 3, "%s", com_diam_base_arr[3]);
-        return DIAM_BASE;
-    }
-    case ST: {
-        snprintf(com_string, 3, "%s", com_diam_base_arr[4]);
-        return DIAM_BASE;
-    }
-    case DW: {
+    case RA: {
         snprintf(com_string, 3, "%s", com_diam_base_arr[5]);
         return DIAM_BASE;
     }
-    case DP: {
+    case AC: {
+        snprintf(com_string, 3, "%s", com_diam_base_arr[0]);
+        return DIAM_BASE;
+    }
+    case AS: {
+        snprintf(com_string, 3, "%s", com_diam_base_arr[1]);
+        return DIAM_BASE;
+    }
+    case ST: {
         snprintf(com_string, 3, "%s", com_diam_base_arr[6]);
+        return DIAM_BASE;
+    }
+    case DW: {
+        snprintf(com_string, 3, "%s", com_diam_base_arr[3]);
+        return DIAM_BASE;
+    }
+    case DP: {
+        snprintf(com_string, 3, "%s", com_diam_base_arr[4]);
         return DIAM_BASE;
     }
 

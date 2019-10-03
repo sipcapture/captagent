@@ -33,7 +33,7 @@
 #include <arpa/inet.h>
 
 /* Definition of Diameter common info JSON */
-#define DIAMETER_HEADER_JSON "\"diameter_info\": { [\"class\":\"%s\",\"type\":\"%s\",\"command\":\"%s\",\"app-ID\":%d] }"
+#define DIAMETER_HEADER_JSON "\"diameter_info\": {\"class\":\"%s\",\"type\":\"%s\",\"command\":\"%s\",\"app-ID\":%d}"
 #define JSON_BUFFER_LEN 5000
 
 #define UNK      -1
