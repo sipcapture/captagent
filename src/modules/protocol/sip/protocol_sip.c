@@ -279,7 +279,7 @@ int send_sip_reply(msg_t *_m, int code, char *description)
 int w_proto_check_size(msg_t *_m, char *param1, char *param2)
 {
 
-        int ret = 0;
+        int ret = -1;
         int intval = 0;
                 
         if(!strncmp("size", param1, 4))
