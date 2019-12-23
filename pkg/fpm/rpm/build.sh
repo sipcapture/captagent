@@ -14,7 +14,7 @@ cd $TMP_DIR
 
 yum update
 yum -y install epel-release
-yum -y install gcc make git json-c-devel expat-devel libpcap-devel flex-devel automake libtool bison libuv-devel openssl-devel
+yum -y install gcc make git json-c-devel expat-devel libpcap-devel flex-devel flex automake libtool bison libuv-devel openssl-devel  
 
 yum -y install ruby-devel rpm-build rubygems
 gem install --no-ri --no-rdoc fpm
