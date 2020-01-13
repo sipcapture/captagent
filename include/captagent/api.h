@@ -70,6 +70,11 @@ typedef struct _str {
         int len;
 } str;
 
+typedef struct _str_static {
+        char s[128];
+        int len;
+} str_static;
+
 struct rc_info {
     uint8_t     ip_family; /* IP family IPv6 IPv4 */
     uint8_t     ip_proto; /* IP protocol ID : tcp/udp */
@@ -89,6 +94,7 @@ struct rc_info {
     uint8_t	direction;
     char        *uuid;
     str         correlation_id;
+    str_static	tags;
     int 	*socket;
 } ;
 

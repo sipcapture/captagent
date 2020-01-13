@@ -1,5 +1,3 @@
-
-
 #include <captagent/api.h>
 #include <captagent/structure.h>
 #include <captagent/modules_api.h>
@@ -11,6 +9,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+char *customHeaderMatch = NULL;
+int customHeaderLen = 0;
 
 int
 set_hname (str * hname, int len, char *s)
@@ -982,37 +982,51 @@ parse_message (char *message, unsigned int blen, unsigned int *bytes_parsed, sip
 	continue;
       }
 
+      /* UserAgent */
+      else if (((*tmp == 'U' || *tmp == 'u')	&& (*(tmp + 4) == '-' || *(tmp + 4) == '-') && (*(tmp + 5) == 'A' || *(tmp + 4) == 'a')
+      			&& *(tmp + USERAGENT_LEN) == ':')) 
+      {
+	      header_offset = USERAGENT_LEN;
+	      set_hname (&psip->userAgent, (offset - last_offset - header_offset), tmp + header_offset);
+	      continue;
+      }
 
       if (allowPai) {
 
-	if (((*tmp == 'P' || *tmp == 'p')
-	     && (*(tmp + 2) == 'P' || *(tmp + 2) == 'p')
-	     && (*(tmp + 13) == 'i' || *(tmp + 13) == 'I')
-	     && *(tmp + PPREFERREDIDENTITY_LEN) == ':')) {
-
-	  if(set_hname (&psip->pidURI, (offset - last_offset - PPREFERREDIDENTITY_LEN), tmp + PPREFERREDIDENTITY_LEN))
-	  {
-	          psip->hasPid = TRUE;
-	          /* extract user */
-	          getUser (&psip->paiUser, &psip->paiDomain, psip->pidURI.s, psip->pidURI.len);
+          if (((*tmp == 'P' || *tmp == 'p')
+               && (*(tmp + 2) == 'P' || *(tmp + 2) == 'p')
+               && (*(tmp + 13) == 'i' || *(tmp + 13) == 'I')
+               && *(tmp + PPREFERREDIDENTITY_LEN) == ':')) {
+              
+              if(set_hname (&psip->pidURI, (offset - last_offset - PPREFERREDIDENTITY_LEN), tmp + PPREFERREDIDENTITY_LEN))
+              {
+                  psip->hasPid = TRUE;
+                  /* extract user */
+                  getUser (&psip->paiUser, &psip->paiDomain, psip->pidURI.s, psip->pidURI.len);
+              }              
+              continue;
           }
-
-	  continue;
-	}
-	else if (((*tmp == 'P' || *tmp == 'p')
-		  && (*(tmp + 2) == 'A' || *(tmp + 2) == 'a')
-		  && (*(tmp + 13) == 'i' || *(tmp + 13) == 'I')
-		  && *(tmp + PASSERTEDIDENTITY_LEN) == ':')) {
-
-	  if(set_hname (&psip->pidURI, (offset - last_offset - PASSERTEDIDENTITY_LEN), tmp + PASSERTEDIDENTITY_LEN))
-	  {
-	          psip->hasPid = TRUE;
-	          /* extract user */
-	          getUser (&psip->paiUser, &psip->paiDomain, psip->pidURI.s, psip->pidURI.len);
+          else if(customHeaderMatch != NULL && (*(tmp+customHeaderLen) == ':' && !strncmp(tmp,customHeaderMatch,customHeaderLen)))
+          {	
+              if(set_hname (&psip->customHeader, (offset - last_offset - customHeaderLen), tmp + customHeaderLen))
+              {
+                  psip->hasCustomHeader = TRUE;
+              }
+              continue;
           }
+          else if (((*tmp == 'P' || *tmp == 'p')
+                    && (*(tmp + 2) == 'A' || *(tmp + 2) == 'a')
+                    && (*(tmp + 13) == 'i' || *(tmp + 13) == 'I')
+                    && *(tmp + PASSERTEDIDENTITY_LEN) == ':')) {
 
-	  continue;
-	}
+              if(set_hname (&psip->pidURI, (offset - last_offset - PASSERTEDIDENTITY_LEN), tmp + PASSERTEDIDENTITY_LEN))
+              {
+                  psip->hasPid = TRUE;
+                  /* extract user */
+                  getUser (&psip->paiUser, &psip->paiDomain, psip->pidURI.s, psip->pidURI.len);
+              }
+              continue;
+          }
       }      
     }
   }

@@ -41,6 +41,7 @@ xml_node *module_xml_config = NULL;
 char *module_name="protocol_sip";
 uint64_t module_serial = 0;
 char *module_description = NULL;
+uint8_t regexpIndex = 0;
 
 static int load_module(xml_node *config);
 static int unload_module(void);
@@ -49,13 +50,21 @@ static int statistic(char *buf, size_t len);
 static int free_profile(unsigned int idx);
 static uint64_t serial_module(void);
 
+#define MAX_REGEXP_INDEXES 10
+pcre *pattern_match[MAX_REGEXP_INDEXES];
+char *regexpIndexName[MAX_REGEXP_INDEXES];
 unsigned int profile_size = 0;
+extern char *customHeaderMatch;
+extern int customHeaderLen;
 
 
 static cmd_export_t cmds[] = {
         {"protocol_sip_bind_api",  (cmd_function)bind_api,   1, 0, 0, 0},
         {"msg_check", (cmd_function) w_proto_check_size, 2, 0, 0, 0 },
         {"sip_check", (cmd_function) w_sip_check, 2, 0, 0, 0 },
+        {"header_check", (cmd_function) w_header_check, 2, 0, 0, 0 },
+        {"header_regexp_match", (cmd_function) w_header_reg_match, 2, 0, 0, 0 },
+        {"set_tag", (cmd_function) w_set_tag, 2, 0, 0, 0 },
         {"sip_is_method", (cmd_function) w_sip_is_method, 0, 0, 0, 0 },
         {"light_parse_sip", (cmd_function) w_light_parse_sip, 0, 0, 0, 0 },
         {"parse_sip", (cmd_function) w_parse_sip, 0, 0, 0, 0 },
@@ -154,6 +163,80 @@ int w_sip_has_sdp(msg_t *_m)
         return -1;
 }
 
+
+int w_set_tag(msg_t *_m, char *param1, char *param2)
+{
+    if( _m->rcinfo.tags.len > 0) {
+        _m->rcinfo.tags.len++;
+        _m->rcinfo.tags.s[_m->rcinfo.tags.len] = ';';
+	}
+    _m->rcinfo.tags.len += snprintf( _m->rcinfo.tags.s + _m->rcinfo.tags.len, sizeof( _m->rcinfo.tags.s) - _m->rcinfo.tags.len, "%s=%s", param1, param2);
+    
+    return 1;
+}
+
+int w_header_check(msg_t *_m, char *param1, char *param2)
+{
+    if(!strncmp("User-Agent", param1, strlen("User-Agent")) || strncmp("useragent", param1, strlen("useragent")))
+    {       
+        if(startwith(&_m->sip.userAgent, param2))
+        {	     
+            return 1;             
+        }
+    }
+    else if(!strncmp("custom", param1, strlen("custom")))
+    {                     
+        if(_m->sip.hasCustomHeader && startwith(&_m->sip.customHeader, param2))
+        {             
+            return 1;             
+        }             
+    }                
+        
+    return -1;
+}
+
+
+int w_header_reg_match(msg_t *_m, char *param1, char *param2)
+{
+    uint8_t index = 0;
+
+    if(param2 != NULL) index = get_pcre_index_by_name(param2);        	
+        
+    if(!strncmp("User-Agent", param1, strlen("User-Agent")) || strncmp("useragent", param1, strlen("useragent")))
+    {       
+        if(_m->sip.userAgent.s && _m->sip.userAgent.len > 0)
+        {
+			if((re_match_func(pattern_match[index], &_m->sip.userAgent.s, _m->sip.userAgent.len)) == 1) {
+                LDEBUG(">>>> UserAgent SIP matched: [%.*s]", _m->sip.userAgent.len, _m->sip.userAgent.s);
+                return 1;
+			}
+		}
+    }
+    else if(!strncmp("custom", param1, strlen("custom")))
+    {                             
+        if(_m->sip.customHeader.s && _m->sip.customHeader.len > 0)
+        {
+			if((re_match_func(pattern_match[index], &_m->sip.customHeader.s, _m->sip.customHeader.len)) == 1) {
+				LDEBUG(">>>> Custom SIP matched: [%.*s]", _m->sip.customHeader.len, _m->sip.customHeader.s);
+                return 1;
+			}
+        }
+    }                
+    else if(!strncmp("body", param1, strlen("body")) || !strncmp("raw", param1, strlen("raw")))
+    {                             
+        if(_m->data && _m->len > 0)
+        {
+			if((re_match_func(pattern_match[index], &_m->data, _m->len)) == 1) {
+				LDEBUG(">>>> Body SIP matched");
+                return 1;
+			}
+        }
+    }                
+        
+    return -1;
+}
+
+
 int w_sip_check(msg_t *_m, char *param1, char *param2)
 {
 
@@ -204,7 +287,21 @@ int w_sip_check(msg_t *_m, char *param1, char *param2)
              {             
                     ret = 1;             
              }                          
-        }       
+        }
+        else if(!strncmp("user_agent_prefix", param1, strlen("user_agent_prefix")))
+        {                     
+            if(startwith(&_m->sip.userAgent, param2))
+            {             
+                ret = 1;
+            }            
+        }
+        else if(!strncmp("user_agent_suffix", param1, strlen("user_agent_suffix")))
+        {                     
+            if(endswith(&_m->sip.userAgent, param2))
+            {  
+                ret = 1;
+            }
+        }
         else if(!strncmp("response", param1, strlen("response")))
         {                   
              if(param2 != NULL) intval = atoi(param2);                               
@@ -491,6 +588,83 @@ int light_parse_sip(msg_t *msg) {
 }
 
 
+int8_t re_match_func (pcre *pattern, char *data, uint32_t len)
+{
+
+    char escapeData[250];
+    int escapeLen = 0, pcreExtRet = 0;
+    int subStrVec[30];
+
+    makeEscape(data, len, escapeData, 200);
+
+    LDEBUG("Match function: [%s] Len:[%d]", escapeData, escapeLen);
+
+    if(pattern && len > 0)
+    {
+
+        pcreExtRet = pcre_exec(pattern, 0, escapeData, strlen(escapeData), 0, 0, subStrVec, 30);
+      
+        if(pcreExtRet < 0)
+        {
+            switch (pcreExtRet) {
+            case PCRE_ERROR_NULL:
+            case PCRE_ERROR_BADOPTION:
+            case PCRE_ERROR_BADMAGIC:
+            case PCRE_ERROR_UNKNOWN_NODE:
+            case PCRE_ERROR_NOMEMORY:
+                LDEBUG ("bad result of regexp match");
+                break;
+            case PCRE_ERROR_NOMATCH:
+                LDEBUG ("NOT MATCHED: [%d]\n", pcreExtRet);
+                return -1;
+            }
+
+            LDEBUG ("NOT MATCHED: [%.*s] [%d]\n", len, data, pcreExtRet);
+
+            return -1;
+        }
+        else {
+            LDEBUG ("MATCHED: [%.*s]\n", len, data);
+            return 1;
+        }
+    }
+    else if(pattern) {
+        LDEBUG ("LEN BAD\n");
+        return -1;
+    }
+
+    LDEBUG ("PATTERN BAD: [%.*s]\n", len, data);
+
+    return -1;
+}
+
+
+int makeEscape(const char *s, int len, char *out, int max) 
+{
+    int i = 0, y = 0;
+    for(i = 0; i < len; i++) 
+    {
+        if (s[i] == '\\' || s[i] == '\'') 
+        {
+            out[y] = '\\';
+            y++;
+        }
+        else if (s[i] == '+') 
+        {
+            out[y] = '\\';
+            y++;
+        }
+                
+        out[y] = s[i];
+        y++;            
+
+        if(y >= max) break;
+    }
+
+    out[y]='\0';
+    return 1;
+}
+
 
 int parse_only_packet(msg_t *msg, void* packet) {
 
@@ -502,8 +676,24 @@ int parse_only_packet(msg_t *msg, void* packet) {
 
 int set_value(unsigned int idx, msg_t *msg) {
 
+    return 1;
+}
 
-	 return 1;
+
+uint8_t get_pcre_index_by_name(char *name) {
+
+	unsigned int i = 0;
+    
+	if(regexpIndex == 1) return 0;
+    
+	for (i = 0; i < regexpIndex; i++) {
+        
+		if(!strncmp(regexpIndexName[i], name, strlen(regexpIndexName[i]))) {
+			return i;
+		}
+	}
+    
+	return NULL;
 }
 
 
@@ -536,6 +726,17 @@ unsigned int get_profile_index_by_name(char *name) {
 	}
 	return 0;
 }
+
+
+void free_regexp() {
+
+	unsigned int i = 0;
+	for (i = 0; i < profile_size; i++) {
+		if(regexpIndexName[i]) free(regexpIndexName[i]);
+		pcre_free(pattern_match[i]);
+	}
+}
+
 
 int load_module_xml_config() {
 
@@ -660,17 +861,38 @@ static int load_module(xml_node *config) {
 						profile_protocol[profile_size].dialog_type = atoi(value);
 					else if (!strncmp(key, "dialog-timeout", 14))
 						profile_protocol[profile_size].dialog_timeout = atoi(value);
+                    else if (!strncmp(key, "custom-header", strlen("custom-header"))) 
+					{
+						customHeaderMatch = strdup(value);
+						customHeaderLen = strlen(customHeaderMatch);						
+					}
+					else if (!strncmp(key, "regexp-name", strlen("regex-name"))) 
+					{
+						if(regexpIndex < MAX_REGEXP_INDEXES) {
+							regexpIndexName[regexpIndex] = strdup(value);
+						}
+					}
+					else if (!strncmp(key, "regexp-value", strlen("regex-value"))) 
+					{
+						if(regexpIndex < MAX_REGEXP_INDEXES) {
 
+							pattern_match[regexpIndex] = pcre_compile (regexpIndexName[regexpIndex], pcre_options, (const char **) &re_err, &err_offset, 0);							
+                            if (!pattern_match[regexpIndex]) {
+                                LERR("pattern_match I:[%d] compile failed: %s\n", regexpIndex, re_err);
+                            }				                        
+                            else regexpIndex++;
+						}
+					}
 				}
 
-				nextparam: params = params->next;
+            nextparam: params = params->next;
 
 			}
 		}
 
 		profile_size++;
 
-		nextprofile: profile = profile->next;
+    nextprofile: profile = profile->next;
 	}
 
 	/* free it */
@@ -715,22 +937,22 @@ static int free_profile(unsigned int idx) {
 }
 
 
-
 static int description(char *descr)
 {
-       LNOTICE("Loaded description");
-       descr = module_description;
-       return 1;
+    LNOTICE("Loaded description");
+    descr = module_description;
+    return 1;
 }
+
 
 static int statistic(char *buf, size_t len)
 {
 	int ret = 0;
 
-		ret += snprintf(buf+ret, len-ret, "Total received: [%" PRId64 "]\r\n", stats.received_packets_total);
-		ret += snprintf(buf+ret, len-ret, "Parsed packets: [%" PRId64 "]\r\n", stats.parsed_packets);
-		ret += snprintf(buf+ret, len-ret, "Total sent: [%" PRId64 "]\r\n", stats.send_packets);
-
-		return 1;
+    ret += snprintf(buf+ret, len-ret, "Total received: [%" PRId64 "]\r\n", stats.received_packets_total);
+    ret += snprintf(buf+ret, len-ret, "Parsed packets: [%" PRId64 "]\r\n", stats.parsed_packets);
+    ret += snprintf(buf+ret, len-ret, "Total sent: [%" PRId64 "]\r\n", stats.send_packets);
+    
+    return 1;
 }
                         

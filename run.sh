@@ -4,7 +4,7 @@ echo "BUILD..."
 ./build.sh
 echo
 echo "CONFIGURE..."
-./configure
+./configure #--enable-tls --enable-ssl
 echo
 echo "MAKE and INSTALL..."
 make && sudo make install

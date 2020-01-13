@@ -207,9 +207,13 @@ typedef struct sip_msg {
 	str fromDomain;
 	str toUser;
 	str toDomain;
+    str userAgent;
 	str paiUser;
 	str paiDomain;
 	str requestURI;
+
+    str customHeader;
+	bool hasCustomHeader;
 
 	str pidURI;
 	bool hasPid;

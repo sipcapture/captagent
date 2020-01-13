@@ -36,7 +36,7 @@
 		<load module="socket_tzsp" register="local"/>
 		<load module="protocol_ss7" register="local"/>
 		<load module="protocol_diameter" register="local"/>
-		<load module="protocol_tcp" register="local"/>
+		<load module="protocol_tls" register="local"/>
 		<load module="output_json" register="local"/>
 		<load module="protocol_rtcp" register="local"/>
 		<load module="interface_http" register="local"/>

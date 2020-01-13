@@ -327,6 +327,7 @@ int send_hepv3 (rc_info_t *rcinfo, unsigned char *data, unsigned int len, unsign
     hep_chunk_t payload_chunk;
     hep_chunk_t authkey_chunk;
     hep_chunk_t correlation_chunk;
+    hep_chunk_t tags_chunk;
     hep_chunk_uint16_t cval1;
     hep_chunk_uint16_t cval2;
 
@@ -467,6 +468,14 @@ int send_hepv3 (rc_info_t *rcinfo, unsigned char *data, unsigned int len, unsign
               cval2.chunk.length = htons(sizeof(cval2));
     }
 
+    if(rcinfo->tags.s && rcinfo->tags.len > 0) {
+              tlen += sizeof(hep_chunk_t);
+              tags_chunk.vendor_id = htons(0x0000);
+              tags_chunk.type_id   = htons(0x0026);
+              tags_chunk.length    = htons(sizeof(tags_chunk) + rcinfo->tags.len);
+              tlen += rcinfo->tags.len;
+    }
+
     /* total */
     hg->header.length = htons(tlen);
 
@@ -520,6 +529,17 @@ int send_hepv3 (rc_info_t *rcinfo, unsigned char *data, unsigned int len, unsign
            /* Now copying payload self */
            memcpy((void*) buffer+buflen, rcinfo->correlation_id.s, rcinfo->correlation_id.len);
            buflen+= rcinfo->correlation_id.len;
+    }
+
+    /* Tags KEY CHUNK */
+    if(rcinfo->tags.s && rcinfo->tags.len > 0) {
+
+           memcpy((void*) buffer+buflen, &tags_chunk,  sizeof(struct hep_chunk));
+           buflen += sizeof(struct hep_chunk);
+
+           /* Now copying payload self */
+           memcpy((void*) buffer+buflen, rcinfo->tags.s, rcinfo->tags.len);
+           buflen+= rcinfo->tags.len;
     }
 
     /* CVAL1 CHUNK */

@@ -27,6 +27,7 @@
 #define _PROTOCOL_SIP_H_
 
 #include <captagent/xmlread.h>
+#include <pcre.h>
 #include "parser_sip.h"
 
 #define FILTER_LEN 4080
@@ -60,6 +61,9 @@ extern char* usefile;
 extern int handler(int value);
 extern int set_raw_rtp_filter();
 
+uint32_t pcre_options = PCRE_UNGREEDY|PCRE_CASELESS;
+int32_t err_offset;
+char *re_err = NULL;
 
 #define MAX_PROTOCOLS 10
 profile_protocol_t profile_protocol[MAX_PROTOCOLS];
@@ -81,6 +85,7 @@ void free_module_xml_config();
 int load_module_xml_config();
 int reload_config (char *erbuf, int erlen);
 int check_module_xml_config();
+int makeEscape(const char *s, int len, char *out, int max);
 
 /* API */
 int w_proto_check_size(msg_t *_m, char *param1, char *param2);
@@ -88,13 +93,21 @@ int w_parse_sip(msg_t *_m);
 int w_clog(msg_t *_m, char *param1, char* param2);
 int w_sip_is_method(msg_t *_m);
 int w_sip_check(msg_t *_m, char *param1, char *param2);
+int w_header_check(msg_t *_m, char *param1, char *param2);
+int8_t re_match_func (pcre *pattern, char *data, uint32_t len);
+int w_header_reg_match(msg_t *_m, char *param1, char *param2);
 
 int w_send_reply_p(msg_t *_m, char *param1, char *param2);
 int w_send_reply(msg_t *_m);
+int w_set_tag(msg_t *_m, char *param1, char *param2);
 int send_sip_reply(msg_t *_m, int code, char *description);
 int w_is_flag_set(msg_t *_m, char *param1, char *param2);
                                     
 int endswith(str *str, const char *suffix);
 int startwith(str *str, const char *suffix);
+
+uint8_t get_pcre_index_by_name(char *name);
+void free_regexp();
+
 
 #endif /* _PROTOCOL_SIP_H_ */
