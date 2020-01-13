@@ -487,15 +487,27 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
                 }
                 else { /* ((*p_websock >> 7) & 1) == 1 MASKING-KEY */
                     LDEBUG("masking-key present\n");
-                    ws_len = 8;
-                    p_websock++;
-                    skip = p_websock[1] + (p_websock[0] << 8);
-                    p_websock += 2;
-                    memcpy(mask_key, p_websock, 4);
-                    p_websock += 4;
-                    LINFO("SIP is masked - decoding payload...\n");
-                    decode = calloc(skip+1, sizeof(uint8_t));
-                    websocket_decode(decode, p_websock, skip, mask_key);
+                    if(p_websock[0] != 0xfe) { // WS payload len < 126
+                        ws_len = 6;
+                        skip = (p_websock[0] - 0x80);
+                        p_websock++;
+                        memcpy(mask_key, p_websock, 4);
+                        p_websock += 4;
+                        LINFO("SIP is masked - decoding payload...\n");
+                        decode = calloc(skip+1, sizeof(uint8_t));
+                        websocket_decode(decode, p_websock, skip, mask_key);
+                    }
+                    else { // WS payload len >= 126
+                        ws_len = 8;
+                        p_websock++;
+                        skip = p_websock[1] + (p_websock[0] << 8);
+                        p_websock += 2;                        
+                        memcpy(mask_key, p_websock, 4);
+                        p_websock += 4;
+                        LINFO("SIP is masked - decoding payload...\n");
+                        decode = calloc(skip+1, sizeof(uint8_t));
+                        websocket_decode(decode, p_websock, skip, mask_key);
+                    }
                 }
             }
         } // websocket-detection 
@@ -530,7 +542,6 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
                           _msg.data = p_websock;
                       else {
                           _msg.data = decode;
-                          free(decode);
                       }
                   }
                   _msg.len = len - ws_len;
@@ -543,7 +554,6 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
                         _msg.data = p_websock;
                     else {
                         _msg.data = decode;
-                        free(decode);
                     }
                 }
             }
@@ -593,7 +603,6 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
                         _msg.data = p_websock;
                     else {
                         _msg.data = decode;
-                        free(decode);
                     }
                 }
                 _msg.len = len - ws_len;
@@ -606,7 +615,6 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
                         _msg.data = p_websock;
                     else {
                         _msg.data = decode;
-                        free(decode);
                     }
                 }
                 _msg.len = pkthdr->caplen - link_offset - hdr_offset - ws_len;
@@ -637,6 +645,9 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
             run_actions(&ctx, main_ct.clist[action_idx], &_msg);
 
             stats.send_packets++;
+
+            /* free decode */
+            if(decode) free(decode);
         }
     }
         break;
@@ -783,7 +794,7 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
         stats.send_packets++;
     }
         break;
-
+        
     default:
         break;
     }
