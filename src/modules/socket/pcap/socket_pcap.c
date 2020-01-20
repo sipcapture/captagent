@@ -592,6 +592,9 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
 
             /* clear datatcp */
             free(datatcp);
+            
+            /* free decode */
+            if(decode) free(decode);
         }
         else {
 
