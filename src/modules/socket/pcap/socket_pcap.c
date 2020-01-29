@@ -214,13 +214,23 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
 
     uint8_t loc_index = (uint8_t) *useless;
 
-    if (profile_socket[loc_index].erspan == 1) {
+    if(profile_socket[loc_index].erspan == 1)
+    {
+        u_char *tmp_pkt = packet;
         memcpy(&tmp_ip_proto, (packet + ETHHDR_SIZE + IPPROTO_OFFSET), 1);
-        if (tmp_ip_proto == GRE_PROTO) {
+        if(tmp_ip_proto == GRE_PROTO)
+        {
             memcpy(&tmp_ip_len, (packet + ETHHDR_SIZE), 1);
-            tmp_ip_len = (tmp_ip_len & IPLEN_MASK) * 4; // LSB 4 bits: length in 32-bit words
-            //printf("ip.proto: %u, ip header len: %u\n", tmp_ip_proto, tmp_ip_len);
-            erspan_offset = ETHHDR_SIZE + tmp_ip_len + GREHDR_SIZE; // Ethernet + IP + GRE
+            tmp_ip_len = (tmp_ip_len & IPLEN_MASK) * 4; // LSB 4 bits: lenght in 32-bit words            
+            tmp_pkt = tmp_pkt + ETHHDR_SIZE + tmp_ip_len + 2; // GRE Protocol_type field for ERSPAN version
+
+            if(tmp_pkt[0] == 0x88 && tmp_pkt[1] == 0xbe)
+                erspan_offset = ETHHDR_SIZE + tmp_ip_len + GREHDR_SIZE_II + ERSPAN_II_OFF; // Ethernet + IP + GRE II
+            else if(tmp_pkt[0] == 0x22 && tmp_pkt[1] == 0xeb)
+                erspan_offset = ETHHDR_SIZE + tmp_ip_len + GREHDR_SIZE_III; // Ethernet + IP + GRE III
+            else
+                erspan_offset = ETHHDR_SIZE + tmp_ip_len + GREHDR_SIZE;     // Ethernet + IP + GRE
+
             pkthdr->len -= erspan_offset;
             pkthdr->caplen -= erspan_offset;
             packet += erspan_offset;
@@ -301,6 +311,16 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
       }
     */
 
+    /**
+       NOTE:
+       This code needs an improvment because this is not the correct way to do it:
+       should be like:
+       -------------------------------------------------------------------
+       uint16_t cooked;
+       cooked = ntohs(*(uint16_t*)(packet + link_offset + IPV4_SIZE + 2));
+       -------------------------------------------------------------------
+    **/
+    
     struct ether_header *eth = (struct ether_header *) packet;
     memcpy(&cooked, (packet + link_offset + IPV4_SIZE + 2), 2);
     memcpy(&ethaddr, (packet + 12), 2);

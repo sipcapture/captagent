@@ -59,21 +59,25 @@ union mpls {
 };
 
 /* header offsets */
-#define ETHHDR_SIZE 14
-#define TOKENRING_SIZE 22
-#define PPPHDR_SIZE 4
-#define SLIPHDR_SIZE 16
-#define RAWHDR_SIZE 0
-#define LOOPHDR_SIZE 4
-#define FDDIHDR_SIZE 21
-#define ISDNHDR_SIZE 16
+#define ETHHDR_SIZE       14
+#define TOKENRING_SIZE    22
+#define PPPHDR_SIZE        4
+#define SLIPHDR_SIZE      16
+#define RAWHDR_SIZE        0
+#define LOOPHDR_SIZE       4
+#define FDDIHDR_SIZE      21
+#define ISDNHDR_SIZE      16
 #define IEEE80211HDR_SIZE 32
-#define GREHDR_SIZE 4
+#define NFLOGHDR_SIZE      4
+#define IPV4_SIZE         20
 
-
-
-#define GRE_PROTO 47
-#define IPPROTO_OFFSET 9
+#define GREHDR_SIZE        4
+#define GREHDR_SIZE_II     8
+#define ERSPAN_II_OFF      8
+#define GREHDR_SIZE_III   12
+#define ERSPANHDR_SIZE    16
+#define GRE_PROTO         47
+#define IPPROTO_OFFSET     9
 #define IPLEN_MASK 0b00001111
 
 #define MAX_SOCKETS 10
