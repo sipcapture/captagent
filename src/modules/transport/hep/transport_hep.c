@@ -265,6 +265,7 @@ int send_hep (msg_t *msg, int freeParam) {
                 	  LERR("data couldn't be compressed");
                       sendzip = 0;
                       if(zipData) free(zipData); /* release */
+                      zipData = NULL;
                 }
                 else {
                         sendzip = 1;
@@ -294,23 +295,27 @@ int send_hep (msg_t *msg, int freeParam) {
 
 #ifdef USE_ZLIB
 
-        if(profile_transport[idx].compression && zipData) free(zipData);
+        if(profile_transport[idx].compression && zipData) {
+            free(zipData);
+            zipData = NULL;
+        }
 
 #endif /* USE_ZLIB */
 
         if(freeParam == 1)
         {
-                if(msg->mfree == 1) {
-                     LDEBUG("LETS FREE IT!");
-                     free(msg->data);
-                }
-                if(msg->corrdata)
-                {
-                     free(msg->corrdata);
-                     msg->corrdata = NULL;
-                }
+            if(msg->mfree == 1) {
+                LDEBUG("LETS FREE IT!");
+                free(msg->data);
+                msg->data = NULL;
+            }
+            if(msg->corrdata)
+            {
+                free(msg->corrdata);
+                msg->corrdata = NULL;
+            }
         }
-
+        
         return ret;
 }
 
@@ -482,6 +487,7 @@ int send_hepv3 (rc_info_t *rcinfo, unsigned char *data, unsigned int len, unsign
     buffer = (void*)malloc(tlen);
     if (buffer==0){
         free(hg);
+        hg = NULL;
         return 1;
     }
 
@@ -565,8 +571,14 @@ int send_hepv3 (rc_info_t *rcinfo, unsigned char *data, unsigned int len, unsign
     /* send this packet out of our socket */
     send_data(buffer, buflen, idx);
 
-
-    if(hg) free(hg);
+    if(hg) {
+        free(hg);
+        hg = NULL;
+    }
+    if(buffer){
+        free(buffer);
+        buffer = NULL;
+    }
 
     return 1;
 }
@@ -669,7 +681,11 @@ int send_hepv2 (rc_info_t *rcinfo, unsigned char *data, unsigned int len, unsign
      return 1;
 
 error:
-     if(buffer) free(buffer);
+     if(buffer) {
+         free(buffer);
+         buffer = NULL;
+     }
+     
      return 0;
 }
 
@@ -701,6 +717,7 @@ void _udp_recv_callback(uv_udp_t *handle, ssize_t nread, const uv_buf_t *buf, co
   printf("DATA RECV BACK\n");
   if(buf && buf->base) {
       free(buf->base);
+      buff->base = NULL;
   }
 
   return;
@@ -741,7 +758,6 @@ int send_message(hep_connection_t *conn, unsigned char *message, size_t len, hep
 
   uv_mutex_unlock(&conn->mutex);
 
-
   return 0;
 }
 
@@ -777,9 +793,10 @@ void on_tcp_close(uv_handle_t* handle)
 void on_send_udp_request(uv_udp_send_t* req, int status)
 {
         if (status == 0 && req) {
-                free(req->data);
-                free(req);
-                req = NULL;
+            free(req->data);
+            req->data = NULL;
+            free(req);
+            req = NULL;
         }
 }
 
@@ -788,6 +805,7 @@ void on_send_tcp_request(uv_write_t* req, int status)
 
         if (status == 0 && req) {
                 free(req->data);
+                req->data = NULL;
                 free(req);
                 req = NULL;
         }
@@ -952,7 +970,9 @@ void homer_free(hep_connection_t *conn)
 	uv_sem_destroy(&conn->sem);
 	uv_mutex_destroy(&conn->mutex);
 	free(conn->loop);
+    conn->loop = NULL;
 	free(conn->thread);
+    conn->loop = NULL;
 }
 
 int _handle_quit(hep_connection_t *conn)
@@ -983,15 +1003,13 @@ void _run_uv_loop(void *arg){
 #else
         uv_key_set(&hep_conn_key, conn);
 #endif
-
-      uv_run(conn->loop, UV_RUN_DEFAULT);
+        uv_run(conn->loop, UV_RUN_DEFAULT);
 }
 
 /*ASYNC*/
 
 int homer_alloc(hep_connection_t *conn)
 {
-
       //conn = malloc(sizeof(hep_connection_t));
 
       memset(conn, 0, sizeof(hep_connection_t));
@@ -1054,7 +1072,7 @@ int init_udp_socket(hep_connection_t *conn, char *host, int port) {
 
         conn->type = 1;
 
-	status = uv_thread_create(conn->thread, _run_uv_loop, conn);
+        status = uv_thread_create(conn->thread, _run_uv_loop, conn);
 
         return status;
 }
@@ -1083,12 +1101,12 @@ void on_tcp_connect(uv_connect_t* connection, int status)
 
 int init_tcp_socket(hep_connection_t *conn, char *host, int port) {
 
-        struct sockaddr_in v4addr;
-        int status;
+    struct sockaddr_in v4addr;
+    int status;
 	int err;
 	struct addrinfo hints[1] = {{ 0 }};
-        struct addrinfo *ai;
-        char cport[15];
+    struct addrinfo *ai;
+    char cport[15];
 
         hints->ai_family = AF_UNSPEC;
         hints->ai_socktype = SOCK_STREAM;
@@ -1103,13 +1121,13 @@ int init_tcp_socket(hep_connection_t *conn, char *host, int port) {
         }
 
         uv_async_init(conn->loop, &conn->async_handle, _async_callback);
-	err = uv_tcp_init(conn->loop, &conn->tcp_handle);
-	if (err) return err;
+        err = uv_tcp_init(conn->loop, &conn->tcp_handle);
+        if (err) return err;
 
         /* copy structure */
         memcpy(&v4addr, (struct sockaddr_in*) ai->ai_addr, sizeof(struct sockaddr_in));
 
-	uv_tcp_keepalive(&conn->tcp_handle, 1, 60);
+        uv_tcp_keepalive(&conn->tcp_handle, 1, 60);
 
 #if UV_VERSION_MAJOR == 0
         /* v4addr = uv_ip4_addr(host, port);*/
@@ -1127,12 +1145,12 @@ int init_tcp_socket(hep_connection_t *conn, char *host, int port) {
 
         if(status < 0)
         {
-                LERR( "capture: bind error");
-                return 2;
+            LERR( "capture: bind error");
+            return 2;
         }
 
-	err = uv_thread_create(conn->thread, _run_uv_loop, conn);
-
+        err = uv_thread_create(conn->thread, _run_uv_loop, conn);
+        
         return 0;
 }
 
@@ -1358,7 +1376,8 @@ static int load_module(xml_node *config) {
 				init_udp_socket(&hep_connection_s[i], profile_transport[i].capt_host, atoi(profile_transport[i].capt_port));
 			}
 			else
-{				init_tcp_socket(&hep_connection_s[i], profile_transport[i].capt_host, atoi(profile_transport[i].capt_port));
+            {
+                init_tcp_socket(&hep_connection_s[i], profile_transport[i].capt_host, atoi(profile_transport[i].capt_port));
 			}
 
 			if(profile_transport[i].statistic_pipe) {
@@ -1376,8 +1395,7 @@ static int unload_module(void)
 	LNOTICE("unloaded module transport_hep");
 
 	for (i = 0; i < profile_size; i++) {
-
-			free_profile(i);
+        free_profile(i);
 	}
 
 #if UV_VERSION_MAJOR == 0
@@ -1398,14 +1416,38 @@ static int free_profile(unsigned int idx) {
 
 	/*free profile chars **/
 
-	if (profile_transport[idx].name)	 free(profile_transport[idx].name);
-	if (profile_transport[idx].description) free(profile_transport[idx].description);
-	if (profile_transport[idx].capt_host) free(profile_transport[idx].capt_host);
-	if (profile_transport[idx].capt_port) free(profile_transport[idx].capt_port);
-	if (profile_transport[idx].capt_proto) free(profile_transport[idx].capt_proto);
-	if (profile_transport[idx].capt_password) free(profile_transport[idx].capt_password);
-	if (profile_transport[idx].statistic_pipe) free(profile_transport[idx].statistic_pipe);
-	if (profile_transport[idx].statistic_profile) free(profile_transport[idx].statistic_profile);
+	if (profile_transport[idx].name) {
+        free(profile_transport[idx].name);
+        profile_transport[idx].name = NULL;
+    }
+	if (profile_transport[idx].description) {
+        free(profile_transport[idx].description);
+        profile_transport[idx].description = NULL;
+    }
+	if (profile_transport[idx].capt_host) {
+        free(profile_transport[idx].capt_host);
+        profile_transport[idx].capt_host = NULL;
+    }
+	if (profile_transport[idx].capt_port) {
+        free(profile_transport[idx].capt_port);
+        profile_transport[idx].capt_port = NULL;
+    }
+	if (profile_transport[idx].capt_proto) {
+        free(profile_transport[idx].capt_proto);
+        profile_transport[idx].capt_proto = NULL;
+    }
+	if (profile_transport[idx].capt_password) {
+        free(profile_transport[idx].capt_password);
+        profile_transport[idx].capt_password = NULL;
+    }
+	if (profile_transport[idx].statistic_pipe) {
+        free(profile_transport[idx].statistic_pipe);
+        profile_transport[idx].statistic_pipe = NULL;
+    }
+	if (profile_transport[idx].statistic_profile) {
+        free(profile_transport[idx].statistic_profile);
+        profile_transport[idx].statistic_profile = NULL;
+    }
 
 	return 1;
 }
@@ -1413,9 +1455,9 @@ static int free_profile(unsigned int idx) {
 
 static int description(char *descr)
 {
-       LNOTICE("Loaded description");
-       descr = module_description;
-       return 1;
+    LNOTICE("Loaded description");
+    descr = module_description;
+    return 1;
 }
 
 static int statistic(char *buf, size_t len)
@@ -1427,7 +1469,6 @@ static int statistic(char *buf, size_t len)
 	ret += snprintf(buf+ret, len-ret, "Errors total: [%" PRId64 "]\r\n", stats.errors_total);
 	ret += snprintf(buf+ret, len-ret, "Compressed total: [%" PRId64 "]\r\n", stats.compressed_total);
 	ret += snprintf(buf+ret, len-ret, "Total sent: [%" PRId64 "]\r\n", stats.send_packets_total);
-
 
 	return 1;
 
