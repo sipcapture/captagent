@@ -154,7 +154,7 @@ int w_send_hep_api_param(msg_t *_m, char *param1, char *param2)
     _m->profile_name = param1;
     if(param2 != NULL && !strncmp(param2,"true", 4)) freeParam = 0;
 
-    ret =  send_hep(_m, freeParam);
+    ret = send_hep(_m, freeParam);
 
     return ret;
 }
@@ -167,7 +167,7 @@ int w_send_hep_proto(msg_t *_m, char *param1, char *param2)
     _m->profile_name = param1;
     _m->rcinfo.proto_type = atoi(param2);
 
-    ret =  send_hep(_m, 1);
+    ret = send_hep(_m, 1);
 
     return ret;
 }
@@ -715,10 +715,8 @@ void _udp_recv_callback(uv_udp_t *handle, ssize_t nread, const uv_buf_t *buf, co
 #endif
 {
   printf("DATA RECV BACK\n");
-  if(buf && buf->base) {
+  if(buf && buf->base)
       free(buf->base);
-      buff->base = NULL;
-  }
 
   return;
 }
@@ -726,14 +724,13 @@ void _udp_recv_callback(uv_udp_t *handle, ssize_t nread, const uv_buf_t *buf, co
 
 int send_data (void *buf, unsigned int len, unsigned int idx) {
 
-        /* send this packet out of our socket */
-
+    /* send this packet out of our socket */
 	send_message(&hep_connection_s[idx], (unsigned char *)buf, len, hep_connection_s[idx].type == 1 ? SEND_UDP_REQUEST : SEND_TCP_REQUEST);
-
-        stats.send_packets_total++;
-
-        /* RESET ERRORS COUNTER */
-        return 0;
+    
+    stats.send_packets_total++;
+    
+    /* RESET ERRORS COUNTER */
+    return 0;
 }
 
 /****** LIBUV *********************/
