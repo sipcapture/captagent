@@ -83,6 +83,20 @@ union mpls {
 #define MAX_SOCKETS 10
 profile_socket_t profile_socket[MAX_SOCKETS];
 
+/*
+ * A DLT_LINUX_SLL fake link-layer header. 
+ */
+#define SLL_HDR_LEN	16		/* total header length */
+#define SLL_ADDRLEN	8		/* length of address field */
+
+struct sll_header {
+  u_int16_t sll_pkttype;		/* packet type */
+  u_int16_t sll_hatype;	        	/* link-layer address type */
+  u_int16_t sll_halen;		        /* link-layer address length */
+  u_int8_t sll_addr[SLL_ADDRLEN];	/* link-layer address */
+  u_int16_t sll_protocol;		/* protocol */
+};
+
 typedef struct socket_pcap_stats {
 	uint64_t received_packets_total;
 	uint64_t received_tcp_packets;

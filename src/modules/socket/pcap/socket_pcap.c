@@ -45,7 +45,7 @@
 
 #ifndef __FAVOR_BSD
 #define __FAVOR_BSD
-#endif /* __FAVOR_BSD */
+#endif
 #include <net/ethernet.h>
 #include <netinet/in.h>
 #include <netinet/ip.h>
@@ -78,13 +78,12 @@
 /* ### Declaration of HASH TABLE FOR HANDSHAKE FLOWS ### */
 extern struct Hash_Table *HT_Flows;
 
-
 xml_node *module_xml_config = NULL;
 
 uint8_t link_offset = 14;
 uint16_t type_datalink = 0;
 
-char *module_name="socket_pcap";
+char *module_name = "socket_pcap";
 uint64_t module_serial = 0;
 char *module_description;
 int debug_socket_pcap_enable = 0;
@@ -111,23 +110,27 @@ static int statistic(char *buf, size_t len);
 static uint64_t serial_module(void);
 static int free_profile(unsigned int idx);
 
+bool websocket_header_detection(uint8_t *p_websock, uint32_t posLen, unsigned char *data, uint32_t hdrLen);
+bool websocket_pre_decode(uint8_t *p_websock, uint8_t *decoded, msg_t *_msg);
+
+
 unsigned int profile_size = 0;
 int verbose = 0;
 int stats_interval = 300;
 int drop_limit = 25;
+int ipindex = -1;
 
 char ipcheck_in[10][80] =  {0,0};
-char ipcheck_out[10][80]={0,0};
-int port_in[10] ={0};
-int port_out[10] = {0};
-int ipindex = -1;
+char ipcheck_out[10][80]=  {0,0};
+int port_in[10]         =  {0};
+int port_out[10]        =  {0};
 
 bind_protocol_module_api_t proto_bind_api;
 
 static cmd_export_t cmds[] = {
     { "socket_pcap_bind_api", (cmd_function) bind_api, 1, 0, 0, 0 },
     { "socket_pcap_check", (cmd_function) bind_check_size, 3, 0, 0, 0 },
-    { "bind_socket_pcap",  (cmd_function)bind_socket_pcap,  0, 0, 0, 0},
+    { "bind_socket_pcap",  (cmd_function)bind_socket_pcap,  0, 0, 0, 0 },
     { "tzsp_payload_extract", (cmd_function) w_tzsp_payload_extract, 0, 0, 0, 0 },
     { 0, 0, 0, 0, 0, 0 }
 };
@@ -206,6 +209,8 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
     unsigned char* ethaddr = NULL;
     unsigned char* mplsaddr = NULL;
     unsigned char* cooked = NULL;
+    struct ether_header *eth = NULL;
+    struct sll_header *sll = NULL;
     struct run_act_ctx ctx;
     uint8_t erspan_offset = 0;
     uint8_t tmp_ip_proto = 0;
@@ -213,6 +218,11 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
     int action_idx = 0;
 
     uint8_t loc_index = (uint8_t) *useless;
+
+    /**
+       For ERSPAN packets, the "protocol type" field value in the GRE header
+       is 0x88BE (ERSPAN type II) or 0x22EB (ERSPAN type III).
+    **/
 
     if(profile_socket[loc_index].erspan == 1)
     {
@@ -311,6 +321,12 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
       }
     */
 
+    /* Check if ether type is Ethernet or not */
+    if (type_datalink == DLT_LINUX_SLL)
+        sll = (struct sll_header *)(packet + hdr_preset);
+    else
+        eth = (struct ethhdr *)(packet + hdr_preset);
+
     /**
        NOTE:
        This code needs an improvment because this is not the correct way to do it:
@@ -321,7 +337,6 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
        -------------------------------------------------------------------
     **/
     
-    struct ether_header *eth = (struct ether_header *) packet;
     memcpy(&cooked, (packet + link_offset + IPV4_SIZE + 2), 2);
     memcpy(&ethaddr, (packet + 12), 2);
     memcpy(&mplsaddr, (packet + 16), 2);
@@ -387,10 +402,15 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
 
     ip_ver = ip4_pkt->ip_v;
 
-    //BSD
-    snprintf(mac_src, sizeof(mac_src), "%.2X-%.2X-%.2X-%.2X-%.2X-%.2X",eth->ether_shost[0] , eth->ether_shost[1] , eth->ether_shost[2] , eth->ether_shost[3] , eth->ether_shost[4] , eth->ether_shost[5]);
-    snprintf(mac_dst, sizeof(mac_dst), "%.2X-%.2X-%.2X-%.2X-%.2X-%.2X",eth->ether_dhost[0] , eth->ether_dhost[1] , eth->ether_dhost[2] , eth->ether_dhost[3] , eth->ether_dhost[4] , eth->ether_dhost[5]);
-
+    if (eth) {
+        snprintf(mac_src, sizeof(mac_src), "%.2X-%.2X-%.2X-%.2X-%.2X-%.2X", eth->ether_shost[0], eth->ether_shost[1], eth->ether_shost[2], eth->ether_shost[3], eth->ether_shost[4], eth->ether_shost[5]);
+        snprintf(mac_dst, sizeof(mac_dst), "%.2X-%.2X-%.2X-%.2X-%.2X-%.2X", eth->ether_dhost[0], eth->ether_dhost[1], eth->ether_dhost[2], eth->ether_dhost[3], eth->ether_dhost[4], eth->ether_dhost[5]);
+    }
+    /* Linux cooked capture show only Source MAC address */
+    else if (sll) {
+        snprintf(mac_src, sizeof(mac_src), "%.2X-%.2X-%.2X-%.2X-%.2X-%.2X", sll->sll_addr[0], sll->sll_addr[1], sll->sll_addr[2], sll->sll_addr[3], sll->sll_addr[4], sll->sll_addr[5]);
+    }
+    
     memset(&_msg, 0, sizeof(msg_t));
     memset(&ctx, 0, sizeof(struct run_act_ctx));
 
@@ -471,119 +491,89 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
         if ((int32_t) len < 0) len = 0;
 
         /******************* Check for Websocket layer (skip it) **************************/
-        int skip = 0, ws_len = 0;
-        uint8_t mask_key[4] = {0};
-        uint8_t *decode = NULL;
-        uint8_t *p_websock = packet + link_offset + hdr_offset + ip_hl + tcphdr_offset;
+        int webLen = link_offset + hdr_offset + ip_hl + tcphdr_offset;
+        uint8_t *p_websock = packet + webLen;
 
-        if(websocket_detection == 1) {
-            /**
-               NOTE: in our case, the first byte is valid ONLY if the value is 129 (0x81) or 130 (0x82)
-               this means the 1st bit FIN == 1 and 4 less-significant bits could be 0x01 (utf-8 text data) or 0x02 (binary data)
-               
-               Mask 7   to get the 1st most-significant bit (fin check)
-               Mask 0xF to get the 4 less-significant bit (opcode check)
-            **/
-            if((((*p_websock >> 7) & 1) == 1) && (((*p_websock & 0xF) == 0x01) || ((*p_websock & 0xF) == 0x02))) {
-                
-                /* TCP without payload */
-                if(pkthdr->len == link_offset + hdr_offset + ip_hl + tcphdr_offset) {
-                    LERR("This is a TCP packet without payload - SKIP IT\n");
-                    goto error;
-                }
-                /* HTTP pkt */
-                if((strncmp(data, "GET", 3) == 0) || (strncmp(data, "HTTP", 4) == 0)) {
-                    LERR("This is a HTTP packet - SKIP IT\n");
-                    goto error;
-                }
-                
-                LDEBUG("WEBSOCKET layer found!\n");
-                p_websock++;
-                if(((*p_websock >> 7) & 1) == 0) { // check the MASK bit
-                    ws_len = 4;
-                    p_websock++;
-                    skip = p_websock[1] + (p_websock[0] << 8);
-                    p_websock += 2;                
-                }
-                else { /* ((*p_websock >> 7) & 1) == 1 MASKING-KEY */
-                    LDEBUG("masking-key present\n");
-                    if(p_websock[0] != 0xfe) { // WS payload len < 126
-                        ws_len = 6;
-                        skip = (p_websock[0] - 0x80);
-                        p_websock++;
-                        memcpy(mask_key, p_websock, 4);
-                        p_websock += 4;
-                        LINFO("SIP is masked - decoding payload...\n");
-                        decode = calloc(skip+1, sizeof(uint8_t));
-                        websocket_decode(decode, p_websock, skip, mask_key);
-                    }
-                    else { // WS payload len >= 126
-                        ws_len = 8;
-                        p_websock++;
-                        skip = p_websock[1] + (p_websock[0] << 8);
-                        p_websock += 2;                        
-                        memcpy(mask_key, p_websock, 4);
-                        p_websock += 4;
-                        LINFO("SIP is masked - decoding payload...\n");
-                        decode = calloc(skip+1, sizeof(uint8_t));
-                        websocket_decode(decode, p_websock, skip, mask_key);
-                    }
-                }
-            }
-        } // websocket-detection 
-        /* *************************************************************************** */
-        
         if(tcpreasm[loc_index] != NULL &&  (len > 0) && (tcp_pkt->th_flags & TH_ACK)) {
 
             unsigned new_len;
-            u_char *new_p_2 = malloc(len+10);
+            u_char *new_p_2 = malloc(len + 10);
             memcpy(new_p_2, data, len);
 
-            if((tcp_pkt->th_flags & TH_PUSH)) psh = 1;
+            if ((tcp_pkt->th_flags & TH_PUSH))
+                psh = 1;
 
+            if (debug_socket_pcap_enable)
+                LDEBUG("DEFRAG TCP process: LEN:[%d], ACK:[%d], PSH[%d]\n", len, (tcp_pkt->th_flags & TH_ACK), psh);
 
-            if(debug_socket_pcap_enable) LDEBUG("DEFRAG TCP process: LEN:[%u], ACK:[%u], PSH[%u]\n", len, (tcp_pkt->th_flags & TH_ACK), psh);
+            datatcp =
+                tcpreasm_ip_next_tcp(tcpreasm[loc_index], new_p_2, len,
+                                     (tcpreasm_time_t) 1000000UL * pkthdr->ts.tv_sec + pkthdr->ts.tv_usec, &new_len,
+                                     &ip4_pkt->ip_src, &ip4_pkt->ip_dst, ntohs(tcp_pkt->th_sport),
+                                     ntohs(tcp_pkt->th_dport), psh);
 
-            datatcp = tcpreasm_ip_next_tcp(tcpreasm[loc_index], new_p_2, len , (tcpreasm_time_t) 1000000UL * pkthdr->ts.tv_sec + pkthdr->ts.tv_usec, &new_len, &ip4_pkt->ip_src, &ip4_pkt->ip_dst, ntohs(tcp_pkt->th_sport), ntohs(tcp_pkt->th_dport), psh);
-
-            if (datatcp == NULL) return;
+            if (datatcp == NULL) {                    
+                return;
+            }
 
             len = new_len;
+                
+            if (debug_socket_pcap_enable)
+                LDEBUG("COMPLETE TCP DEFRAG: LEN[%d], PACKET:[%s]\n", len, datatcp);
+                    
+            /* check websocket */
+            if(websocket_detection == 1)
+            {
+                p_websock = datatcp;                            
+                char decoded[3000];
+                memset(decoded, 0, 3000);
+                if(!websocket_header_detection(p_websock, webLen, datatcp, pkthdr->len))
+                {
+                    /* clear datatcp */         
+                    if(datatcp) free(datatcp);
+                    goto error;
+                }
+                /* next position for websock */
+                p_websock++;
+            }                                
+                    
+            // full packet
+            if (!profile_socket[profile_size].full_packet) {
 
-            if(debug_socket_pcap_enable)
-                LDEBUG("COMPLETE TCP DEFRAG: LEN[%u], PACKET:[%s]\n", len, datatcp);
-
-
-            if(!profile_socket[profile_size].full_packet) {
-                if(ws_len == 0)
-                      _msg.data = datatcp;
-                  else {
-                      if(decode == NULL)
-                          _msg.data = p_websock;
-                      else {
-                          _msg.data = decode;
-                      }
-                  }
-                  _msg.len = len - ws_len;
-            }
-            else {
-                if(ws_len == 0)
-                    _msg.data = datatcp;
-                else {
-                    if(decode == NULL)
-                        _msg.data = p_websock;
-                    else {
-                        _msg.data = decode;
-                    }
+                _msg.len = len;
+                    
+                if( websocket_detection == 1)
+                {
+                    char decoded[3000];
+                    memset(decoded, 0, 3000);
+                    if(!websocket_pre_decode(p_websock, decoded, &_msg)) {
+                        _msg.data = sll ?  packet + _msg.hdr_len : datatcp;
+                    }                    
+                } else {
+                    _msg.data = sll ?  packet + _msg.hdr_len : datatcp;
                 }
             }
-            
-            _msg.rcinfo.src_port = ntohs(tcp_pkt->th_sport);
-            _msg.rcinfo.dst_port = ntohs(tcp_pkt->th_dport);
-            _msg.rcinfo.src_ip = ip_src;
-            _msg.rcinfo.dst_ip = ip_dst;
+            // Not full packet
+            else {
+                _msg.len = len;
+                if(websocket_detection == 1) 
+                {   
+                    char decoded[3000];
+                    memset(decoded, 0, 3000);
+                    if(!websocket_pre_decode(p_websock, decoded, &_msg)) {
+                        _msg.data = sll ?  packet + _msg.hdr_len : datatcp;
+                    }   
+                } else {
+                    _msg.data = sll ?  packet + _msg.hdr_len : datatcp;
+                }
+            }
+
             _msg.rcinfo.src_mac = mac_src;
             _msg.rcinfo.dst_mac = mac_dst;
+            _msg.rcinfo.src_ip = ip_src;
+            _msg.rcinfo.dst_ip = ip_dst;
+            _msg.rcinfo.src_port = ntohs(tcp_pkt->th_sport);
+            _msg.rcinfo.dst_port = ntohs(tcp_pkt->th_dport);
             _msg.rcinfo.ip_family = ip_ver == 4 ? AF_INET : AF_INET6;
             _msg.rcinfo.ip_proto = ip_proto;
             _msg.rcinfo.time_sec = pkthdr->ts.tv_sec;
@@ -591,8 +581,6 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
             _msg.tcpflag = tcp_pkt->th_flags;
             _msg.parse_it = 1;
 
-
-            /* replace IP */
             if(ipindex) {
                 /* src */
                 check_ip_data(_msg.rcinfo.src_ip, &_msg.rcinfo.src_port);
@@ -600,55 +588,64 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
                 check_ip_data(_msg.rcinfo.dst_ip, &_msg.rcinfo.dst_port);
             }
 
-
             action_idx = profile_socket[loc_index].action;
             run_actions(&ctx, main_ct.clist[action_idx], &_msg);
 
-            /**
-               hook to function process_packet:
-               in process_packet I have to prepare the Key
-               and the Handshake for Hashtable
-            */
-
-            /* clear datatcp */
+            /* clear datatcp */                                
             free(datatcp);
-            
-            /* free decode */
-            if(decode) free(decode);
         }
-        else {
+        else {            
+            /* detect websocket */            
+            if(websocket_detection == 1) {
+                if(!websocket_header_detection(p_websock, webLen, data, pkthdr->len))
+                {                     
+                    /* clear datatcp */         
+                    goto error;
+                }
+                /* next position for websock */
+                p_websock++;
+            }                                
+            
+            // full packet
+            if (!profile_socket[profile_size].full_packet) {
 
-            if(!profile_socket[profile_size].full_packet) {
-                if(ws_len == 0)
+                _msg.len = len;
+                    
+                if(websocket_detection == 1)
+                {
+                    char decoded[3000];
+                    memset(decoded, 0, 3000);
+                    if(!websocket_pre_decode(p_websock, decoded, &_msg)) {                        
+                        _msg.data = data;
+                    }                    
+                } else {
                     _msg.data = data;
-                else {
-                    if(decode == NULL)
-                        _msg.data = p_websock;
-                    else {
-                        _msg.data = decode;
-                    }
                 }
-                _msg.len = len - ws_len;
             }
+            // Not full packet
             else {
-                if(ws_len == 0)
-                    _msg.data = (packet + link_offset + hdr_offset);
-                else {
-                    if(decode == NULL)
-                        _msg.data = p_websock;
-                    else {
-                        _msg.data = decode;
-                    }
+                
+                _msg.len = pkthdr->caplen - link_offset - hdr_offset;
+                     
+                if(websocket_detection == 1)
+                {
+                    char decoded[3000];
+                    memset(decoded, 0, 3000);
+                    if(!websocket_pre_decode(p_websock, decoded, &_msg)) {
+                        _msg.data = (packet + link_offset + hdr_offset);
+                    }   
+                } else {
+                    _msg.data = data;
                 }
-                _msg.len = pkthdr->caplen - link_offset - hdr_offset - ws_len;
+                    
             }
-
-            _msg.rcinfo.src_port = ntohs(tcp_pkt->th_sport);
-            _msg.rcinfo.dst_port = ntohs(tcp_pkt->th_dport);
-            _msg.rcinfo.src_ip = ip_src;
-            _msg.rcinfo.dst_ip = ip_dst;
+                
             _msg.rcinfo.src_mac = mac_src;
             _msg.rcinfo.dst_mac = mac_dst;
+            _msg.rcinfo.src_ip = ip_src;
+            _msg.rcinfo.dst_ip = ip_dst;
+            _msg.rcinfo.src_port = ntohs(tcp_pkt->th_sport);
+            _msg.rcinfo.dst_port = ntohs(tcp_pkt->th_dport);
             _msg.rcinfo.ip_family = ip_ver == 4 ? AF_INET : AF_INET6;
             _msg.rcinfo.ip_proto = ip_proto;
             _msg.rcinfo.time_sec = pkthdr->ts.tv_sec;
@@ -656,7 +653,6 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
             _msg.tcpflag = tcp_pkt->th_flags;
             _msg.parse_it = 1;
 
-            /* replace IP */
             if(ipindex) {
                 /* src */
                 check_ip_data(_msg.rcinfo.src_ip, &_msg.rcinfo.src_port);
@@ -667,10 +663,7 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
             action_idx = profile_socket[loc_index].action;
             run_actions(&ctx, main_ct.clist[action_idx], &_msg);
 
-            stats.send_packets++;
-
-            /* free decode */
-            if(decode) free(decode);
+            stats.send_packets++;            
         }
     }
         break;
@@ -771,7 +764,6 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
         _msg.rcinfo.ip_family = ip_ver == 4 ? AF_INET : AF_INET6;
         _msg.rcinfo.ip_proto = ip_proto;
         _msg.rcinfo.time_sec = pkthdr->ts.tv_sec;
-        //_msg.rcinfo.time_sec = time(0);
         _msg.rcinfo.time_usec = pkthdr->ts.tv_usec;
         _msg.tcpflag = 0;
         _msg.parse_it = 1;
@@ -825,6 +817,86 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
  error:
     if(pack != NULL) free(pack);
 }
+
+
+bool websocket_header_detection(uint8_t *p_websock, uint32_t posLen, unsigned char *data, uint32_t hdrLen)
+{
+    /**
+       NOTE: in our case, the first byte is valid ONLY if the value is 129 (0x81) or 130 (0x82)
+       this means the 1st bit FIN == 1 and 4 less-significant bits could be 0x01 (utf-8 text data) or 0x02 (binary data)
+
+       Mask 7   to get the 1st most-significant bit (fin check)
+       Mask 0xF to get the 4 less-significant bit (opcode check)
+    **/
+    
+    if ((((*p_websock >> 7) & 1) == 1) && (((*p_websock & 0xF) == 0x01) || ((*p_websock & 0xF) == 0x02))) {
+
+        /* TCP without payload */
+        if (hdrLen == posLen) {
+            LERR("This is a TCP packet without payload - SKIP IT\n");
+            return FALSE;
+        }
+        /* HTTP pkt */
+        if ((strncmp(data, "GET", 3) == 0) || (strncmp(data, "HTTP", 4) == 0)) {
+            LERR("This is a HTTP packet - SKIP IT\n");
+            return FALSE;
+        }
+
+        LDEBUG("websocket detected\r\n");
+        return TRUE;
+                
+    }   // websocket-detection 
+    
+    
+    return FALSE;
+}
+
+bool websocket_pre_decode(uint8_t *p_websock, uint8_t *decoded,  msg_t *_msg)
+{
+    LDEBUG("WEBSOCKET layer found!\n");
+    int skip = 0, ws_len = 0, ret;
+    uint8_t mask_key[4] = { 0 };
+        
+    if (((*p_websock >> 7) & 1) == 0) { // check the MASK bit
+        LDEBUG("NULL websocket present\n");
+        ws_len = 4;
+        p_websock+=3;
+    } else {    /* ((*p_websock >> 7) & 1) == 1 MASKING-KEY */
+        LDEBUG("masking-key present\n");
+        if (p_websock[0] != 0xfe) {     // WS payload len < 126
+            ws_len = 6;
+            skip = (p_websock[0] - 0x80);
+            p_websock++;
+            memcpy(mask_key, p_websock, 4);
+            p_websock += 4;
+            //decoded = calloc(skip + 1, sizeof(uint8_t));
+            LINFO("SIP is masked - decoding payload...\n");
+            websocket_decode(decoded, p_websock, skip, mask_key);
+
+        } else {        // WS payload len >= 126
+            ws_len = 8;
+            p_websock++;
+            skip = p_websock[1] + (p_websock[0] << 8);
+            p_websock += 2;
+            memcpy(mask_key, p_websock, 4);
+            p_websock += 4;
+            //decoded = calloc(skip + 1, sizeof(uint8_t));
+            LINFO("SIP is masked - decoding payload...\n");
+            websocket_decode(decoded, p_websock, skip, mask_key);
+        }
+    }
+        
+    if (ws_len > 0)
+    {            
+        ret = strncmp(decoded, "", 1);
+        _msg->data = (ret != 0) ? decoded : p_websock;
+        _msg->len -= ws_len;
+        return TRUE;
+    }        
+                
+    return FALSE;
+}
+
 
 int init_socket(unsigned int loc_idx) {
 
@@ -1020,7 +1092,7 @@ void* proto_collect(void *arg) {
 		link_offset = IEEE80211HDR_SIZE;
 		break;
 		
-        case DLT_MTP2:
+    case DLT_MTP2:
 		link_offset = RAWHDR_SIZE;
 		break;
 
