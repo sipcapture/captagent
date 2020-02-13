@@ -575,11 +575,7 @@ int send_hepv3 (rc_info_t *rcinfo, unsigned char *data, unsigned int len, unsign
         free(hg);
         hg = NULL;
     }
-    if(buffer){
-        free(buffer);
-        buffer = NULL;
-    }
-
+    
     return 1;
 }
 
