@@ -116,7 +116,7 @@ static void print_all_devices()
     pcap_if_t *all_devs, *d = NULL;
     char err_buff[PCAP_ERRBUF_SIZE];
 
-    printf("\nList of available devices on your system:\n\n");
+    printf("List of available devices on your system:\n");
     if(pcap_findalldevs(&all_devs, err_buff) == -1) {
         fprintf(stderr,"Error in pcap_findalldevs: %s\n", err_buff);
         usage(0);
@@ -335,6 +335,9 @@ int main(int argc, char *argv[]) {
 		}
 	}
 
+    if(checkout == 1) // read config and exit
+        return EXIT_SUCCESS;
+
 	if (foreground)
 		nofork = 1;
 
@@ -343,15 +346,15 @@ int main(int argc, char *argv[]) {
 		exit(-1);
 	}
 
-	/* do register modules */
-	register_modules(tree);
-
-	free_xml_config();
-
-	LDEBUG("The Captagent is ready");
-
-	select(0, NULL, NULL, NULL, NULL);
-
+    /* do register modules */
+    register_modules(tree);
+    
+    free_xml_config();
+    
+    LDEBUG("The Captagent is ready");
+    
+    select(0, NULL, NULL, NULL, NULL);
+    
 	return EXIT_SUCCESS;
 }
 

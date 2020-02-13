@@ -723,315 +723,315 @@ splitCSeq (sip_msg_t * sipStruct, char *s, int len)
 int
 parse_message (char *message, unsigned int blen, unsigned int *bytes_parsed, sip_msg_t * psip, unsigned int type)
 {
-  unsigned int new_len = blen;
-  int header_offset = 0;
-  char *pch, *ped;
-  //bool allowRequest = FALSE;
-  bool allowPai = FALSE;
-  bool parseVIA = FALSE;
-  bool parseContact = FALSE;
+    unsigned int new_len = blen;
+    int header_offset = 0;
+    char *pch, *ped;
+    //bool allowRequest = FALSE;
+    bool allowPai = FALSE;
+    bool parseVIA = FALSE;
+    bool parseContact = FALSE;
 
-  if (blen <= 2)
-    return 0;
+    if (blen <= 2)
+        return 0;
 
-  int offset = 0, last_offset = 0;
-  char *c, *tmp;
+    int offset = 0, last_offset = 0;
+    char *c, *tmp;
 
-  c = message;
+    c = message;
 
-  /* Request/Response line */
-  for (; *c && c - message < new_len; c++) {
-    if (*c == '\n' && *(c - 1) == '\r') {
-      offset = (c + 1) - message;
-      break;
-    }
-  }
-
-  if (offset == 0) {		// likely Sip Message Body only...
-
-    *bytes_parsed = c - message;
-    return 0;
-  }
-
-  psip->responseCode = 0;
-
-
-  tmp = (char *) message;
-
-  if (!memcmp ("SIP/2.0 ", tmp, 8)) {
-    psip->responseCode = atoi (tmp + 8);
-    psip->isRequest = FALSE;
-
-    // Extract Response code's reason
-    char *reason = tmp + 12;
-    for (; *reason; reason++) {
-      if (*reason == '\n' && *(reason - 1) == '\r') {
-	break;
-      }
+    /* Request/Response line */
+    for (; *c && c - message < new_len; c++) {
+        if (*c == '\n' && *(c - 1) == '\r') {
+            offset = (c + 1) - message;
+            break;
+        }
     }
 
-    psip->reason.s = tmp + 12;
-    psip->reason.len = reason - (tmp + 13);
+    if (offset == 0) {		// likely Sip Message Body only...
 
-
-  }
-  else {
-    psip->isRequest = TRUE;
-
-    if (!memcmp (tmp, INVITE_METHOD, INVITE_LEN)) {
-      psip->methodType = INVITE;
-      //allowRequest = TRUE;
-      allowPai = TRUE;
+        *bytes_parsed = c - message;
+        return 0;
     }
-    else if (!memcmp (tmp, ACK_METHOD, ACK_LEN))
-      psip->methodType = ACK;
-    else if (!memcmp (tmp, BYE_METHOD, BYE_LEN))
-      psip->methodType = BYE;
-    else if (!memcmp (tmp, CANCEL_METHOD, CANCEL_LEN))
-      psip->methodType = CANCEL;
-    else if (!memcmp (tmp, OPTIONS_METHOD, OPTIONS_LEN))
-      psip->methodType = OPTIONS;
-    else if (!memcmp (tmp, REGISTER_METHOD, REGISTER_LEN))
-      psip->methodType = REGISTER;
-    else if (!memcmp (tmp, PRACK_METHOD, PRACK_LEN))
-      psip->methodType = PRACK;
-    else if (!memcmp (tmp, SUBSCRIBE_METHOD, SUBSCRIBE_LEN))
-      psip->methodType = SUBSCRIBE;
-    else if (!memcmp (tmp, NOTIFY_METHOD, NOTIFY_LEN))
-      psip->methodType = NOTIFY;
-    else if (!memcmp (tmp, PUBLISH_METHOD, PUBLISH_LEN)) {
-      psip->methodType = PUBLISH;
-      /* we need via and contact */
-      if (type == 2) {
-	parseVIA = TRUE;
-	parseContact = TRUE;
-	//allowRequest = TRUE;
-      }
+
+    psip->responseCode = 0;
+
+
+    tmp = (char *) message;
+
+    if (!memcmp ("SIP/2.0 ", tmp, 8)) {
+        psip->responseCode = atoi (tmp + 8);
+        psip->isRequest = FALSE;
+
+        // Extract Response code's reason
+        char *reason = tmp + 12;
+        for (; *reason; reason++) {
+            if (*reason == '\n' && *(reason - 1) == '\r') {
+                break;
+            }
+        }
+
+        psip->reason.s = tmp + 12;
+        psip->reason.len = reason - (tmp + 13);
+
 
     }
-    else if (!memcmp (tmp, INFO_METHOD, INFO_LEN))
-      psip->methodType = INFO;
-    else if (!memcmp (tmp, REFER_METHOD, REFER_LEN))
-      psip->methodType = REFER;
-    else if (!memcmp (tmp, MESSAGE_METHOD, MESSAGE_LEN))
-      psip->methodType = MESSAGE;
-    else if (!memcmp (tmp, UPDATE_METHOD, UPDATE_LEN))
-      psip->methodType = UPDATE;
     else {
+        psip->isRequest = TRUE;
 
-      psip->methodType = UNKNOWN;
-    }
-
-    if ((pch = strchr (tmp + 1, ' ')) != NULL) {
-
-      psip->methodString.s = tmp;
-      psip->methodString.len = (pch - tmp);
-
-      if ((ped = strchr (pch + 1, ' ')) != NULL) {
-	psip->requestURI.s = pch + 1;
-	psip->requestURI.len = (ped - pch - 1);
-
-	LDEBUG ("INVITE RURI: %.*s\n", psip->requestURI.len, psip->requestURI.s);
-	/* extract user */
-	getUser (&psip->ruriUser, &psip->ruriDomain, psip->requestURI.s, psip->requestURI.len);
-
-      }
-    }
-  }
-
-  c = message + offset;
-  int contentLength = 0;
-
-  for (; *c && c - message < new_len; c++) {
-
-    /* END of Request line and START of all other headers */
-    if (*c == '\r' && *(c + 1) == '\n') {	/* end of this line */
-
-      last_offset = offset;
-      offset = (c + 2) - message;
-
-      tmp = (message + last_offset);
-
-      /* BODY */
-      if (contentLength > 0 && (offset - last_offset) == 2) {
-
-	if (psip->hasSdp) {
-	  parseSdp (c, psip);
-	}
-	else if (psip->hasVqRtcpXR) {
-	  parseVQRtcpXR (c, psip);
-	}
-
-	break;
-      }
-
-      if ((*tmp == 'i' && *(tmp + 1) == ':')
-	  || ((*tmp == 'C' || *tmp == 'c')
-	      && (*(tmp + 5) == 'I' || *(tmp + 5) == 'i')
-	      && *(tmp + CALLID_LEN) == ':')) {
-
-	if (*(tmp + 1) == ':')
-	  header_offset = 1;
-	else
-	  header_offset = CALLID_LEN;
-	  
-	set_hname (&psip->callId, (offset - last_offset - header_offset), tmp + header_offset);
-	continue;
-      }
-      /* Content-Length */
-      if ((*tmp == 'l' && *(tmp + 1) == ':')
-	  || ((*tmp == 'C' || *tmp == 'c')
-	      && (*(tmp + 8) == 'L' || *(tmp + 8) == 'l')
-	      && *(tmp + CONTENTLENGTH_LEN) == ':')) {
-
-	if (*(tmp + 1) == ':')
-	  header_offset = 1;
-	else
-	  header_offset = CONTENTLENGTH_LEN;
-
-	contentLength = atoi (tmp + header_offset + 1);
-	continue;
-      }
-      else if ((*tmp == 'C' || *tmp == 'c')
-	       && (*(tmp + 1) == 'S' || *(tmp + 1) == 's')
-	       && *(tmp + CSEQ_LEN) == ':') {
-
-	if(set_hname (&psip->cSeq, (offset - last_offset - CSEQ_LEN), tmp + CSEQ_LEN))
-	{
-	     splitCSeq (psip, psip->cSeq.s, psip->cSeq.len);	                
+        if (!memcmp (tmp, INVITE_METHOD, INVITE_LEN)) {
+            psip->methodType = INVITE;
+            //allowRequest = TRUE;
+            allowPai = TRUE;
         }
-      }
-      /* content type  Content-Type: application/sdp  CONTENTTYPE_LEN */
-      else if (((*tmp == 'C' || *tmp == 'c') && (*(tmp + 7) == '-')
-		&& (*(tmp + 8) == 't' || *(tmp + 8) == 'T')
-		&& *(tmp + CONTENTTYPE_LEN) == ':')) {
+        else if (!memcmp (tmp, ACK_METHOD, ACK_LEN))
+            psip->methodType = ACK;
+        else if (!memcmp (tmp, BYE_METHOD, BYE_LEN))
+            psip->methodType = BYE;
+        else if (!memcmp (tmp, CANCEL_METHOD, CANCEL_LEN))
+            psip->methodType = CANCEL;
+        else if (!memcmp (tmp, OPTIONS_METHOD, OPTIONS_LEN))
+            psip->methodType = OPTIONS;
+        else if (!memcmp (tmp, REGISTER_METHOD, REGISTER_LEN))
+            psip->methodType = REGISTER;
+        else if (!memcmp (tmp, PRACK_METHOD, PRACK_LEN))
+            psip->methodType = PRACK;
+        else if (!memcmp (tmp, SUBSCRIBE_METHOD, SUBSCRIBE_LEN))
+            psip->methodType = SUBSCRIBE;
+        else if (!memcmp (tmp, NOTIFY_METHOD, NOTIFY_LEN))
+            psip->methodType = NOTIFY;
+        else if (!memcmp (tmp, PUBLISH_METHOD, PUBLISH_LEN)) {
+            psip->methodType = PUBLISH;
+            /* we need via and contact */
+            if (type == 2) {
+                parseVIA = TRUE;
+                parseContact = TRUE;
+                //allowRequest = TRUE;
+            }
 
-	if (*(tmp + CONTENTTYPE_LEN + 1) == ' ')
-	  header_offset = 1;
-	else
-	  header_offset = 0;
+        }
+        else if (!memcmp (tmp, INFO_METHOD, INFO_LEN))
+            psip->methodType = INFO;
+        else if (!memcmp (tmp, REFER_METHOD, REFER_LEN))
+            psip->methodType = REFER;
+        else if (!memcmp (tmp, MESSAGE_METHOD, MESSAGE_LEN))
+            psip->methodType = MESSAGE;
+        else if (!memcmp (tmp, UPDATE_METHOD, UPDATE_LEN))
+            psip->methodType = UPDATE;
+        else {
 
-	if (!strncmp ((tmp + CONTENTTYPE_LEN + 13 + header_offset), "vq-rtcpxr", 9)) {
-	  psip->hasVqRtcpXR = TRUE;
-	}
-	else if (!memcmp ((tmp + CONTENTTYPE_LEN + 13 + header_offset), "sdp", 3)) {
-	  psip->hasSdp = TRUE;
-	}
-        else if (!memcmp ((tmp+CONTENTTYPE_LEN+header_offset+1), "multipart/mixed", 15)) {
-          psip->hasSdp = TRUE;
+            psip->methodType = UNKNOWN;
         }
 
-	continue;
-      }
-      else if (parseVIA && ((*tmp == 'V' || *tmp == 'v')
-			    && (*(tmp + 1) == 'i' || *(tmp + 1) == 'i')
-			    && *(tmp + VIA_LEN) == ':')) {
-	set_hname (&psip->via, (offset - last_offset - VIA_LEN), tmp + VIA_LEN);
-	continue;
-      }
-      else if (parseContact && ((*tmp == 'm' && *(tmp + 1) == ':') || ((*tmp == 'C' || *tmp == 'c')
-								       && (*(tmp + 5) == 'C' || *(tmp + 5) == 'c')
-								       && *(tmp + CONTACT_LEN) == ':'))) {
-	if (*(tmp + 1) == ':')
-	  header_offset = 1;
-	else
-	  header_offset = CONTACT_LEN;
+        if ((pch = strchr (tmp + 1, ' ')) != NULL) {
 
-	set_hname (&psip->contactURI, (offset - last_offset - header_offset), tmp + header_offset);
-	continue;
-      }
-      else if ((*tmp == 'f' && *(tmp + 1) == ':')
-	  || ((*tmp == 'F' || *tmp == 'f')
-	      && (*(tmp + 3) == 'M' || *(tmp + 3) == 'm')
-	      && *(tmp + FROM_LEN) == ':')) {
-	if (*(tmp + 1) == ':')
-	  header_offset = 1;
-	else
-	  header_offset = FROM_LEN;
-	  
+            psip->methodString.s = tmp;
+            psip->methodString.len = (pch - tmp);
 
-	if(set_hname (&psip->fromURI, (offset - last_offset - header_offset), tmp + header_offset))
-	{
-        	psip->hasFrom = TRUE;	
-        	if ( !(psip->fromURI.len == 0) && getTag (&psip->fromTag, psip->fromURI.s, psip->fromURI.len) ) {
-        	        psip->hasFromTag = TRUE;
-                }
+            if ((ped = strchr (pch + 1, ' ')) != NULL) {
+                psip->requestURI.s = pch + 1;
+                psip->requestURI.len = (ped - pch - 1);
+
+                LDEBUG ("INVITE RURI: %.*s\n", psip->requestURI.len, psip->requestURI.s);
                 /* extract user */
-                getUser (&psip->fromUser, &psip->fromDomain, psip->fromURI.s, psip->fromURI.len);
+                getUser (&psip->ruriUser, &psip->ruriDomain, psip->requestURI.s, psip->requestURI.len);
+
+            }
         }
-	
-	continue;
-      }
-      else if ((*tmp == 't' && *(tmp + 1) == ':')
-	       || ((*tmp == 'T' || *tmp == 't')
-		   && *(tmp + TO_LEN) == ':')) {
-
-	if (*(tmp + 1) == ':')
-	  header_offset = 1;
-	else
-	  header_offset = TO_LEN;
-	  
-	if (set_hname (&psip->toURI, (offset - last_offset - header_offset), tmp + header_offset)) {
-	  psip->hasTo = TRUE;
-	  if ( !(psip->toURI.len == 0) && getTag (&psip->toTag, psip->toURI.s, psip->toURI.len) ) {
-	    psip->hasToTag = TRUE;
-	  }
-	  /* extract user */
-	  getUser (&psip->toUser, &psip->toDomain, psip->toURI.s, psip->toURI.len);
-	}
-	continue;
-      }
-
-      /* UserAgent */
-      else if (((*tmp == 'U' || *tmp == 'u')	&& (*(tmp + 4) == '-' || *(tmp + 4) == '-') && (*(tmp + 5) == 'A' || *(tmp + 4) == 'a')
-      			&& *(tmp + USERAGENT_LEN) == ':')) 
-      {
-	      header_offset = USERAGENT_LEN;
-	      set_hname (&psip->userAgent, (offset - last_offset - header_offset), tmp + header_offset);
-	      continue;
-      }
-
-      if (allowPai) {
-
-          if (((*tmp == 'P' || *tmp == 'p')
-               && (*(tmp + 2) == 'P' || *(tmp + 2) == 'p')
-               && (*(tmp + 13) == 'i' || *(tmp + 13) == 'I')
-               && *(tmp + PPREFERREDIDENTITY_LEN) == ':')) {
-              
-              if(set_hname (&psip->pidURI, (offset - last_offset - PPREFERREDIDENTITY_LEN), tmp + PPREFERREDIDENTITY_LEN))
-              {
-                  psip->hasPid = TRUE;
-                  /* extract user */
-                  getUser (&psip->paiUser, &psip->paiDomain, psip->pidURI.s, psip->pidURI.len);
-              }              
-              continue;
-          }
-          else if(customHeaderMatch != NULL && (*(tmp+customHeaderLen) == ':' && !strncmp(tmp,customHeaderMatch,customHeaderLen)))
-          {	
-              if(set_hname (&psip->customHeader, (offset - last_offset - customHeaderLen), tmp + customHeaderLen))
-              {
-                  psip->hasCustomHeader = TRUE;
-              }
-              continue;
-          }
-          else if (((*tmp == 'P' || *tmp == 'p')
-                    && (*(tmp + 2) == 'A' || *(tmp + 2) == 'a')
-                    && (*(tmp + 13) == 'i' || *(tmp + 13) == 'I')
-                    && *(tmp + PASSERTEDIDENTITY_LEN) == ':')) {
-
-              if(set_hname (&psip->pidURI, (offset - last_offset - PASSERTEDIDENTITY_LEN), tmp + PASSERTEDIDENTITY_LEN))
-              {
-                  psip->hasPid = TRUE;
-                  /* extract user */
-                  getUser (&psip->paiUser, &psip->paiDomain, psip->pidURI.s, psip->pidURI.len);
-              }
-              continue;
-          }
-      }      
     }
-  }
 
-  return 1;
+    c = message + offset;
+    int contentLength = 0;
+
+    for (; *c && c - message < new_len; c++) {
+
+        /* END of Request line and START of all other headers */
+        if (*c == '\r' && *(c + 1) == '\n') {	/* end of this line */
+          
+            last_offset = offset;
+            offset = (c + 2) - message;
+          
+            tmp = (message + last_offset);
+          
+            /* BODY */
+            if (contentLength > 0 && (offset - last_offset) == 2) {
+              
+                if (psip->hasSdp) {
+                    parseSdp (c, psip);
+                }
+                else if (psip->hasVqRtcpXR) {
+                    parseVQRtcpXR (c, psip);
+                }
+              
+                break;
+            }
+          
+            if ((*tmp == 'i' && *(tmp + 1) == ':')
+                || ((*tmp == 'C' || *tmp == 'c')
+                    && (*(tmp + 5) == 'I' || *(tmp + 5) == 'i')
+                    && *(tmp + CALLID_LEN) == ':')) {
+              
+                if (*(tmp + 1) == ':')
+                    header_offset = 1;
+                else
+                    header_offset = CALLID_LEN;
+              
+                set_hname (&psip->callId, (offset - last_offset - header_offset), tmp + header_offset);
+                continue;
+            }
+            /* Content-Length */
+            if ((*tmp == 'l' && *(tmp + 1) == ':')
+                || ((*tmp == 'C' || *tmp == 'c')
+                    && (*(tmp + 8) == 'L' || *(tmp + 8) == 'l')
+                    && *(tmp + CONTENTLENGTH_LEN) == ':')) {
+              
+                if (*(tmp + 1) == ':')
+                    header_offset = 1;
+                else
+                    header_offset = CONTENTLENGTH_LEN;
+              
+                contentLength = atoi (tmp + header_offset + 1);
+                continue;
+            }
+            else if ((*tmp == 'C' || *tmp == 'c')
+                     && (*(tmp + 1) == 'S' || *(tmp + 1) == 's')
+                     && *(tmp + CSEQ_LEN) == ':') {
+              
+                if(set_hname (&psip->cSeq, (offset - last_offset - CSEQ_LEN), tmp + CSEQ_LEN))
+                {
+                    splitCSeq (psip, psip->cSeq.s, psip->cSeq.len);	                
+                }
+            }
+            /* content type  Content-Type: application/sdp  CONTENTTYPE_LEN */
+            else if (((*tmp == 'C' || *tmp == 'c') && (*(tmp + 7) == '-')
+                      && (*(tmp + 8) == 't' || *(tmp + 8) == 'T')
+                      && *(tmp + CONTENTTYPE_LEN) == ':')) {
+              
+                if (*(tmp + CONTENTTYPE_LEN + 1) == ' ')
+                    header_offset = 1;
+                else
+                    header_offset = 0;
+              
+                if (!strncmp ((tmp + CONTENTTYPE_LEN + 13 + header_offset), "vq-rtcpxr", 9)) {
+                    psip->hasVqRtcpXR = TRUE;
+                }
+                else if (!memcmp ((tmp + CONTENTTYPE_LEN + 13 + header_offset), "sdp", 3)) {
+                    psip->hasSdp = TRUE;
+                }
+                else if (!memcmp ((tmp+CONTENTTYPE_LEN+header_offset+1), "multipart/mixed", 15)) {
+                    psip->hasSdp = TRUE;
+                }
+
+                continue;
+            }
+            else if (parseVIA && ((*tmp == 'V' || *tmp == 'v')
+                                  && (*(tmp + 1) == 'i' || *(tmp + 1) == 'i')
+                                  && *(tmp + VIA_LEN) == ':')) {
+                set_hname (&psip->via, (offset - last_offset - VIA_LEN), tmp + VIA_LEN);
+                continue;
+            }
+            else if (parseContact && ((*tmp == 'm' && *(tmp + 1) == ':') || ((*tmp == 'C' || *tmp == 'c')
+                                                                             && (*(tmp + 5) == 'C' || *(tmp + 5) == 'c')
+                                                                             && *(tmp + CONTACT_LEN) == ':'))) {
+                if (*(tmp + 1) == ':')
+                    header_offset = 1;
+                else
+                    header_offset = CONTACT_LEN;
+
+                set_hname (&psip->contactURI, (offset - last_offset - header_offset), tmp + header_offset);
+                continue;
+            }
+            else if ((*tmp == 'f' && *(tmp + 1) == ':')
+                     || ((*tmp == 'F' || *tmp == 'f')
+                         && (*(tmp + 3) == 'M' || *(tmp + 3) == 'm')
+                         && *(tmp + FROM_LEN) == ':')) {
+                if (*(tmp + 1) == ':')
+                    header_offset = 1;
+                else
+                    header_offset = FROM_LEN;
+	  
+
+                if(set_hname (&psip->fromURI, (offset - last_offset - header_offset), tmp + header_offset))
+                {
+                    psip->hasFrom = TRUE;	
+                    if ( !(psip->fromURI.len == 0) && getTag (&psip->fromTag, psip->fromURI.s, psip->fromURI.len) ) {
+                        psip->hasFromTag = TRUE;
+                    }
+                    /* extract user */
+                    getUser (&psip->fromUser, &psip->fromDomain, psip->fromURI.s, psip->fromURI.len);
+                }
+	
+                continue;
+            }
+            else if ((*tmp == 't' && *(tmp + 1) == ':')
+                     || ((*tmp == 'T' || *tmp == 't')
+                         && *(tmp + TO_LEN) == ':')) {
+
+                if (*(tmp + 1) == ':')
+                    header_offset = 1;
+                else
+                    header_offset = TO_LEN;
+	  
+                if (set_hname (&psip->toURI, (offset - last_offset - header_offset), tmp + header_offset)) {
+                    psip->hasTo = TRUE;
+                    if ( !(psip->toURI.len == 0) && getTag (&psip->toTag, psip->toURI.s, psip->toURI.len) ) {
+                        psip->hasToTag = TRUE;
+                    }
+                    /* extract user */
+                    getUser (&psip->toUser, &psip->toDomain, psip->toURI.s, psip->toURI.len);
+                }
+                continue;
+            }
+
+            /* UserAgent */
+            else if (((*tmp == 'U' || *tmp == 'u')	&& (*(tmp + 4) == '-' || *(tmp + 4) == '-') && (*(tmp + 5) == 'A' || *(tmp + 4) == 'a')
+                      && *(tmp + USERAGENT_LEN) == ':')) 
+            {
+                header_offset = USERAGENT_LEN;
+                set_hname (&psip->userAgent, (offset - last_offset - header_offset), tmp + header_offset);
+                continue;
+            }
+
+            if (allowPai) {
+
+                if (((*tmp == 'P' || *tmp == 'p')
+                     && (*(tmp + 2) == 'P' || *(tmp + 2) == 'p')
+                     && (*(tmp + 13) == 'i' || *(tmp + 13) == 'I')
+                     && *(tmp + PPREFERREDIDENTITY_LEN) == ':')) {
+              
+                    if(set_hname (&psip->pidURI, (offset - last_offset - PPREFERREDIDENTITY_LEN), tmp + PPREFERREDIDENTITY_LEN))
+                    {
+                        psip->hasPid = TRUE;
+                        /* extract user */
+                        getUser (&psip->paiUser, &psip->paiDomain, psip->pidURI.s, psip->pidURI.len);
+                    }              
+                    continue;
+                }
+                else if(customHeaderMatch != NULL && (*(tmp+customHeaderLen) == ':' && !strncmp(tmp,customHeaderMatch,customHeaderLen)))
+                {	
+                    if(set_hname (&psip->customHeader, (offset - last_offset - customHeaderLen), tmp + customHeaderLen))
+                    {
+                        psip->hasCustomHeader = TRUE;
+                    }
+                    continue;
+                }
+                else if (((*tmp == 'P' || *tmp == 'p')
+                          && (*(tmp + 2) == 'A' || *(tmp + 2) == 'a')
+                          && (*(tmp + 13) == 'i' || *(tmp + 13) == 'I')
+                          && *(tmp + PASSERTEDIDENTITY_LEN) == ':')) {
+
+                    if(set_hname (&psip->pidURI, (offset - last_offset - PASSERTEDIDENTITY_LEN), tmp + PASSERTEDIDENTITY_LEN))
+                    {
+                        psip->hasPid = TRUE;
+                        /* extract user */
+                        getUser (&psip->paiUser, &psip->paiDomain, psip->pidURI.s, psip->pidURI.len);
+                    }
+                    continue;
+                }
+            }      
+        }
+    }
+
+    return 1;
 }
 
 int
