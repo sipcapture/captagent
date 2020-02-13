@@ -15,7 +15,7 @@ sudo npm test
 
 #### Units
 ##### Initialization
-This suite will initialized the compiled agent and check it returns a version number.
+This suite will initialized the compiled agent and check various command options for the agent (`-v` `-a` `-c`).
 ```
 sudo mocha init.js
 ```
