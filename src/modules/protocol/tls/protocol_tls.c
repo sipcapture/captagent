@@ -4,8 +4,9 @@
  *  captagent - Homer capture agent. Modular
  *  Duplicate SIP messages in Homer Encapulate Protocol [HEP] [ipv6 version]
  *
+ *  Author: Michele Campus <michelecampus5@gmail.com>
  *  Author: Alexandr Dubovikov <alexandr.dubovikov@gmail.com>
- *  (C) QXIP BV 2012-2017 (http://qxip.net)
+ *  (C) QXIP BV 2012-2020 (http://qxip.net)
  *
  * Homer capture agent is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -64,7 +65,7 @@ pthread_rwlock_t ipport_lock;
 unsigned int profile_size   = 0;
 
 xml_node *module_xml_config = NULL;
-char *module_name           = "protocol_tcp";
+char *module_name           = "protocol_tls";
 uint64_t module_serial      = 0;
 char *module_description    = NULL;
 
