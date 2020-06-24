@@ -1482,6 +1482,7 @@ static int unload_module(void) {
 
 		if(sniffer_proto[i]) {
   		    pcap_breakloop(sniffer_proto[i]);
+  		    pthread_cancel(call_thread[i]);
   		    pthread_join(call_thread[i],NULL);
 		}
 
