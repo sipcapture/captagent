@@ -64,7 +64,7 @@
                 <param name="tcpdefrag" value="true"/>
                 <param name="capture-plan" value="diameter_capture_plan.cfg"/>
                 <param name="filter">
-                    <value>tcp port 3868</value>
+                    <value>port 3868</value>
                 </param>
             </settings>
         </profile>
