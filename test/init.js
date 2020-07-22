@@ -18,16 +18,16 @@ describe('CaptAgent Version', () => {
         process.on('exit', (code) => {
             exitCode = code;
             done();
-        })
-    })
+        });
+    });
     it('exit code should be zero', () => {
         assert.equal(exitCode, 0);
-    })
+    });
     it('should print version number', () => {
         assert.ok(output.length > 0);
         assert.ok(output.startsWith('version'));
-    })
-})
+    });
+});
 
 /*
  * Start Captagent, Check list of devices and exit
@@ -46,16 +46,16 @@ describe('CaptAgent -a option (List devices)', () => {
         process.on('exit', (code) => {                                                                                                                    
             exitCode = code;
             done();                                                                                                                                
-        })
-    })
+        });
+    });
     it('exit code should be zero', () => {
         assert.equal(exitCode, 0);
-    })
+    });
     it('should print the list of devices', () => {
         assert.ok(output.length > 0);
         assert.ok(output.startsWith('List'));
-    })
-})
+    });
+});
 
 /*
  * Start Captagent, Check configuration and exit 
@@ -75,13 +75,18 @@ describe('CaptAgent -c option (Check configuration and exit)', () => {
         process.on('exit', (code) => {                                                                                                                    
             exitCode = code;                                                                                                      
             done();                                                                                                                                
-        })
-    })
+        });
+    });
     it('exit code should be zero', () => {
         assert.equal(exitCode, 0);
-    })
+    });
     it('should load config file and exit', () => {
         assert.ok(output.length > 0);
         assert.ok(output.startsWith('[NOTICE]'));
-    })
-})
+    });
+});
+
+
+/*
+ * Start Captagent, Read test pcaps and exit
+ */
