@@ -209,7 +209,7 @@ unsigned int get_profile_index_by_name(char *name) {
 
 	unsigned int i = 0;
 
-	if(profile_size == 1 || name == NUL) return 0;
+	if(profile_size == 1 || name == NULL) return 0;
 
 	for (i = 0; i < profile_size; i++) {
 		if(!strncmp(name, profile_transport[i].name, strlen(name))) {
