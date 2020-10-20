@@ -197,7 +197,7 @@ profile_transport_t* get_profile_by_name(char *name) {
 	if(profile_size == 1 || name == NULL) return &profile_transport[0];
 
 	for (i = 0; i < profile_size; i++) {
-		if(!strncmp(name, profile_transport[i].name, strlen(name))) {
+		if(strlen(name) == strlen(profile_transport[i].name) && !strncmp(name, profile_transport[i].name, strlen(name))) {
 			return &profile_transport[i];
 		}
 	}
@@ -212,7 +212,7 @@ unsigned int get_profile_index_by_name(char *name) {
 	if(profile_size == 1 || name == NULL) return 0;
 
 	for (i = 0; i < profile_size; i++) {
-		if(!strncmp(name, profile_transport[i].name, strlen(name))) {
+		if(strlen(name) == strlen(profile_transport[i].name) && !strncmp(name, profile_transport[i].name, strlen(name))) {
 			return i;
 		}
 	}
