@@ -118,7 +118,7 @@ AC_MSG_RESULT([$EXTRAMODULES])
 AC_SUBST([EXTRAMODULES])
 
 dnl Set the compiler optimization level (default is -O2)
-#CFLAGS="-g -O0"
+#CFLAGS="-g3"
 
 CONFIG_CFLAGS="${CFLAGS}"
 CONFIG_LDFLAGS="${LDFLAGS}"

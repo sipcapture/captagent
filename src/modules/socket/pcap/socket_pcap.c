@@ -763,13 +763,16 @@ void callback_proto(u_char *arg, struct pcap_pkthdr *pkthdr, u_char *packet) {
         _msg.parse_it = 1;
 
         if(!profile_socket[profile_size].full_packet) {
-            if(profile_socket[0].filter) {
-                /* Check SIP */            
-                ret_check = check_port_filter(profile_socket[0].filter,
-                                              _msg.rcinfo.src_port,
-                                              _msg.rcinfo.dst_port);
-                if(ret_check == 0) {
-                    len = strip_fcs_end(data, len);
+            int r = strncmp(profile_socket[loc_index].name, "socketspcap_sip", strlen("socketspcap_sip"));
+            /* The following checks are only for SIP packet */
+            if(r == 0) {
+                if(profile_socket[loc_index].filter) {
+                    ret_check = check_port_filter(profile_socket[loc_index].filter,
+                                                  _msg.rcinfo.src_port,
+                                                  _msg.rcinfo.dst_port);
+                    if(ret_check == 0) {
+                        len = strip_fcs_end(data, len);
+                    }
                 }
             }
             _msg.data = data;
@@ -1713,16 +1716,13 @@ void proccess_packet(msg_t *_m, struct pcap_pkthdr *pkthdr, u_char *packet) {
     struct ip6_hdr *ip6_pkt = (struct ip6_hdr*)(packet + link_offset + hdr_offset);
     #endif
 
-	uint32_t ip_ver;
-	uint8_t ip_proto = 0;
-	uint32_t ip_hl = 0;
-	uint32_t ip_off = 0;
-	uint8_t fragmented = 0;
-	uint16_t frag_offset = 0;
-	char ip_src[INET6_ADDRSTRLEN + 1], ip_dst[INET6_ADDRSTRLEN + 1];
+    char ip_src[INET6_ADDRSTRLEN + 1], ip_dst[INET6_ADDRSTRLEN + 1];
 	char mac_src[20], mac_dst[20];
-	uint32_t len = pkthdr->caplen;
-	unsigned char *data = NULL;
+    unsigned char *data = NULL;
+	uint32_t ip_ver, ip_hl = 0, ip_off = 0;
+    uint32_t len = pkthdr->caplen;
+    uint16_t frag_offset = 0;
+	uint8_t ip_proto = 0, fragmented = 0;
 
 	ip_ver = ip4_pkt->ip_v;
 
