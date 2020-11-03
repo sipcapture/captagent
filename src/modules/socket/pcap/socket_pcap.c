@@ -731,9 +731,9 @@ void callback_proto(u_char *arg, struct pcap_pkthdr *pkthdr, u_char *packet) {
 
         data = (unsigned char *) (udp_pkt) + udphdr_offset;
 
-        _msg.hdr_len = link_offset + ip_hl + hdr_offset + udphdr_offset;
+        _msg.hdr_len = link_offset + ip_hl + hdr_offset + udphdr_offset + ipip_offset;
 
-        len -= link_offset + ip_hl + udphdr_offset + hdr_offset;
+        len -= link_offset + ip_hl + udphdr_offset + hdr_offset + ipip_offset;
 
         #if USE_IPv6
         /*if (ip_ver == 6) {
