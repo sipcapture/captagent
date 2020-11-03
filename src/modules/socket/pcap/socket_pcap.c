@@ -534,17 +534,17 @@ void callback_proto(u_char *arg, struct pcap_pkthdr *pkthdr, u_char *packet) {
          
          data = (unsigned char *) tcp_pkt + tcphdr_offset;
          
-         _msg.hdr_len = link_offset + hdr_offset + ip_hl + tcphdr_offset;
+         _msg.hdr_len = link_offset + hdr_offset + ip_hl + tcphdr_offset + ipip_offset;
          
-         len -= link_offset + hdr_offset + ip_hl + tcphdr_offset;
+         len -= link_offset + hdr_offset + ip_hl + tcphdr_offset + ipip_offset;
          
          stats.received_tcp_packets++;
          
          #if USE_IPv6
          /* if (ip_ver == 6)
             {
-            len -= ntohs(ip6_pkt->ip6_plen);
-            _msg.hdr_len += ntohs(ip6_pkt->ip6_plen);
+            len -= (ntohs(ip6_pkt->ip6_plen)) + ipip_offset;
+            _msg.hdr_len += (ntohs(ip6_pkt->ip6_plen)) + ipip_offset;
             }
          */
          #endif
