@@ -18,6 +18,7 @@ struct action{
 
 
 struct run_act_ctx{
+        int route_rec_lev;
         int rec_lev;
         int run_flags;
         int last_retcode; /* return from last route */
