@@ -156,12 +156,13 @@ error:
 /* ret= 0/1 (true/false) ,  -1 on error or EXPR_DROP (-127)  */
 int eval_expr(struct run_act_ctx* h, struct expr* e, msg_t* msg)
 {
-        static int rec_lev=0;
         int ret;
         
-        rec_lev++;
-        if (rec_lev>MAX_REC_LEV){
-                LERR("ERROR: eval_expr: too many expressions (%d)\n", rec_lev);
+        LDEBUG("EVAL_EXPR: [%d]->[%d]", h->route_rec_lev, h->rec_lev);
+
+        h->rec_lev++;
+        if (h->rec_lev>MAX_REC_LEV){
+                LERR("ERROR: eval_expr: too many expressions (%d)\n", h->rec_lev);
                 ret=-1;   
                 goto skip;
         }
@@ -197,7 +198,7 @@ int eval_expr(struct run_act_ctx* h, struct expr* e, msg_t* msg)
         }
 
 skip:
-        rec_lev--; 
+        h->rec_lev--;
         return ret;
 }
 
@@ -208,15 +209,14 @@ int run_actions(struct run_act_ctx* h, struct action* a, msg_t* msg)
 {
         struct action* t;
         int ret=E_UNSPEC;
-        //static int rec_lev=0;
         struct sr_module *mod;
 
-        //printf("RUN: [%d]", h->rec_lev);
+        LDEBUG("RUN: [%d]->[%d]", h->route_rec_lev, h->rec_lev);
 
-        h->rec_lev++;
-        if (h->rec_lev>ROUTE_MAX_REC_LEV){
+        h->route_rec_lev++;
+        if (h->route_rec_lev>ROUTE_MAX_REC_LEV){
                 printf("WARNING: too many recursive routing table lookups (%d)"
-                                        " giving up!\n", h->rec_lev);
+                                        " giving up!\n", h->route_rec_lev);
                 printf("WARNING: Action: type: (%d), Ret: (%d), p2_type: (%s), p3_type: (%s)\n", a->type, ret, (char *)a->p2.data, (char *)a->p3.data);                                
                                                                         
                 ret=E_UNSPEC;
@@ -225,7 +225,7 @@ int run_actions(struct run_act_ctx* h, struct action* a, msg_t* msg)
 
         if (a==0){
                 printf("WARNING: run_actions: null action list (rec_level=%d)\n",
-                        h->rec_lev);
+                        h->route_rec_lev);
                 ret=0;
         }
 
@@ -236,9 +236,9 @@ int run_actions(struct run_act_ctx* h, struct action* a, msg_t* msg)
                 //else if (ret<0){ ret=-1; goto error; }
         }
 
-        h->rec_lev--;
+        h->route_rec_lev--;
         /* process module onbreak handlers if present */
-        if (h->rec_lev==0 && ret==0)
+        if (h->route_rec_lev==0 && ret==0)
                 for (mod=modules;mod;mod=mod->next)
                         if (mod->exports && mod->exports->onbreak_f) {
                                 mod->exports->onbreak_f( msg );
@@ -248,7 +248,7 @@ int run_actions(struct run_act_ctx* h, struct action* a, msg_t* msg)
 
 
 error:
-        h->rec_lev--;
+        h->route_rec_lev--;
         return ret;
 }
 
