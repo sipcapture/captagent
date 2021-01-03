@@ -405,8 +405,8 @@ void callback_proto(u_char *arg, struct pcap_pkthdr *pkthdr, u_char *packet) {
     if (eth) {
         snprintf(mac_src, sizeof(mac_src), "%.2X-%.2X-%.2X-%.2X-%.2X-%.2X", eth->ether_shost[0], eth->ether_shost[1], eth->ether_shost[2], eth->ether_shost[3], eth->ether_shost[4], eth->ether_shost[5]);
         snprintf(mac_dst, sizeof(mac_dst), "%.2X-%.2X-%.2X-%.2X-%.2X-%.2X", eth->ether_dhost[0], eth->ether_dhost[1], eth->ether_dhost[2], eth->ether_dhost[3], eth->ether_dhost[4], eth->ether_dhost[5]);
-        if(vlan == 0) {
-            // IP TYPE = 0x86dd (IPv6) or 0x0800 (IPv4)
+        if(vlan == 0 || vlan == 2) {
+            // IP TYPE = 0x86dd (IPv6) or 0x0800 (IPv4) or (0x8100 VLAN)
             type_ip = ntohs(eth->ether_type);
         }
     }
@@ -422,7 +422,7 @@ void callback_proto(u_char *arg, struct pcap_pkthdr *pkthdr, u_char *packet) {
     /** IP LAYER **/
     
  ip_hdr_parse:
-    if(type_ip == ETHERTYPE_IP) {
+    if(type_ip == ETHERTYPE_IP || type_ip == ETHERTYPE_VLAN) {
         ip4_pkt = (struct ip *)(packet + link_offset + hdr_offset + ipip_offset);
     } else {
         #if USE_IPv6
