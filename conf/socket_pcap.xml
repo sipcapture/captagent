@@ -8,12 +8,29 @@
 		<param name="reasm" value="false"/>
 		<param name="websocket-detection" value="false"/>
 		<param name="tcpdefrag" value="false"/>
+	        <!-- <param name="capture-filter" value="ip_to_ip"/> -->
 		<param name="capture-plan" value="sip_capture_plan.cfg"/>
 		<param name="filter">
 		    <value>port 5060</value>
 		</param>
 	    </settings>
 	</profile>
+	<profile name="socketspcap_rtcp" description="RTCP Socket" enable="true" serial="2014010402">
+            <settings>
+                <param name="dev" value="any"/>
+                <param name="promisc" value="true"/>
+                <param name="reasm" value="false"/>
+                <!-- size in MB -->
+                <param name="ring-buffer" value="20"/>
+                <!-- for rtp && rtcp < 250 -->
+                <param name="snap-len" value="256"/>
+                <param name="capture-filter" value="rtcp"/>
+                <param name="capture-plan" value="rtcp_capture_plan.cfg"/>
+                <param name="filter">
+                    <value>portrange 10000-30000 and len >=50 </value>
+                </param>
+            </settings>
+        </profile>
 	<profile name="socketspcap_tls" description="TLS Socket" enable="false" serial="2014010402">
 	    <settings>
 		<param name="dev" value="any"/>
@@ -40,22 +57,6 @@
                 </param>
             </settings>
         </profile>
-	<profile name="socketspcap_rtcp" description="RTCP Socket" enable="true" serial="2014010402">
-	    <settings>
-		<param name="dev" value="any"/>
-		<param name="promisc" value="true"/>
-		<param name="reasm" value="false"/>
-		<!-- size in MB -->
-		<param name="ring-buffer" value="20"/>
-		<!-- for rtp && rtcp < 250 -->
-		<param name="snap-len" value="256"/>
-		<param name="capture-filter" value="rtcp"/>
-		<param name="capture-plan" value="rtcp_capture_plan.cfg"/>
-		<param name="filter">
-		    <value>portrange 10000-30000 and len >=50 </value>
-		</param>
-	    </settings>
-	</profile>
 	<profile name="socketspcap_diameter" description="DIAMETER Socket" enable="false" serial="2014010402">
             <settings>
                 <param name="dev" value="any"/>
