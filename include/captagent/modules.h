@@ -27,7 +27,7 @@
 #ifndef MODULES_H_
 #define MODULES_H_
 
-char *module_path;
+extern char *module_path;
 
 #define VAR_PARAM_NO  -128
 

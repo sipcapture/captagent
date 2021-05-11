@@ -79,8 +79,6 @@ struct sr_module{
         struct sr_module* next;
 };
 
-struct sr_module* modules; /* global module list */
-
 int register_builtin_modules();
 int load_module(char* path);
 cmd_function find_export2(char* name, int param_no);

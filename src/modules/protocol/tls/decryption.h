@@ -68,11 +68,6 @@ int private_decrypt(unsigned char * enc_data, int data_len, unsigned char * key,
 
 /* **************************** */
 
-#ifdef __GNUC__
-/* GNU C */
-#define PACK_OFF __attribute__ ((__packed__));
-#endif
-
 
 /* ++++++++++++++++++++++++ CISCO HDLC +++++++++++++++++++++++++ */
 struct chdlc_hdr
