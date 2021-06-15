@@ -57,6 +57,9 @@
 #define ROUTE_MAX_REC_LEV 10 /* maximum number of recursive calls
                                                            for capture()*/
 
+struct sr_module* modules; /* global module list */
+
+
 /* ret= 0! if action -> end of list(e.g DROP),
       > 0 to continue processing next actions
    and <0 on error */

@@ -2,6 +2,7 @@ INSTALL
 Makefile
 Makefile.in
 aclocal.m4
+compile
 config.guess
 src/config.h
 src/config.h.in
@@ -45,5 +46,6 @@ pkg/debian/files
 pkg/debian/captagent/
 pkg/debian/captagent.init
 src/captagent
+src/capplan.tab.c
 *.dh-orig
 

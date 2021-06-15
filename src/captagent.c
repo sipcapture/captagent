@@ -321,8 +321,6 @@ int main(int argc, char *argv[]) {
 	/* PATH */
 	module_path = MODULE_DIR;
 
-	hepmod = malloc(sizeof(hep_module_t));
-
 	load_xml_config();
 
 	/*CORE CONFIG */
