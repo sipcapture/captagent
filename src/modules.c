@@ -40,6 +40,9 @@
 #include <captagent/modules_api.h>
 #include <captagent/modules.h>
 
+struct module *module_list;
+char *module_path;
+
 int register_module(char *resource_name, xml_node *config, bool global) {
 	const char *error;
 	module_exports_t *exp;
