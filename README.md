@@ -29,6 +29,8 @@ Setup & Configuration instructions are available on the Project [Wiki](https://g
 ### Support
 If you found a bug or issue with the code, please raise an Issue on the project tracker.
 
+If you want to send a PR, please make sure to indent your code using our [format script](https://github.com/sipcapture/captagent/blob/dev/format_code.sh)
+
 If you have specific questions or require professional support please contact us at support@sipcapture.org
 
 ![HomerFlow](http://i.imgur.com/U7UBI.png)
