@@ -5,7 +5,7 @@
  *  Duplicate SIP messages in Homer Encapulate Protocol [HEP] [ipv6 version]
  *
  *  Author: Alexandr Dubovikov <alexandr.dubovikov@gmail.com>
- *  (C) Homer Project 2012-2014 (http://www.sipcapture.org)
+ *  (C) Homer Project 2012-2021 (http://www.sipcapture.org)
  *
  * Homer capture agent is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -38,11 +38,11 @@ int check_rtcp_version (char *packet, int len) {
       LERR("wrong version\n");
       return -2;
     }
-	
+
   if(rtcp->type >= RTCP_SR && rtcp->type <= RTCP_SDES) {
     return 1;
   }
-  
+
   return -3;
 }
 
@@ -74,15 +74,20 @@ int capt_parse_rtcp(char *packet, int len, char *json_buffer, int buffer_len) {
 
   int pno = 0, total = len;
   LDEBUG("Parsing compound packet (total of %d bytes)\n", total);
-  
+
   while(rtcp) {
 
     pno++;
-    
+
     switch(rtcp->type) {
 
       /* SR, sender report */
     case RTCP_SR: {
+
+        if(len < 28) {
+            LERR("Malformed SR RTCP - min len must be 28 bytes");
+            return -1;
+        }
 
       LDEBUG("#%d SR (200)\n", pno);
       rtcp_sr_t *sr = (rtcp_sr_t*)rtcp;
@@ -95,6 +100,11 @@ int capt_parse_rtcp(char *packet, int len, char *json_buffer, int buffer_len) {
 		      sender_info_get_packet_count(&sr->si));
 
       if(sr->header.rc > 0) {
+
+          if(len < 52) {
+              LERR("Malformed SR RTCP");
+              return -1;
+          }
 
 	ret += snprintf(json_buffer+ret, buffer_len - ret, REPORT_BLOCK_JSON,
 			ntohl(sr->ssrc), rtcp->type,
@@ -110,11 +120,21 @@ int capt_parse_rtcp(char *packet, int len, char *json_buffer, int buffer_len) {
     }
       /* RR, receiver report */
     case RTCP_RR: {
-      
+
+        if(len < 8) {
+            LERR("Malformed RR RTCP - min len must be 8 bytes");
+            return -1;
+        }
+
       LDEBUG("#%d RR (201)\n", pno);
       rtcp_rr_t *rr = (rtcp_rr_t*)rtcp;
 
       if(rr->header.rc > 0) {
+
+          if(len < 32) {
+              LERR("Malformed RR RTCP");
+              return -1;
+          }
 
 	ret += snprintf(json_buffer+ret, buffer_len - ret, REPORT_BLOCK_JSON,
 			ntohl(rr->ssrc),
@@ -133,7 +153,7 @@ int capt_parse_rtcp(char *packet, int len, char *json_buffer, int buffer_len) {
     case RTCP_SDES: {
 
       LDEBUG("#%d SDES (202)\n", pno);
-      
+
       /* if not needed send sdes */
       if(!send_sdes) break;
 
@@ -167,7 +187,7 @@ int capt_parse_rtcp(char *packet, int len, char *json_buffer, int buffer_len) {
     }
       /* BYE, Goodbye */
     case RTCP_BYE: {
-      
+
       LDEBUG("#%d BYE (203)\n", pno);
       flag = 1;
       //rtcp_bye_t *bye = (rtcp_bye_t*)rtcp;
@@ -175,13 +195,13 @@ int capt_parse_rtcp(char *packet, int len, char *json_buffer, int buffer_len) {
     }
       /* APP, Application-defined */
     case RTCP_APP: {
-      
+
       LDEBUG("#%d APP (204)\n", pno);
       flag = 1;
       //rtcp_app_t *app = (rtcp_app_t*)rtcp;
       break;
     }
-      
+
     default:
       break;
     }
@@ -190,16 +210,16 @@ int capt_parse_rtcp(char *packet, int len, char *json_buffer, int buffer_len) {
     if(length == 0) {
       break;
     }
-    
+
     total -= length*4+4;
     if(total <= 0) {
       LDEBUG("End of RTCP packet\n");
       break;
     }
-    
+
     rtcp = (rtcp_header_t *)((uint32_t*)rtcp + length + 1);
   }
-  
+
   /* Bad parsed message or BYE/APP packet */
   if(ret < 10) {
     if(flag == 0) // BAD PARSING
@@ -207,10 +227,10 @@ int capt_parse_rtcp(char *packet, int len, char *json_buffer, int buffer_len) {
     // else: BYE or APP packet
     return 0;
   }
-  
+
   /* replace last comma */
   json_buffer[ret-1]='}';
-  
+
   //ret += snprintf(json_buffer + ret - 1, buffer_len - ret + 1, "}");
 
   return ret;
