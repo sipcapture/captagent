@@ -43,6 +43,13 @@
 
 #include "config.h"
 
+#ifdef __GNUC__
+/* GNU C */
+#define PACK_OFF __attribute__ ((__packed__));
+#else
+#define PACK_OFF
+#endif
+
 #ifndef AGENT_CONFIG_DIR
 #define AGENT_CONFIG_DIR "/usr/local/etc/captagent/"
 #endif //DEF_CONF
@@ -120,9 +127,8 @@ typedef struct stats_object {
 
 extern struct stats_object stats_obj;
 
-struct hep_module *hepmod;
 extern int get_basestat(char *module, char *stats, size_t len);
-struct module *module_list;
+extern struct module *module_list;
 
 #ifndef TRUE
 #define TRUE  1
