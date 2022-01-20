@@ -108,6 +108,21 @@ void handler(int value) {
 	exit(0);
 }
 
+void usage(int8_t e)
+{
+	printf(
+        "usage: Captagent <-vh> <-f config>\n"
+        "   -h  display help/usage\n"
+        "   -a  print a list of all availlable devices\n"
+        "   -v  display version information\n"
+        "   -c  validate configuration and exit\n"
+        "   -d  enable daemon mode\n"
+        "   -n  enable foreground mode\n"
+        "   -f  [/path/to/rtpagent.xml] to specify a config file\n"
+        "   -D  [/path/to/file.pcap] to specify a pcap file as input\n"
+        "   -x  [1 - 10] set debug level\n");
+	exit(e);
+}
 
 // Print the list of availlable devices
 static void print_all_devices()
@@ -228,22 +243,6 @@ int daemonize(int nofork)
 
 	return 0;
 	error: return -1;
-}
-
-void usage(int8_t e)
-{
-	printf(
-        "usage: Captagent <-vh> <-f config>\n"
-        "   -h  display help/usage\n"
-        "   -a  print a list of all availlable devices\n"
-        "   -v  display version information\n"
-        "   -c  validate configuration and exit\n"
-        "   -d  enable daemon mode\n"
-        "   -n  enable foreground mode\n"
-        "   -f  [/path/to/rtpagent.xml] to specify a config file\n"
-        "   -D  [/path/to/file.pcap] to specify a pcap file as input\n"
-        "   -x  [1 - 10] set debug level\n");
-	exit(e);
 }
 
 void print_hw() {
