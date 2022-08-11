@@ -190,11 +190,11 @@ int reload_config(char *erbuf, int erlen) {
    @return 0 if port matched; -1 if port NOT matched
  **/
 static int check_port_filter(char *filter, int port_arg1, int port_arg2) {
-    
+
     char port_str[10], port_str_1[10], port_str_2[10];
     int len1, ret, port = 0, portrange = 0;
     char *space, *dash, *p, *end;
-    
+
     len1 = strlen(filter);
     end = filter+len1-1;
 
@@ -210,12 +210,12 @@ static int check_port_filter(char *filter, int port_arg1, int port_arg2) {
             return -1;
         }
     }
-    
+
     space = strchr(filter, ' ');
     filter = space + 1;
     memcpy(port_str, filter, end - filter + 1);
-    
-    if(port == 1) { /* Extract port */       
+
+    if(port == 1) { /* Extract port */
         int port_int = atoi(port_str);
         if(port_int == port_arg1 || port_int == port_arg2) {
             LDEBUG("Port match!\n");
@@ -224,16 +224,16 @@ static int check_port_filter(char *filter, int port_arg1, int port_arg2) {
             LDEBUG("Port does not match: [%d] vs [%d][%d]\n", port_int, port_arg1, port_arg2);
             ret = -1;
         }
-        
-    } else if(portrange == 1) { /* Extract portrange */        
-        
+
+    } else if(portrange == 1) { /* Extract portrange */
+
         dash = strchr(filter, '-');
         memcpy(port_str_1, filter, dash - filter + 1);
         int port_int_1 = atoi(port_str_1);
         filter = dash + 1;
         memcpy(port_str_2, filter, end - filter + 1);
         int port_int_2 = atoi(port_str_2);
-        
+
         if((port_arg1 >= port_int_1 && port_arg1 <= port_int_2) ||
            (port_arg2 >= port_int_1 && port_arg2 <= port_int_2)) {
             LDEBUG("Port match!\n");
@@ -243,7 +243,7 @@ static int check_port_filter(char *filter, int port_arg1, int port_arg2) {
             ret = -1;
         }
     }
-    
+
     return ret;
 }
 
@@ -255,10 +255,10 @@ static int check_port_filter(char *filter, int port_arg1, int port_arg2) {
    @return the new len of payload stripped
 **/
 static int strip_fcs_end(unsigned char *data, int len) {
-    
+
     if(data == NULL || len == 0)
         return 0;
-    
+
     do {
         if((data[len-1] == 0x0a && data[len-2] == 0x0d) ||
            data[len-1] == 0x0d) {
@@ -295,7 +295,7 @@ void callback_proto(u_char *arg, struct pcap_pkthdr *pkthdr, u_char *packet) {
     uint32_t ip_ver;
     int ipip_offset = 0, vlan_count = 0, action_idx = 0;
     uint16_t type_ip = 0;
-    uint8_t hdr_preset = 0, hdr_offset = 0, vlan = 0;          
+    uint8_t hdr_preset = 0, hdr_offset = 0, vlan = 0;
     uint8_t ip_proto = 0, erspan_offset = 0;
     uint8_t tmp_ip_proto = 0, tmp_ip_len = 0;
 
@@ -313,9 +313,9 @@ void callback_proto(u_char *arg, struct pcap_pkthdr *pkthdr, u_char *packet) {
     if(profile_socket[loc_index].erspan == 1) {
         u_char *tmp_pkt = packet;
         memcpy(&tmp_ip_proto, (packet + ETHHDR_SIZE + IPPROTO_OFFSET), 1);
-        if(tmp_ip_proto == GRE_PROTO) {            
+        if(tmp_ip_proto == GRE_PROTO) {
             memcpy(&tmp_ip_len, (packet + ETHHDR_SIZE), 1);
-            tmp_ip_len = (tmp_ip_len & IPLEN_MASK) * 4; // LSB 4 bits: lenght in 32-bit words            
+            tmp_ip_len = (tmp_ip_len & IPLEN_MASK) * 4; // LSB 4 bits: lenght in 32-bit words
             tmp_pkt = tmp_pkt + ETHHDR_SIZE + tmp_ip_len + 2; // GRE Protocol_type field for ERSPAN version
 
             if(tmp_pkt[0] == 0x88 && tmp_pkt[1] == 0xbe) {
@@ -336,7 +336,7 @@ void callback_proto(u_char *arg, struct pcap_pkthdr *pkthdr, u_char *packet) {
 
         snprintf(mac_src, sizeof(mac_src), "00-01-02-03-04-05");
         snprintf(mac_dst, sizeof(mac_dst), "05-04-03-02-01-00");
-        
+
         snprintf(ip_src, sizeof(ip_src), "127.0.0.1");
         snprintf(ip_dst, sizeof(ip_dst), "127.0.0.2");
 
@@ -344,7 +344,7 @@ void callback_proto(u_char *arg, struct pcap_pkthdr *pkthdr, u_char *packet) {
         memset(&ctx, 0, sizeof(struct run_act_ctx));
 
         _msg.cap_packet = (void *) packet;
-        _msg.cap_header = (void *) pkthdr;        
+        _msg.cap_header = (void *) pkthdr;
         _msg.hdr_len = link_offset;
         _msg.rcinfo.src_ip = ip_src;
         _msg.rcinfo.dst_ip = ip_dst;
@@ -360,23 +360,23 @@ void callback_proto(u_char *arg, struct pcap_pkthdr *pkthdr, u_char *packet) {
 
         _msg.len = pkthdr->len;
         _msg.data = packet;
-        
+
         action_idx = profile_socket[loc_index].action;
         run_actions(&ctx, main_ct.clist[action_idx], &_msg);
-        
+
         return;
     }
 
     /** DATALINK LAYER **/
-       
+
     /* NOTE:
      *       This code needs an improvment because this is not the correct way to do it:
-     *       should be like: 
-     *       ------------------------------------------------------------------- 
-     *       uint16_t cooked; 
-     *       cooked = ntohs(*(uint16_t*)(packet + link_offset + IPV4_SIZE + 2)); 
+     *       should be like:
      *       -------------------------------------------------------------------
-     */    
+     *       uint16_t cooked;
+     *       cooked = ntohs(*(uint16_t*)(packet + link_offset + IPV4_SIZE + 2));
+     *       -------------------------------------------------------------------
+     */
     memcpy(&cooked, (packet + link_offset + IPV4_SIZE + 2), 2);
     memcpy(&ethaddr, (packet + 12), 2);
     memcpy(&mplsaddr, (packet + 16), 2);
@@ -420,7 +420,7 @@ void callback_proto(u_char *arg, struct pcap_pkthdr *pkthdr, u_char *packet) {
     }
 
     /** IP LAYER **/
-    
+
  ip_hdr_parse:
     if(type_ip == ETHERTYPE_IP || type_ip == ETHERTYPE_VLAN) {
         ip4_pkt = (struct ip *)(packet + link_offset + hdr_offset + ipip_offset);
@@ -464,7 +464,7 @@ void callback_proto(u_char *arg, struct pcap_pkthdr *pkthdr, u_char *packet) {
     }
 
     ip_ver = ip4_pkt->ip_v;
-    
+
     memset(&_msg, 0, sizeof(msg_t));
     memset(&ctx, 0, sizeof(struct run_act_ctx));
 
@@ -482,64 +482,64 @@ void callback_proto(u_char *arg, struct pcap_pkthdr *pkthdr, u_char *packet) {
          #endif
          ip_proto = ip4_pkt->ip_p;
          ip_off = ntohs(ip4_pkt->ip_off);
-         
+
          fragmented = ip_off & (IP_MF | IP_OFFMASK);
          frag_offset = (fragmented) ? (ip_off & IP_OFFMASK) * 8 : 0;
          //frag_id = ntohs(ip4_pkt->ip_id);
-         
+
          inet_ntop(AF_INET, (const void *) &ip4_pkt->ip_src, ip_src, sizeof(ip_src));
          inet_ntop(AF_INET, (const void *) &ip4_pkt->ip_dst, ip_dst, sizeof(ip_dst));
      }
          break;
-         
+
          #if USE_IPv6
      case 6: {
          ip_hl = sizeof(struct ip6_hdr);
          ip_proto = ip6_pkt->ip6_nxt;
-         
+
          if (ip_proto == IPPROTO_FRAGMENT) {
              struct ip6_frag *ip6_fraghdr;
-             
+
              ip6_fraghdr = (struct ip6_frag *)((unsigned char *)(ip6_pkt) + ip_hl);
              ip_hl += sizeof(struct ip6_frag);
              ip_proto = ip6_fraghdr->ip6f_nxt;
-             
+
              fragmented = 1;
              frag_offset = ntohs(ip6_fraghdr->ip6f_offlg & IP6F_OFF_MASK);
              //frag_id = ntohl(ip6_fraghdr->ip6f_ident);
          }
-         
+
          inet_ntop(AF_INET6, (const void *)&ip6_pkt->ip6_src, ip_src, sizeof(ip_src));
          inet_ntop(AF_INET6, (const void *)&ip6_pkt->ip6_dst, ip_dst, sizeof(ip_dst));
      }
          break;
          #endif
     }
-    
+
     // check IP-to-IP tunnel
     if(ip_proto == 0x04) {
         LDEBUG("IP-to-IP tunnel detected -> parsing inner IP");
         ipip_offset = IPV4_SIZE;
         goto ip_hdr_parse;
     }
-    
+
     switch (ip_proto) {
 
      case IPPROTO_TCP: {
-         
+
          struct tcphdr *tcp_pkt = (struct tcphdr *) ((unsigned char *) (ip4_pkt) + ip_hl);
-         
+
          //uint16_t tcphdr_offset = (frag_offset) ? 0 : (tcp_pkt->th_off * 4);
          uint16_t tcphdr_offset = frag_offset ? 0 : (uint16_t) (tcp_pkt->th_off * 4);
-         
+
          data = (unsigned char *) tcp_pkt + tcphdr_offset;
-         
+
          _msg.hdr_len = link_offset + hdr_offset + ip_hl + tcphdr_offset + ipip_offset;
-         
+
          len -= link_offset + hdr_offset + ip_hl + tcphdr_offset + ipip_offset;
-         
+
          stats.received_tcp_packets++;
-         
+
          #if USE_IPv6
          /* if (ip_ver == 6)
             {
@@ -548,69 +548,69 @@ void callback_proto(u_char *arg, struct pcap_pkthdr *pkthdr, u_char *packet) {
             }
          */
          #endif
-         
+
          if ((int32_t) len < 0)
              len = 0;
-         
+
          /******************* Check for Websocket layer (skip it) **************************/
          int webLen = link_offset + hdr_offset + ip_hl + tcphdr_offset;
          uint8_t *p_websock = packet + webLen;
-         
+
         if(tcpreasm[loc_index] != NULL &&  (len > 0) && (tcp_pkt->th_flags & TH_ACK)) {
-            
+
             unsigned new_len;
             u_char *new_p_2 = malloc(len + 10);
             memcpy(new_p_2, data, len);
-            
+
             if ((tcp_pkt->th_flags & TH_PUSH))
                 psh = 1;
-            
+
             if (debug_socket_pcap_enable)
                 LDEBUG("DEFRAG TCP process: LEN:[%d], ACK:[%d], PSH[%d]\n", len, (tcp_pkt->th_flags & TH_ACK), psh);
-            
+
             datatcp = tcpreasm_ip_next_tcp(tcpreasm[loc_index], new_p_2, len,
                                            (tcpreasm_time_t) 1000000UL * pkthdr->ts.tv_sec + pkthdr->ts.tv_usec, &new_len,
                                            &ip4_pkt->ip_src, &ip4_pkt->ip_dst, ntohs(tcp_pkt->th_sport),
                                            ntohs(tcp_pkt->th_dport), psh);
-            
-            if (datatcp == NULL) {                    
+
+            if (datatcp == NULL) {
                 return;
             }
-            
+
             len = new_len;
-            
+
             if (debug_socket_pcap_enable) {
                 LDEBUG("COMPLETE TCP DEFRAG: LEN[%d], PACKET:[%s]\n", len, datatcp);
             }
-            
+
             /* check websocket */
             if(websocket_detection == 1)
             {
-                p_websock = datatcp;                            
+                p_websock = datatcp;
                 char decoded[3000];
                 memset(decoded, 0, 3000);
                 if(!websocket_header_detection(p_websock, webLen, datatcp, pkthdr->len))
                 {
-                    /* clear datatcp */         
+                    /* clear datatcp */
                     if(datatcp)
                         free(datatcp);
                     goto error;
                 }
                 /* next position for websock */
                 p_websock++;
-            }                                
-            
+            }
+
             // Full packet
             if (!profile_socket[profile_size].full_packet) {
-                
+
                 _msg.len = len;
-                
+
                 if( websocket_detection == 1) {
                     char decoded[3000];
                     memset(decoded, 0, 3000);
                     if(!websocket_pre_decode(p_websock, decoded, &_msg)) {
                         _msg.data = sll ?  packet + _msg.hdr_len : datatcp;
-                    }                    
+                    }
                 } else {
                     _msg.data = sll ?  packet + _msg.hdr_len : datatcp;
                 }
@@ -618,17 +618,17 @@ void callback_proto(u_char *arg, struct pcap_pkthdr *pkthdr, u_char *packet) {
             // Not full packet
             else {
                 _msg.len = len;
-                if(websocket_detection == 1) {   
+                if(websocket_detection == 1) {
                     char decoded[3000];
                     memset(decoded, 0, 3000);
                     if(!websocket_pre_decode(p_websock, decoded, &_msg)) {
                         _msg.data = sll ?  packet + _msg.hdr_len : datatcp;
-                    }   
+                    }
                 } else {
                     _msg.data = sll ?  packet + _msg.hdr_len : datatcp;
                 }
             }
-            
+
             _msg.rcinfo.src_mac = mac_src;
             _msg.rcinfo.dst_mac = mac_dst;
             _msg.rcinfo.src_ip = ip_src;
@@ -641,7 +641,7 @@ void callback_proto(u_char *arg, struct pcap_pkthdr *pkthdr, u_char *packet) {
             _msg.rcinfo.time_usec = pkthdr->ts.tv_usec;
             _msg.tcpflag = tcp_pkt->th_flags;
             _msg.parse_it = 1;
-            
+
             if(ipindex) {
                 /* src */
                 check_ip_data(_msg.rcinfo.src_ip, &_msg.rcinfo.src_port);
@@ -652,29 +652,29 @@ void callback_proto(u_char *arg, struct pcap_pkthdr *pkthdr, u_char *packet) {
             action_idx = profile_socket[loc_index].action;
             run_actions(&ctx, main_ct.clist[action_idx], &_msg);
 
-            /* clear datatcp */                                
+            /* clear datatcp */
             free(datatcp);
         } else {
-            /* detect websocket */            
+            /* detect websocket */
             if(websocket_detection == 1) {
                 if(!websocket_header_detection(p_websock, webLen, data, pkthdr->len)) {
-                    /* clear datatcp */         
+                    /* clear datatcp */
                     goto error;
                 }
                 /* next position for websock */
                 p_websock++;
-            }                         
+            }
             // full packet
             if (!profile_socket[profile_size].full_packet) {
 
                 _msg.len = len;
-                    
+
                 if(websocket_detection == 1) {
                     char decoded[3000];
                     memset(decoded, 0, 3000);
-                    if(!websocket_pre_decode(p_websock, decoded, &_msg)) {                        
+                    if(!websocket_pre_decode(p_websock, decoded, &_msg)) {
                         _msg.data = data;
-                    }                    
+                    }
                 } else {
                     _msg.data = data;
                 }
@@ -683,18 +683,18 @@ void callback_proto(u_char *arg, struct pcap_pkthdr *pkthdr, u_char *packet) {
             else {
 
                 _msg.len = pkthdr->caplen - link_offset - hdr_offset;
-                   
+
                 if(websocket_detection == 1) {
                     char decoded[3000];
                     memset(decoded, 0, 3000);
                     if(!websocket_pre_decode(p_websock, decoded, &_msg)) {
                         _msg.data = (packet + link_offset + hdr_offset);
-                    }   
+                    }
                 } else {
                     _msg.data = data;
-                }                   
+                }
             }
-                
+
             _msg.rcinfo.src_mac = mac_src;
             _msg.rcinfo.dst_mac = mac_dst;
             _msg.rcinfo.src_ip = ip_src;
@@ -718,7 +718,7 @@ void callback_proto(u_char *arg, struct pcap_pkthdr *pkthdr, u_char *packet) {
             action_idx = profile_socket[loc_index].action;
             run_actions(&ctx, main_ct.clist[action_idx], &_msg);
 
-            stats.send_packets++;            
+            stats.send_packets++;
         }
      }
          break;
@@ -726,7 +726,7 @@ void callback_proto(u_char *arg, struct pcap_pkthdr *pkthdr, u_char *packet) {
      case IPPROTO_UDP: {
 
         struct udphdr *udp_pkt = (struct udphdr *) ((unsigned char *) (ip4_pkt) + ip_hl);
-        uint16_t udphdr_offset = (frag_offset) ? 0 : sizeof(*udp_pkt);        
+        uint16_t udphdr_offset = (frag_offset) ? 0 : sizeof(*udp_pkt);
         int ret_check;
 
         data = (unsigned char *) (udp_pkt) + udphdr_offset;
@@ -763,23 +763,25 @@ void callback_proto(u_char *arg, struct pcap_pkthdr *pkthdr, u_char *packet) {
         _msg.parse_it = 1;
 
         if(!profile_socket[profile_size].full_packet) {
-            int r = strncmp(profile_socket[loc_index].name, "socketspcap_sip", strlen("socketspcap_sip"));
-            /* The following checks are only for SIP packet */
-            if(r == 0) {
-                if(profile_socket[loc_index].filter) {
-                    ret_check = check_port_filter(profile_socket[loc_index].filter,
-                                                  _msg.rcinfo.src_port,
-                                                  _msg.rcinfo.dst_port);
-                    if(ret_check == 0) {
-                        len = strip_fcs_end(data, len);
-                    }
-                }
-            }
+
+            /* int r = strncmp(profile_socket[loc_index].name, "socketspcap_sip", strlen("socketspcap_sip")); */
+            /* /\* The following checks are only for SIP packet *\/ */
+            /* if(r == 0) { */
+            /*     if(profile_socket[loc_index].filter) { */
+            /*         ret_check = check_port_filter(profile_socket[loc_index].filter, */
+            /*                                       _msg.rcinfo.src_port, */
+            /*                                       _msg.rcinfo.dst_port); */
+            /*         if(ret_check == 0) { */
+            /*             len = strip_fcs_end(data, len); */
+            /*         } */
+            /*     } */
+            /* } */
+
             _msg.data = data;
             _msg.len = len;
         } else {
             _msg.len = pkthdr->caplen - link_offset - hdr_offset;
-            _msg.data = (packet + link_offset + hdr_offset);              
+            _msg.data = (packet + link_offset + hdr_offset);
         }
 
 
@@ -878,7 +880,7 @@ void callback_proto(u_char *arg, struct pcap_pkthdr *pkthdr, u_char *packet) {
         stats.send_packets++;
      }
          break;
-        
+
     default:
         break;
     }
@@ -897,7 +899,7 @@ bool websocket_header_detection(uint8_t *p_websock, uint32_t posLen, unsigned ch
        Mask 7   to get the 1st most-significant bit (fin check)
        Mask 0xF to get the 4 less-significant bit (opcode check)
     **/
-    
+
     if ((((*p_websock >> 7) & 1) == 1) && (((*p_websock & 0xF) == 0x01) || ((*p_websock & 0xF) == 0x02))) {
 
         /* TCP without payload */
@@ -913,19 +915,19 @@ bool websocket_header_detection(uint8_t *p_websock, uint32_t posLen, unsigned ch
 
         LDEBUG("websocket detected\r\n");
         return TRUE;
-                
-    }   // websocket-detection 
-    
-    
+
+    }   // websocket-detection
+
+
     return FALSE;
 }
 
 bool websocket_pre_decode(uint8_t *p_websock, uint8_t *decoded,  msg_t *_msg) {
-    
+
     LDEBUG("WEBSOCKET layer found!\n");
     int skip = 0, ws_len = 0, ret;
     uint8_t mask_key[4] = { 0 };
-        
+
     if (((*p_websock >> 7) & 1) == 0) { // check the MASK bit
         LDEBUG("NULL websocket present\n");
         ws_len = 4;
@@ -954,15 +956,15 @@ bool websocket_pre_decode(uint8_t *p_websock, uint8_t *decoded,  msg_t *_msg) {
             websocket_decode(decoded, p_websock, skip, mask_key);
         }
     }
-        
+
     if (ws_len > 0) {
-        
+
         ret = strncmp(decoded, "", 1);
         _msg->data = (ret != 0) ? decoded : p_websock;
         _msg->len -= ws_len;
         return TRUE;
-    }        
-                
+    }
+
     return FALSE;
 }
 
@@ -1023,11 +1025,11 @@ int init_socket(unsigned int loc_idx) {
 
 	/* create filter string */
 	if(profile_socket[loc_idx].filter && strlen(profile_socket[loc_idx].filter) > 0) {
-        
+
 		len += snprintf(filter_expr+len, sizeof(filter_expr)-len, "(%s)", profile_socket[loc_idx].filter);
-        
+
 		if(user_data[loc_idx].ipv4fragments || user_data[loc_idx].ipv6fragments) {
-            
+
 			if (user_data[loc_idx].ipv4fragments) {
 				LDEBUG("Reassembling of IPv4 packets is enabled, adding '%s' to filter", BPF_DEFRAGMENTION_FILTER_IPV4);
 				len += snprintf(filter_expr+len, sizeof(filter_expr), " or %s", BPF_DEFRAGMENTION_FILTER_IPV4);
@@ -1042,7 +1044,7 @@ int init_socket(unsigned int loc_idx) {
 	if(profile_socket[loc_idx].capture_filter) {
 
         // Normal RTCP
-		if(!strncmp(profile_socket[loc_idx].capture_filter, "rtcp", 4)) {            
+		if(!strncmp(profile_socket[loc_idx].capture_filter, "rtcp", 4)) {
 			len += snprintf(filter_expr + len, sizeof(filter_expr), "%s %s", len ? " and" : "", RTCP_FILTER);
 		}
 
@@ -1050,12 +1052,12 @@ int init_socket(unsigned int loc_idx) {
         else if(!strncmp(profile_socket[loc_idx].capture_filter, "rtp", 3)) {
 			len += snprintf(filter_expr + len, sizeof(filter_expr), "%s %s", len ? " and" : "", RTP_FILTER);
 		}
-        
+
         // IP-to-IP encapsulation
         else if (!strncmp(profile_socket[loc_idx].capture_filter, "ip_to_ip", strlen("ip_to_ip"))) {
             len += snprintf(filter_expr + len, sizeof(filter_expr), "%s %s", len ? "and" : "", IP_IP_FILTER);
         }
-	
+
         if(len > 0) {
             LDEBUG("Filter for index [%d]: [%s]", loc_idx, filter_expr);
         } else {
@@ -1075,7 +1077,7 @@ int init_socket(unsigned int loc_idx) {
 		LERR("Failed to install filter: %s", pcap_geterr(sniffer_proto[loc_idx]));
 		return -1;
 	}
-	
+
 	pcap_freecode(&filter);
 
 	return 1;
@@ -1129,9 +1131,9 @@ void* proto_collect(void *arg) {
 	int ret = 0, is_file = 0;
 
     LDEBUG("Index in proto_collect(): index: [%u]", loc_idx);
-	
+
 	type_datalink = pcap_datalink(sniffer_proto[loc_idx]);
-	
+
 	/* detect link_offset */
 	switch (type_datalink) {
     case DLT_EN10MB:
@@ -1170,11 +1172,11 @@ void* proto_collect(void *arg) {
     case DLT_IEEE802_11:
         link_offset = IEEE80211HDR_SIZE;
         break;
-		
+
     case DLT_MTP2:
         link_offset = RAWHDR_SIZE;
         break;
-         
+
     default:
         LERR("fatal: unsupported interface type [%u]", type_datalink);
         exit(-1);
@@ -1196,7 +1198,7 @@ void* proto_collect(void *arg) {
 			pcap_close(sniffer_proto[loc_idx]);
 			break;
 		}
-        
+
 	}
 
     if (is_file) {
@@ -1447,7 +1449,7 @@ static int load_module(xml_node *config) {
 					else if (!strncmp(key, "erspan", 6) && !strncmp(value, "true", 4))
 						profile_socket[profile_size].erspan = 1;
 					else if (!strncmp(key, "stats-enable", strlen("stats-enable")) && !strncmp(value, "true", 4))
-						stats_enable = TRUE;						
+						stats_enable = TRUE;
 					else if (!strncmp(key, "stats-interval", 14))
 						stats_interval = atoi(value);
 					else if (!strncmp(key, "ip-replace", 10))
@@ -1602,7 +1604,7 @@ static int statistic(char *buf, size_t len) {
 
 /* TZSP */
 static inline const char* name_tag(int tag, const char * const names[], int names_len) {
-    
+
     if (tag >= 0 && tag < names_len) {
         return names[tag];
     } else {
