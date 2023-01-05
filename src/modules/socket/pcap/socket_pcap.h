@@ -67,6 +67,7 @@ union mpls {
 #define LOOPHDR_SIZE       4
 #define FDDIHDR_SIZE      21
 #define ISDNHDR_SIZE      16
+#define SLL2_SIZE         20
 #define IEEE80211HDR_SIZE 32
 #define NFLOGHDR_SIZE      4
 #define IPV4_SIZE         20
@@ -74,7 +75,7 @@ union mpls {
 #define GREHDR_SIZE        4
 #define GREHDR_SIZE_II     8
 #define ERSPAN_II_OFF      8
-#define GREHDR_SIZE_III   12
+#define ERSPAN_III_OFF    12
 #define ERSPANHDR_SIZE    16
 #define GRE_PROTO         47
 #define IPPROTO_OFFSET     9
@@ -84,7 +85,7 @@ union mpls {
 profile_socket_t profile_socket[MAX_SOCKETS];
 
 /*
- * A DLT_LINUX_SLL fake link-layer header. 
+ * A DLT_LINUX_SLL fake link-layer header.
  */
 #define SLL_HDR_LEN	16		/* total header length */
 #define SLL_ADDRLEN	8		/* length of address field */
@@ -186,5 +187,3 @@ int check_ip_data(char *ip, uint16_t *port);
 
 
 #endif /* _SOCKET_PCAP_H_ */
-
-
