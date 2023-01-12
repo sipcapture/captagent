@@ -112,7 +112,7 @@ AC_MSG_RESULT([$EXTRAMODULES])
 AC_SUBST([EXTRAMODULES])
 
 dnl Set the compiler optimization level (default is -O2)
-CFLAGS="-g -O0"
+CFLAGS="$CFLAGS -g3"
 
 CONFIG_CFLAGS="${CFLAGS}"
 CONFIG_LDFLAGS="${LDFLAGS}"
@@ -225,7 +225,7 @@ fi
 dnl
 dnl check for compression library
 dnl
-   
+
 if test "$ZLIB" = "yes"; then
    AC_CHECKING([for zip Library and Header files])
    AC_CHECK_HEADER(zlib.h,,[AC_MSG_ERROR([zlib.h headers not found.])])
@@ -236,7 +236,7 @@ fi
 dnl
 dnl check for epan library
 dnl
-   
+
 if test "$EPAN" = "yes"; then
    AC_CHECKING([for epan Library and Header files])
    AC_CHECK_HEADER(epan.h,,[AC_MSG_ERROR([epan.h headers not found.])])
@@ -251,7 +251,7 @@ dnl
 dnl
 dnl check for MYSQL library
 dnl
- 
+
 if test "$MYSQL" = "yes"; then
     AC_CHECKING([for MYSQL Library and Header files])
     AC_CHECK_HEADER([mysql/mysql.h], ,AC_MSG_ERROR([Could not find mysql headers !]))
@@ -259,12 +259,12 @@ if test "$MYSQL" = "yes"; then
     AC_DEFINE(USE_MYSQL, 1, [Use MYSQL library])
     AC_SUBST(MYSQL_LIBS)
 fi
-                   
+
 
 dnl
 dnl check for redis library
 dnl
-   
+
 if test "$REDIS" = "yes"; then
    AC_CHECKING([for redis Library and Header files])
    AC_CHECK_HEADER(hiredis/hiredis.h,,[AC_MSG_ERROR([hiredis/hiredis.h headers not found.])])
@@ -289,7 +289,7 @@ fi
 dnl
 dnl check for extra modules
 dnl
-   
+
 if test "$EXTRAMODULES" = "yes"; then
    AC_CHECKING([for extra modules files])
    AC_DEFINE(HAVE_EXTRA_MODULES, 1, [We have extra modules])
@@ -299,7 +299,7 @@ fi
 dnl
 dnl check for libuv library
 dnl
-   
+
 AC_CHECKING([for LiBUV and Header files])
 AC_CHECK_HEADER(uv.h,,[AC_MSG_ERROR([uv.h headers not found.])])
 AC_CHECK_LIB(uv, uv_now, [ UV_LIBS="-luv" ], [AC_MSG_ERROR([$PACKAGE_NAME requires but cannot find libuv])])
@@ -314,7 +314,7 @@ dnl
 
 if test "$SSL" = "yes"; then
    AC_CHECKING([for OpenSSL SSL Library and Header files])
-   AC_CHECK_HEADER(openssl/ssl.h,, [AC_MSG_ERROR([OpenSSL SSL headers not found.])])	
+   AC_CHECK_HEADER(openssl/ssl.h,, [AC_MSG_ERROR([OpenSSL SSL headers not found.])])
    AC_CHECK_LIB(ssl, SSL_accept, [ LIBS="${LIBS} -lssl" ], [AC_MSG_ERROR([$PACKAGE_NAME requires but cannot find ssl])])
    AC_DEFINE(USE_SSL, 1, [Use OpenSSL SSL library])
 fi
@@ -389,4 +389,3 @@ echo Build with LibUV............ : $useLIBUV
 echo Build with EPAN............. : $useEpan
 echo Build with TLS.............. : $useTLS
 echo
-

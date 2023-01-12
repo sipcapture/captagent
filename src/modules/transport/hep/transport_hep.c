@@ -5,7 +5,7 @@
  *  Duplicate SIP messages in Homer Encapulate Protocol [HEP] [ipv6 version]
  *
  *  Author: Alexandr Dubovikov <alexandr.dubovikov@gmail.com>
- *  (C) Homer Project 2012-2015 (http://www.sipcapture.org)
+ *  (C) Homer Project 2012-2023 (http://www.sipcapture.org)
  *
  * Homer capture agent is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -303,8 +303,8 @@ int send_hep (msg_t *msg, int freeParam) {
 
         if(freeParam == 1)
         {
-            if(msg->mfree == 1) {
-                LDEBUG("LETS FREE IT!");
+            if(msg->mfree == 1 && msg->data != NULL) {
+                LDEBUG("LET'S FREE IT!");
                 free(msg->data);
                 msg->data = NULL;
             }
@@ -314,7 +314,7 @@ int send_hep (msg_t *msg, int freeParam) {
                 msg->corrdata = NULL;
             }
         }
-        
+
         return ret;
 }
 
@@ -574,7 +574,7 @@ int send_hepv3 (rc_info_t *rcinfo, unsigned char *data, unsigned int len, unsign
         free(hg);
         hg = NULL;
     }
-    
+
     return 1;
 }
 
@@ -680,7 +680,7 @@ error:
          free(buffer);
          buffer = NULL;
      }
-     
+
      return 0;
 }
 
@@ -721,9 +721,9 @@ int send_data (void *buf, unsigned int len, unsigned int idx) {
 
     /* send this packet out of our socket */
 	send_message(&hep_connection_s[idx], (unsigned char *)buf, len, hep_connection_s[idx].type == 1 ? SEND_UDP_REQUEST : SEND_TCP_REQUEST);
-    
+
     stats.send_packets_total++;
-    
+
     /* RESET ERRORS COUNTER */
     return 0;
 }
@@ -1142,7 +1142,7 @@ int init_tcp_socket(hep_connection_t *conn, char *host, int port) {
         }
 
         err = uv_thread_create(conn->thread, _run_uv_loop, conn);
-        
+
         return 0;
 }
 
