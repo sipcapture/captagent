@@ -74,9 +74,9 @@ static cmd_export_t cmds[] = {
         {"sip_has_sdp", (cmd_function) w_sip_has_sdp, 0, 0, 0, 0 },
         {"is_flag_set", (cmd_function) w_is_flag_set, 2, 0, 0, 0 },
         {"send_reply", (cmd_function) w_send_reply_p, 2, 0, 0, 0 },
-        {"send_reply", (cmd_function) w_send_reply, 0, 0, 0, 0 },  
+        {"send_reply", (cmd_function) w_send_reply, 0, 0, 0, 0 },
         {"send_rtcpxr_reply", (cmd_function) w_send_reply_p, 2, 0, 0, 0 },
-        {"send_rtcpxr_reply", (cmd_function) w_send_reply, 0, 0, 0, 0 },          
+        {"send_rtcpxr_reply", (cmd_function) w_send_reply, 0, 0, 0, 0 },
         {0, 0, 0, 0, 0, 0}
 };
 
@@ -110,14 +110,14 @@ int w_send_reply_p(msg_t *_m, char *param1, char *param2)
 {
    return send_sip_reply(_m, atoi(param1), param2);
 }
-        
+
 int w_send_reply(msg_t *_m)
 {
    return send_sip_reply(_m, 200, "OK");
 }
 
 int w_parse_sip(msg_t *_m)
-{  
+{
   return parse_sip(_m, 1);
 
 }
@@ -138,10 +138,10 @@ int w_parse_full_sip(msg_t *_m)
 int w_clog(msg_t *_m, char *param1, char* param2)
 {
 
-    if(param1[0] == 'E' || param1[0] == 'e') LERR("%s\n", param2);    
-    else if(param1[0] == 'N' || param1[0] == 'n') LNOTICE("%s\n", param2);    
-    else LDEBUG("%s\n", param2);    
-    
+    if(param1[0] == 'E' || param1[0] == 'e') LERR("%s\n", param2);
+    else if(param1[0] == 'N' || param1[0] == 'n') LNOTICE("%s\n", param2);
+    else LDEBUG("%s\n", param2);
+
     return 1;
 }
 
@@ -171,27 +171,27 @@ int w_set_tag(msg_t *_m, char *param1, char *param2)
         _m->rcinfo.tags.s[_m->rcinfo.tags.len] = ';';
 	}
     _m->rcinfo.tags.len += snprintf( _m->rcinfo.tags.s + _m->rcinfo.tags.len, sizeof( _m->rcinfo.tags.s) - _m->rcinfo.tags.len, "%s=%s", param1, param2);
-    
+
     return 1;
 }
 
 int w_header_check(msg_t *_m, char *param1, char *param2)
 {
     if(!strncmp("User-Agent", param1, strlen("User-Agent")) || strncmp("useragent", param1, strlen("useragent")))
-    {       
+    {
         if(startwith(&_m->sip.userAgent, param2))
-        {	     
-            return 1;             
+        {
+            return 1;
         }
     }
     else if(!strncmp("custom", param1, strlen("custom")))
-    {                     
+    {
         if(_m->sip.hasCustomHeader && startwith(&_m->sip.customHeader, param2))
-        {             
-            return 1;             
-        }             
-    }                
-        
+        {
+            return 1;
+        }
+    }
+
     return -1;
 }
 
@@ -200,10 +200,10 @@ int w_header_reg_match(msg_t *_m, char *param1, char *param2)
 {
     uint8_t index = 0;
 
-    if(param2 != NULL) index = get_pcre_index_by_name(param2);        	
-        
+    if(param2 != NULL) index = get_pcre_index_by_name(param2);
+
     if(!strncmp("User-Agent", param1, strlen("User-Agent")) || strncmp("useragent", param1, strlen("useragent")))
-    {       
+    {
         if(_m->sip.userAgent.s && _m->sip.userAgent.len > 0)
         {
 			if((re_match_func(pattern_match[index], &_m->sip.userAgent.s, _m->sip.userAgent.len)) == 1) {
@@ -213,7 +213,7 @@ int w_header_reg_match(msg_t *_m, char *param1, char *param2)
 		}
     }
     else if(!strncmp("custom", param1, strlen("custom")))
-    {                             
+    {
         if(_m->sip.customHeader.s && _m->sip.customHeader.len > 0)
         {
 			if((re_match_func(pattern_match[index], &_m->sip.customHeader.s, _m->sip.customHeader.len)) == 1) {
@@ -221,9 +221,9 @@ int w_header_reg_match(msg_t *_m, char *param1, char *param2)
                 return 1;
 			}
         }
-    }                
+    }
     else if(!strncmp("body", param1, strlen("body")) || !strncmp("raw", param1, strlen("raw")))
-    {                             
+    {
         if(_m->data && _m->len > 0)
         {
 			if((re_match_func(pattern_match[index], &_m->data, _m->len)) == 1) {
@@ -231,8 +231,8 @@ int w_header_reg_match(msg_t *_m, char *param1, char *param2)
                 return 1;
 			}
         }
-    }                
-        
+    }
+
     return -1;
 }
 
@@ -242,85 +242,85 @@ int w_sip_check(msg_t *_m, char *param1, char *param2)
 
         int ret = -1;
         int intval = 0;
-        
-        
+
+
         if(!strncmp("method", param1, strlen("method")))
-        {                     
+        {
              if(param2 != NULL && _m->sip.methodString.s && _m->sip.methodString.len > 0
                  && !strncmp(_m->sip.methodString.s, param2, strlen(param2)))
-             {             
-                    ret = 1;             
+             {
+                    ret = 1;
              }
-        } 
+        }
         else if(!strncmp("rmethod", param1, strlen("rmethod")))
-        {                     
+        {
              if(param2 != NULL && _m->sip.cSeqMethodString.s && _m->sip.cSeqMethodString.len > 0
                  && !strncmp(_m->sip.cSeqMethodString.s, param2, strlen(param2)))
-             {             
-                    ret = 1;             
-             }             
+             {
+                    ret = 1;
+             }
         }
         else if(!strncmp("from_user_suffix", param1, strlen("from_user_suffix")))
-        {                     
+        {
              if(endswith(&_m->sip.fromUser, param2))
-             {             
-                    ret = 1;             
-             }                          
+             {
+                    ret = 1;
+             }
         }
         else if(!strncmp("to_user_suffix", param1, strlen("to_user_suffix")))
-        {                     
+        {
              if(endswith(&_m->sip.toUser, param2))
-             {             
-                    ret = 1;             
-             }                          
+             {
+                    ret = 1;
+             }
         }
         else if(!strncmp("from_user_prefix", param1, strlen("from_user_prefix")))
-        {                     
+        {
              if(startwith(&_m->sip.fromUser, param2))
-             {             
-                    ret = 1;             
-             }                          
+             {
+                    ret = 1;
+             }
         }
         else if(!strncmp("to_user_prefix", param1, strlen("to_user_prefix")))
-        {                     
+        {
              if(startwith(&_m->sip.toUser, param2))
-             {             
-                    ret = 1;             
-             }                          
+             {
+                    ret = 1;
+             }
         }
         else if(!strncmp("user_agent_prefix", param1, strlen("user_agent_prefix")))
-        {                     
+        {
             if(startwith(&_m->sip.userAgent, param2))
-            {             
+            {
                 ret = 1;
-            }            
+            }
         }
         else if(!strncmp("user_agent_suffix", param1, strlen("user_agent_suffix")))
-        {                     
+        {
             if(endswith(&_m->sip.userAgent, param2))
-            {  
+            {
                 ret = 1;
             }
         }
         else if(!strncmp("response", param1, strlen("response")))
-        {                   
-             if(param2 != NULL) intval = atoi(param2);                               
+        {
+             if(param2 != NULL) intval = atoi(param2);
              if(_m->sip.responseCode ==  intval) ret = 1;
         }
         else if(!strncmp("response_gt", param1, strlen("response_gt")))
-        {                   
-             if(param2 != NULL) intval = atoi(param2);                               
+        {
+             if(param2 != NULL) intval = atoi(param2);
              if(_m->sip.responseCode >=  intval) ret = 1;
         }
         else if(!strncmp("response_lt", param1, strlen("response_lt")))
-        {                   
-             if(param2 != NULL) intval = atoi(param2);                               
+        {
+             if(param2 != NULL) intval = atoi(param2);
              if(_m->sip.responseCode <=  intval) ret = 1;
         }
         else {
             LERR("unknown variable [%s]\n", param1);
         }
-                        
+
         return ret;
 }
 
@@ -346,9 +346,9 @@ int startwith(str *str, const char *suffix)
 int send_sip_reply(msg_t *_m, int code, char *description)
 {
         int n = 0;
-	struct sockaddr_in cliaddr; 
+	struct sockaddr_in cliaddr;
 	char reply[1000];
- 
+
         n = snprintf(reply, sizeof(reply), "SIP/2.0 %d %s\r\nVia: %.*s\r\nFrom: %.*s\r\nTo: %.*s;tag=%s\r\nContact: %.*s\r\nCall-ID: %.*s\r\nCseq: %.*s\r\n"
                                                           "User-Agent: Captagent\r\nContent-Length: 0\r\n\r\n",
                                                           code, description,
@@ -360,10 +360,10 @@ int send_sip_reply(msg_t *_m, int code, char *description)
                                                           _m->sip.callId.len, _m->sip.callId.s,
                                                           _m->sip.cSeq.len, _m->sip.cSeq.s
         );
-        
+
         cliaddr.sin_family = _m->rcinfo.ip_family;
         cliaddr.sin_port = htons(_m->rcinfo.dst_port);
-        cliaddr.sin_addr.s_addr = inet_addr(_m->rcinfo.dst_ip);        
+        cliaddr.sin_addr.s_addr = inet_addr(_m->rcinfo.dst_ip);
 
         sendto(*_m->rcinfo.socket, reply, n, 0, (struct sockaddr *)&cliaddr,sizeof(cliaddr));
 
@@ -378,88 +378,88 @@ int w_proto_check_size(msg_t *_m, char *param1, char *param2)
 
         int ret = -1;
         int intval = 0;
-                
+
         if(!strncmp("size", param1, 4))
         {
-             if(param2 != NULL) intval = atoi(param2);                  
+             if(param2 != NULL) intval = atoi(param2);
              if(_m->len > intval) {
                   ret = 1;
              }
-        }        
+        }
         else if(!strncmp("src_ip", param1, strlen("src_ip")))
-        {                     
+        {
              if(param2 != NULL && !strncmp(_m->rcinfo.src_ip, param2, strlen(param2)))
-             {             
-                    ret = 1;             
+             {
+                    ret = 1;
              }
         }
         else if(!strncmp("source_ip", param1, strlen("source_ip")))
-        {                     
+        {
              if(param2 != NULL && !strncmp(_m->rcinfo.src_ip, param2, strlen(param2)))
-             {             
-                    ret = 1;             
+             {
+                    ret = 1;
              }
         }
         else if(!strncmp("destination_ip", param1, strlen("destination_ip")))
-        {                     
+        {
              if(param2 != NULL && !strncmp(_m->rcinfo.dst_ip, param2, strlen(param2)))
-             {             
-                    ret = 1;             
+             {
+                    ret = 1;
              }
         }
         else if(!strncmp("dst_ip", param1, strlen("dst_ip")))
-        {                     
+        {
              if(param2 != NULL && !strncmp(_m->rcinfo.dst_ip, param2, strlen(param2)))
-             {             
-                    ret = 1;             
+             {
+                    ret = 1;
              }
         }
         else if(!strncmp("any_ip", param1, strlen("any_ip")))
-        {                     
-             if(param2 != NULL 
-             		&& (!strncmp(_m->rcinfo.src_ip, param2, strlen(param2)) 
+        {
+             if(param2 != NULL
+             		&& (!strncmp(_m->rcinfo.src_ip, param2, strlen(param2))
              		|| !strncmp(_m->rcinfo.dst_ip, param2, strlen(param2))))
-             {             
-                    ret = 1;             
-             }             
+             {
+                    ret = 1;
+             }
         }
         else if(!strncmp("src_port", param1, strlen("src_port")))
-        {                   
-             if(param2 != NULL) intval = atoi(param2);                               
-             if(_m->rcinfo.src_port ==  intval) ret = 1;                          
+        {
+             if(param2 != NULL) intval = atoi(param2);
+             if(_m->rcinfo.src_port ==  intval) ret = 1;
         }
         else if(!strncmp("src_port_gt", param1, strlen("src_port_gt")))
-        {                   
-             if(param2 != NULL) intval = atoi(param2);                               
-             if(_m->rcinfo.src_port >=  intval) ret = 1;                          
+        {
+             if(param2 != NULL) intval = atoi(param2);
+             if(_m->rcinfo.src_port >=  intval) ret = 1;
         }
         else if(!strncmp("src_port_lt", param1, strlen("src_port_lt")))
-        {                   
-             if(param2 != NULL) intval = atoi(param2);                               
-             if(_m->rcinfo.src_port <=  intval) ret = 1;                          
+        {
+             if(param2 != NULL) intval = atoi(param2);
+             if(_m->rcinfo.src_port <=  intval) ret = 1;
         }
         else if(!strncmp("dst_port", param1, strlen("dst_port")))
-        {                   
-             if(param2 != NULL) intval = atoi(param2);                               
-             if(_m->rcinfo.dst_port ==  intval) ret = 1;                          
+        {
+             if(param2 != NULL) intval = atoi(param2);
+             if(_m->rcinfo.dst_port ==  intval) ret = 1;
         }
         else if(!strncmp("dst_port_gt", param1, strlen("dst_port_gt")))
-        {                   
-             if(param2 != NULL) intval = atoi(param2);                               
-             if(_m->rcinfo.dst_port >=  intval) ret = 1;                          
+        {
+             if(param2 != NULL) intval = atoi(param2);
+             if(_m->rcinfo.dst_port >=  intval) ret = 1;
         }
         else if(!strncmp("dst_port_lt", param1, strlen("dst_port_lt")))
-        {                   
-             if(param2 != NULL) intval = atoi(param2);                               
-             if(_m->rcinfo.dst_port <=  intval) ret = 1;                          
+        {
+             if(param2 != NULL) intval = atoi(param2);
+             if(_m->rcinfo.dst_port <=  intval) ret = 1;
         }
         else {
             LERR("unknown variable [%s]\n", param1);
         }
-                
+
         return ret;
 }
-                
+
 
 int reload_config (char *erbuf, int erlen) {
 
@@ -506,7 +506,7 @@ int parse_sip(msg_t *msg, unsigned int type) {
 	if (parse_packet(msg, &msg->sip, type)) {
 
 		ret = 1;
-		msg->sip.validMessage = TRUE;		        
+		msg->sip.validMessage = TRUE;
 		stats.parsed_packets++;
 
 	} else {
@@ -515,7 +515,7 @@ int parse_sip(msg_t *msg, unsigned int type) {
 
 		goto error;
 	}
-	
+
 	stats.send_packets++;
 
 	return ret;
@@ -538,7 +538,7 @@ int parse_packet(msg_t *msg, sip_msg_t *sipPacket, unsigned int type) {
 		LERR("sipPacket CALLID has 0 len");
 		return 0;
 	}
-	
+
 	if(sipPacket->hasVqRtcpXR) {
              msg->rcinfo.correlation_id.s = sipPacket->rtcpxr_callid.s;
              msg->rcinfo.correlation_id.len = sipPacket->rtcpxr_callid.len;
@@ -603,7 +603,7 @@ int8_t re_match_func (pcre *pattern, char *data, uint32_t len)
     {
 
         pcreExtRet = pcre_exec(pattern, 0, escapeData, strlen(escapeData), 0, 0, subStrVec, 30);
-      
+
         if(pcreExtRet < 0)
         {
             switch (pcreExtRet) {
@@ -639,24 +639,24 @@ int8_t re_match_func (pcre *pattern, char *data, uint32_t len)
 }
 
 
-int makeEscape(const char *s, int len, char *out, int max) 
+int makeEscape(const char *s, int len, char *out, int max)
 {
     int i = 0, y = 0;
-    for(i = 0; i < len; i++) 
+    for(i = 0; i < len; i++)
     {
-        if (s[i] == '\\' || s[i] == '\'') 
+        if (s[i] == '\\' || s[i] == '\'')
         {
             out[y] = '\\';
             y++;
         }
-        else if (s[i] == '+') 
+        else if (s[i] == '+')
         {
             out[y] = '\\';
             y++;
         }
-                
+
         out[y] = s[i];
-        y++;            
+        y++;
 
         if(y >= max) break;
     }
@@ -683,17 +683,17 @@ int set_value(unsigned int idx, msg_t *msg) {
 uint8_t get_pcre_index_by_name(char *name) {
 
 	unsigned int i = 0;
-    
+
 	if(regexpIndex == 1) return 0;
-    
+
 	for (i = 0; i < regexpIndex; i++) {
-        
+
 		if(!strncmp(regexpIndexName[i], name, strlen(regexpIndexName[i]))) {
 			return i;
 		}
 	}
-    
-	return NULL;
+
+	return -1;
 }
 
 
@@ -861,25 +861,25 @@ static int load_module(xml_node *config) {
 						profile_protocol[profile_size].dialog_type = atoi(value);
 					else if (!strncmp(key, "dialog-timeout", 14))
 						profile_protocol[profile_size].dialog_timeout = atoi(value);
-                    else if (!strncmp(key, "custom-header", strlen("custom-header"))) 
+                    else if (!strncmp(key, "custom-header", strlen("custom-header")))
 					{
 						customHeaderMatch = strdup(value);
-						customHeaderLen = strlen(customHeaderMatch);						
+						customHeaderLen = strlen(customHeaderMatch);
 					}
-					else if (!strncmp(key, "regexp-name", strlen("regex-name"))) 
+					else if (!strncmp(key, "regexp-name", strlen("regex-name")))
 					{
 						if(regexpIndex < MAX_REGEXP_INDEXES) {
 							regexpIndexName[regexpIndex] = strdup(value);
 						}
 					}
-					else if (!strncmp(key, "regexp-value", strlen("regex-value"))) 
+					else if (!strncmp(key, "regexp-value", strlen("regex-value")))
 					{
 						if(regexpIndex < MAX_REGEXP_INDEXES) {
 
-							pattern_match[regexpIndex] = pcre_compile (regexpIndexName[regexpIndex], pcre_options, (const char **) &re_err, &err_offset, 0);							
+							pattern_match[regexpIndex] = pcre_compile (regexpIndexName[regexpIndex], pcre_options, (const char **) &re_err, &err_offset, 0);
                             if (!pattern_match[regexpIndex]) {
                                 LERR("pattern_match I:[%d] compile failed: %s\n", regexpIndex, re_err);
-                            }				                        
+                            }
                             else regexpIndex++;
 						}
 					}
@@ -952,7 +952,6 @@ static int statistic(char *buf, size_t len)
     ret += snprintf(buf+ret, len-ret, "Total received: [%" PRId64 "]\r\n", stats.received_packets_total);
     ret += snprintf(buf+ret, len-ret, "Parsed packets: [%" PRId64 "]\r\n", stats.parsed_packets);
     ret += snprintf(buf+ret, len-ret, "Total sent: [%" PRId64 "]\r\n", stats.send_packets);
-    
+
     return 1;
 }
-                        
