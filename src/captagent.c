@@ -2,10 +2,10 @@
  * $Id$
  *
  *  captagent - Homer capture agent. Modular
- *  Duplicate SIP messages in Homer Encapulate Protocol [HEP] [ipv6 version]
+ *  Duplicate SIP messages in Homer Encapulate Protocol [HEP]
  *
  *  Author: Alexandr Dubovikov <alexandr.dubovikov@gmail.com>
- *  (C) QXIP BV 2012-2021 (http://qxip.net)
+ *  (C) QXIP BV 2012-2023 (http://qxip.net)
  *
  * Homer capture agent is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
