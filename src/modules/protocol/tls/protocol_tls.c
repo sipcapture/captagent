@@ -6,7 +6,7 @@
  *
  *  Author: Michele Campus <michelecampus5@gmail.com>
  *  Author: Alexandr Dubovikov <alexandr.dubovikov@gmail.com>
- *  (C) QXIP BV 2012-2020 (http://qxip.net)
+ *  (C) QXIP BV 2012-2023 (http://qxip.net)
  *
  * Homer capture agent is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by

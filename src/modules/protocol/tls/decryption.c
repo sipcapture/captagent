@@ -1,7 +1,7 @@
 /**
    decoder - decode TLS/SSL traffic - save handshake and extract certificate
    Copyright (C) 2016-2018 Michele Campus <fci1908@gmail.com>
-             (C) QXIP BV 2012-2017 (http://qxip.net)
+             (C) QXIP BV 2012-2023 (http://qxip.net)
    
    This file is part of decoder.
    

@@ -2,7 +2,7 @@
   This TLS dissector parse the pkt and extract the handshake (if present)
   
   Copyright (C) 2016-2017 Michele Campus <fci1908@gmail.com>
-            (C) QXIP BV 2012-2017 (http://qxip.net)
+            (C) QXIP BV 2012-2023 (http://qxip.net)
    
   Homer capture agent is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by

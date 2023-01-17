@@ -7,7 +7,7 @@
  *  Author: Alexandr Dubovikov <alexandr.dubovikov@gmail.com>
  *          Michele Campus <fci1908@gmail.com>
  *
- *  (C) Homer Project 2012-2017 (http://www.sipcapture.org)
+ *  (C) Homer Project 2012-2023 (http://www.sipcapture.org)
  *
  * Homer capture agent is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
