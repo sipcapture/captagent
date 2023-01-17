@@ -38,10 +38,8 @@
 		<load module="protocol_diameter" register="local"/>
 		<load module="protocol_tls" register="local"/>
 		<load module="output_json" register="local"/>
-		<load module="protocol_rtcp" register="local"/>
 		<load module="interface_http" register="local"/>
 		<load module="database_redis" register="local"/>
-		<load module="socket_pfring" register="local"/>
 	    	-->
 	</modules>
 	</configuration>

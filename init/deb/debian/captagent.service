@@ -12,6 +12,7 @@ PIDFile=/var/run/captagent.pid
 # ExecStart requires a full absolute path
 ExecStart=/usr/local/captagent/sbin/captagent -f $CFGFILE -d
 Restart=always
+KillSignal=SIGKILL
 
 [Install]
 WantedBy=multi-user.target

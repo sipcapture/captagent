@@ -1,6 +1,0 @@
-# Defaults for captagent initscript
-# sourced by /etc/init.d/captagent
-# installed at /etc/default/captagent by the maintainer scripts
-
-RUN_CAPTAGENT=no
-
