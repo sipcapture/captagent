@@ -23,7 +23,7 @@ apt-get -y install flex libfl-dev
 libssl-dev libmcrypt-dev libgcrypt20-dev
 
 # various
-apt-get -y install curl libmcrypt-dev libexpat-dev libpcap-dev libjson-c-dev bison libpcre3-dev libuv1-dev libgpg-error-dev
+apt-get -y install curl libfl-dev libmcrypt-dev libexpat-dev libpcap-dev libjson-c-dev bison libpcre3-dev libuv1-dev libgpg-error-dev
 
 # ruby - fpm
 apt-get -y install ruby-dev rubygems
@@ -31,7 +31,7 @@ apt-get -y install ruby-dev rubygems
 gem install public_suffix -v 4.0.7
 gem install fpm
 
-DEPENDENCY=`dpkg -l | grep -E "libmcrypt|libexpat|libpcap|libjson-c|libpcre3|libuv" | grep -v "dev" | grep -v "pcre32" | awk '{print $2}' | sed -e 's/:amd64//g' | tr '\n' ','`
+DEPENDENCY=`dpkg -l | grep -E "libmcrypt|libfl||libexpat|libpcap|libjson-c|libpcre3|libuv" | grep -v "dev" | grep -v "pcre32" | awk '{print $2}' | sed -e 's/:amd64//g' | tr '\n' ','`
 # Remove last characters
 DEPENDENCY=${DEPENDENCY%?};
 
