@@ -36,9 +36,9 @@ struct capture_list{
 #define FILTER_LEN 4080
 
 /* our payload range between 0 - 191 */
-#define RTP_FILTER "(ip and ip[6] & 0x2 = 0 and ip[6:2] & 0x1fff = 0 and udp and udp[8] & 0xc0 = 0x80 )"
+#define RTP_FILTER "(ip and ip[6] & 0x2 = 0 and ip[6:2] & 0x1fff = 0 and udp and udp[8] & 0xc0 = 0x80)"
 /* our payload range between 200 and 204 */
-#define RTCP_FILTER "(ip and ip[6] & 0x2 = 0 and ip[6:2] & 0x1fff = 0 and udp and udp[8] & 0xc0 = 0x80 and udp[9] >= 0xc8 && udp[9] <= 0xcc)"
+#define RTCP_FILTER "(ip and ip[6] & 0x2 = 0 and ip[6:2] & 0x1fff = 0 and udp and udp[8] & 0xc0 = 0x80 and udp[9] >= 0xc8 && udp[9] <= 0xc9)"
 /* IP-to-IP encapsulation filter // check portrange 5060-5090 */
 #define IP_IP_FILTER "(ip[9]=0x04 and ((ip[40:2]>=0x13c4 and ip[40:2]<=0x13e2) or (ip[42:2]>=0x13c4 and ip[42:2]<=0x13e2)))"
 
