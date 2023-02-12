@@ -53,6 +53,7 @@
 #include <netinet/udp.h>
 
 #include <pcap.h>
+#include <pcap/sll.h>
 
 #include <captagent/capture.h>
 #include <captagent/globals.h>
@@ -1201,92 +1202,88 @@ int set_raw_filter(unsigned int loc_idx, char *filter) {
 
 void* proto_collect(void *arg) {
 
-	unsigned int loc_idx = *((unsigned int *)arg);
-	int ret = 0, is_file = 0;
+    unsigned int loc_idx = *((unsigned int *)arg);
+    int ret = 0, is_file = 0;
 
     LDEBUG("Index in proto_collect(): index: [%u]", loc_idx);
 
-	type_datalink = pcap_datalink(sniffer_proto[loc_idx]);
+    type_datalink = pcap_datalink(sniffer_proto[loc_idx]);
 
-	/* detect link_offset */
-	switch (type_datalink) {
-    case DLT_EN10MB:
-        link_offset = ETHHDR_SIZE;
-        break;
+    /* detect link_offset */
+    switch (type_datalink) {
+        case DLT_EN10MB:
+            link_offset = ETHHDR_SIZE;
+            break;
 
-    case DLT_IEEE802:
-		link_offset = TOKENRING_SIZE;
-		break;
+        case DLT_IEEE802:
+            link_offset = TOKENRING_SIZE;
+            break;
 
-    case DLT_FDDI:
-        link_offset = FDDIHDR_SIZE;
-        break;
+        case DLT_FDDI:
+            link_offset = FDDIHDR_SIZE;
+            break;
 
-    case DLT_SLIP:
-        link_offset = SLIPHDR_SIZE;
-        break;
+        case DLT_SLIP:
+            link_offset = SLIPHDR_SIZE;
+            break;
 
-    case DLT_PPP:
-        link_offset = PPPHDR_SIZE;
-        break;
+        case DLT_PPP:
+            link_offset = PPPHDR_SIZE;
+            break;
 
-    case DLT_LOOP:
-    case DLT_NULL:
-        link_offset = LOOPHDR_SIZE;
-        break;
+        case DLT_LOOP:
+        case DLT_NULL:
+            link_offset = LOOPHDR_SIZE;
+            break;
 
-    case DLT_RAW:
-        link_offset = RAWHDR_SIZE;
-        break;
+        case DLT_RAW:
+            link_offset = RAWHDR_SIZE;
+            break;
 
-    case DLT_LINUX_SLL:
-        link_offset = ISDNHDR_SIZE;
-        break;
+        case DLT_LINUX_SLL:
+            link_offset = SLL_HDR_LEN;
+            break;
 
-    case 276:
-        link_offset = SLL2_SIZE;
-        break;
+        case DLT_IEEE802_11:
+            link_offset = IEEE80211HDR_SIZE;
+            break;
 
-    case DLT_IEEE802_11:
-        link_offset = IEEE80211HDR_SIZE;
-        break;
+        case DLT_MTP2:
+            link_offset = RAWHDR_SIZE;
+            break;
 
-    case DLT_MTP2:
-        link_offset = RAWHDR_SIZE;
-        break;
+        default:
+            LERR("fatal: unsupported interface type [%u]", type_datalink);
+            exit(-1);
+    } // switch
 
-    default:
-        LERR("fatal: unsupported interface type [%u]", type_datalink);
-        exit(-1);
-	} // switch
+    LDEBUG("Link offset interface type [%u] [%u]", type_datalink, link_offset);
 
-	LDEBUG("Link offset interface type [%u] [%u]", type_datalink, link_offset);
+    while(1) {
 
-	while(1) {
-
-		ret = pcap_loop(sniffer_proto[loc_idx], 0, (pcap_handler) callback_proto, (u_char *) &loc_idx);
+        ret = pcap_loop(sniffer_proto[loc_idx], 0, (pcap_handler) callback_proto, (u_char *) &loc_idx);
 
         if (ret == 0 && usefile) {
-			LDEBUG("loop stopped by EOF");
+            LDEBUG("loop stopped by EOF");
             is_file = 1;
-			pcap_close(sniffer_proto[loc_idx]);
-			break;
-		} else if (ret == -2) {
-			LDEBUG("loop stopped by breakloop");
-			pcap_close(sniffer_proto[loc_idx]);
-			break;
-		}
+            pcap_close(sniffer_proto[loc_idx]);
+            break;
+        } else if (ret == -2) {
+            LDEBUG("loop stopped by breakloop");
+            pcap_close(sniffer_proto[loc_idx]);
+            break;
+        }
 
-	}
+    }
 
     if (is_file) {
         LDEBUG("Process, pid=%d\n", getpid());
         kill(getpid(), SIGTERM);
     }
 
-	pthread_exit(0); // exit the thread signalling normal return
+    pthread_exit(0); // exit the thread signalling normal return
 
-	return NULL;
+    return NULL;
 }
 
 

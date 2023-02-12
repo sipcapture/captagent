@@ -40,7 +40,7 @@ extern char *global_scripts_path;
 #define VLAN            0x8100
 #define MPLS_UNI        0x8847
 #define MPLS_MULTI      0x8848
-#define COOKED_INT      0x88be
+#define ERSPAN          0x88be
 
 /* --- MPLS header --- */
 struct mpls_header
@@ -66,8 +66,6 @@ union mpls {
 #define RAWHDR_SIZE        0
 #define LOOPHDR_SIZE       4
 #define FDDIHDR_SIZE      21
-#define ISDNHDR_SIZE      16
-#define SLL2_SIZE         20
 #define IEEE80211HDR_SIZE 32
 #define NFLOGHDR_SIZE      4
 #define IPV4_SIZE         20
@@ -83,20 +81,6 @@ union mpls {
 
 #define MAX_SOCKETS 10
 profile_socket_t profile_socket[MAX_SOCKETS];
-
-/*
- * A DLT_LINUX_SLL fake link-layer header.
- */
-#define SLL_HDR_LEN	16		/* total header length */
-#define SLL_ADDRLEN	8		/* length of address field */
-
-struct sll_header {
-  u_int16_t sll_pkttype;		/* packet type */
-  u_int16_t sll_hatype;	        	/* link-layer address type */
-  u_int16_t sll_halen;		        /* link-layer address length */
-  u_int8_t sll_addr[SLL_ADDRLEN];	/* link-layer address */
-  u_int16_t sll_protocol;		/* protocol */
-};
 
 typedef struct socket_pcap_stats {
 	uint64_t received_packets_total;
@@ -115,8 +99,6 @@ typedef struct socket_pcap_user_data {
 
 extern FILE* yyin;
 extern int yyparse();
-
-//lua_State *LUAScript[MAX_SOCKETS];
 
 int bind_api(socket_module_api_t* api);
 int reload_config (char *erbuf, int erlen);
