@@ -53,6 +53,7 @@
 #include <netinet/udp.h>
 
 #include <pcap.h>
+#include <pcap/sll.h>
 
 #include <captagent/capture.h>
 #include <captagent/globals.h>
@@ -1240,11 +1241,7 @@ void* proto_collect(void *arg) {
             break;
 
         case DLT_LINUX_SLL:
-        link_offset = ISDNHDR_SIZE;
-        break;
-
-    case 276:
-        link_offset = SLL2_SIZE;
+            link_offset = SLL_HDR_LEN;
             break;
 
         case DLT_IEEE802_11:
