@@ -1244,6 +1244,10 @@ void* proto_collect(void *arg) {
             link_offset = SLL_HDR_LEN;
             break;
 
+        case DLT_LINUX_SLL2:
+            link_offset = SLL2_HDR_LEN;
+            break;
+
         case DLT_IEEE802_11:
             link_offset = IEEE80211HDR_SIZE;
             break;
