@@ -307,6 +307,7 @@ void callback_proto(unsigned char *arg, struct pcap_pkthdr *pkthdr, unsigned cha
     msg_t _msg;
     struct ethhdr*       eth = NULL;
     struct sll_header*   sll = NULL;
+    struct sll2_header*  sll2 = NULL;
     struct ip*           ip4_pkt = NULL;
     struct ip6_hdr*      ip6_pkt = NULL;
     struct run_act_ctx   ctx;
@@ -479,6 +480,8 @@ void callback_proto(unsigned char *arg, struct pcap_pkthdr *pkthdr, unsigned cha
     /* Check if ETHER TYPE is Ethernet or Linux Cooked */
     if (type_datalink == DLT_LINUX_SLL) {
         sll = (struct sll_header *)(packet + hdr_preset);
+    } else if (type_datalink == DLT_LINUX_SLL2) {
+        sll2 = (struct sll2_header *)(packet + hdr_preset);
     } else {
         eth = (struct ethhdr *)(packet + hdr_preset);
     }
@@ -497,12 +500,18 @@ void callback_proto(unsigned char *arg, struct pcap_pkthdr *pkthdr, unsigned cha
             type_ip = ntohs(eth->h_proto);
         }
     }
-    /* Linux cooked capture show only Source MAC address */
+    /* Linux cooked capture (v1 and v2) shows only Source MAC address */
     else if (sll) {
         snprintf(mac_src, sizeof(mac_src), "%.2X-%.2X-%.2X-%.2X-%.2X-%.2X", sll->sll_addr[0], sll->sll_addr[1], sll->sll_addr[2], sll->sll_addr[3], sll->sll_addr[4], sll->sll_addr[5]);
         if(vlan == 0) {
             // IP TYPE = 0x86dd (IPv6) or 0x0800 (IPv4)
             type_ip = ntohs(sll->sll_protocol);
+        }
+    } else if (sll2) {
+        snprintf(mac_src, sizeof(mac_src), "%.2X-%.2X-%.2X-%.2X-%.2X-%.2X", sll2->sll2_addr[0], sll2->sll2_addr[1], sll2->sll2_addr[2], sll2->sll2_addr[3], sll2->sll2_addr[4], sll2->sll2_addr[5]);
+        if(vlan == 0) {
+            // IP TYPE = 0x86dd (IPv6) or 0x0800 (IPv4)
+            type_ip = ntohs(sll2->sll2_protocol);
         }
     }
 
