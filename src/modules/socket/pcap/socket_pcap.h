@@ -58,6 +58,14 @@ union mpls {
   struct mpls_header mpls;
 };
 
+#ifndef DLT_LINUX_SLL2
+#define DLT_LINUX_SLL2 276
+#endif
+
+#ifndef SLL2_HDR_LEN
+#define SLL2_HDR_LEN 20
+#endif
+
 /* header offsets */
 #define ETHHDR_SIZE       14
 #define TOKENRING_SIZE    22
