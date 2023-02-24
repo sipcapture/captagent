@@ -309,7 +309,9 @@ void callback_proto(unsigned char *arg, struct pcap_pkthdr *pkthdr, unsigned cha
     struct sll_header*   sll = NULL;
     struct sll2_header*  sll2 = NULL;
     struct ip*           ip4_pkt = NULL;
+#if USE_IPv6
     struct ip6_hdr*      ip6_pkt = NULL;
+#endif
     struct run_act_ctx   ctx;
 
     char ip_src[INET6_ADDRSTRLEN + 1], ip_dst[INET6_ADDRSTRLEN + 1];
