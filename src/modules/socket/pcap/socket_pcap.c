@@ -348,9 +348,9 @@ void callback_proto(unsigned char *arg, struct pcap_pkthdr *pkthdr, unsigned cha
         /* } */
 
         /**
-           For ERSPAN packets, the "protocol type" field value in the GRE header
-           is 0x88BE (ERSPAN type II) or 0x22EB (ERSPAN type III).
-        **/
+          For ERSPAN packets, the "protocol type" field value in the GRE header
+          is 0x88BE (ERSPAN type II) or 0x22EB (ERSPAN type III).
+         **/
 
         if(tmp_ip_proto == GRE_PROTO)
         {
@@ -549,7 +549,7 @@ void callback_proto(unsigned char *arg, struct pcap_pkthdr *pkthdr, unsigned cha
         memcpy(new_p, ip4_pkt, len - link_offset - hdr_offset);
 
         pack = reasm_ip_next(reasm[loc_index], new_p, len - link_offset - hdr_offset,
-                             (reasm_time_t) 1000000UL * pkthdr->ts.tv_sec + pkthdr->ts.tv_usec, &new_len);
+                (reasm_time_t) 1000000UL * pkthdr->ts.tv_sec + pkthdr->ts.tv_usec, &new_len);
 
         if (pack == NULL)
             return;
@@ -559,9 +559,9 @@ void callback_proto(unsigned char *arg, struct pcap_pkthdr *pkthdr, unsigned cha
         pkthdr->caplen = new_len;
 
         ip4_pkt = (struct ip *) pack;
-        #if USE_IPv6
+#if USE_IPv6
         ip6_pkt = (struct ip6_hdr*)pack;
-        #endif
+#endif
     }
 
     ip_ver = ip4_pkt->ip_v;
@@ -574,47 +574,47 @@ void callback_proto(unsigned char *arg, struct pcap_pkthdr *pkthdr, unsigned cha
 
     switch(ip_ver) {
 
-     case 4: {
-         #if defined(AIX)
-         #undef ip_hl
-         ip_hl = ip4_pkt->ip_ff.ip_fhl * 4;
-         #else
-         ip_hl = ip4_pkt->ip_hl * 4;
-         #endif
-         ip_proto = ip4_pkt->ip_p;
-         ip_off = ntohs(ip4_pkt->ip_off);
+        case 4: {
+#if defined(AIX)
+#undef ip_hl
+                    ip_hl = ip4_pkt->ip_ff.ip_fhl * 4;
+#else
+                    ip_hl = ip4_pkt->ip_hl * 4;
+#endif
+                    ip_proto = ip4_pkt->ip_p;
+                    ip_off = ntohs(ip4_pkt->ip_off);
 
-         fragmented = ip_off & (IP_MF | IP_OFFMASK);
-         frag_offset = (fragmented) ? (ip_off & IP_OFFMASK) * 8 : 0;
+                    fragmented = ip_off & (IP_MF | IP_OFFMASK);
+                    frag_offset = (fragmented) ? (ip_off & IP_OFFMASK) * 8 : 0;
          //frag_id = ntohs(ip4_pkt->ip_id);
 
-         inet_ntop(AF_INET, (const void *) &ip4_pkt->ip_src, ip_src, sizeof(ip_src));
-         inet_ntop(AF_INET, (const void *) &ip4_pkt->ip_dst, ip_dst, sizeof(ip_dst));
-     }
-         break;
+                    inet_ntop(AF_INET, (const void *) &ip4_pkt->ip_src, ip_src, sizeof(ip_src));
+                    inet_ntop(AF_INET, (const void *) &ip4_pkt->ip_dst, ip_dst, sizeof(ip_dst));
+                }
+                break;
 
-         #if USE_IPv6
-     case 6: {
-         ip_hl = sizeof(struct ip6_hdr);
-         ip_proto = ip6_pkt->ip6_nxt;
+#if USE_IPv6
+        case 6: {
+                    ip_hl = sizeof(struct ip6_hdr);
+                    ip_proto = ip6_pkt->ip6_nxt;
 
-         if (ip_proto == IPPROTO_FRAGMENT) {
-             struct ip6_frag *ip6_fraghdr;
+                    if (ip_proto == IPPROTO_FRAGMENT) {
+                        struct ip6_frag *ip6_fraghdr;
 
-             ip6_fraghdr = (struct ip6_frag *)((unsigned char *)(ip6_pkt) + ip_hl);
-             ip_hl += sizeof(struct ip6_frag);
-             ip_proto = ip6_fraghdr->ip6f_nxt;
+                        ip6_fraghdr = (struct ip6_frag *)((unsigned char *)(ip6_pkt) + ip_hl);
+                        ip_hl += sizeof(struct ip6_frag);
+                        ip_proto = ip6_fraghdr->ip6f_nxt;
 
-             fragmented = 1;
-             frag_offset = ntohs(ip6_fraghdr->ip6f_offlg & IP6F_OFF_MASK);
+                        fragmented = 1;
+                        frag_offset = ntohs(ip6_fraghdr->ip6f_offlg & IP6F_OFF_MASK);
              //frag_id = ntohl(ip6_fraghdr->ip6f_ident);
-         }
+                    }
 
-         inet_ntop(AF_INET6, (const void *)&ip6_pkt->ip6_src, ip_src, sizeof(ip_src));
-         inet_ntop(AF_INET6, (const void *)&ip6_pkt->ip6_dst, ip_dst, sizeof(ip_dst));
-     }
-         break;
-         #endif
+                    inet_ntop(AF_INET6, (const void *)&ip6_pkt->ip6_src, ip_src, sizeof(ip_src));
+                    inet_ntop(AF_INET6, (const void *)&ip6_pkt->ip6_dst, ip_dst, sizeof(ip_dst));
+                }
+                break;
+#endif
     }
 
     // check IP-to-IP tunnel
@@ -626,20 +626,20 @@ void callback_proto(unsigned char *arg, struct pcap_pkthdr *pkthdr, unsigned cha
 
     switch (ip_proto) {
 
-     case IPPROTO_TCP: {
+        case IPPROTO_TCP: {
 
-         struct tcphdr *tcp_pkt = (struct tcphdr *) ((unsigned char *) (ip4_pkt) + ip_hl);
+                              struct tcphdr *tcp_pkt = (struct tcphdr *) ((unsigned char *) (ip4_pkt) + ip_hl);
 
-         //uint16_t tcphdr_offset = (frag_offset) ? 0 : (tcp_pkt->th_off * 4);
-         uint16_t tcphdr_offset = frag_offset ? 0 : (uint16_t) (tcp_pkt->th_off * 4);
+                              //uint16_t tcphdr_offset = (frag_offset) ? 0 : (tcp_pkt->th_off * 4);
+                              uint16_t tcphdr_offset = frag_offset ? 0 : (uint16_t) (tcp_pkt->th_off * 4);
 
-         data = (unsigned char *) tcp_pkt + tcphdr_offset;
+                              data = (unsigned char *) tcp_pkt + tcphdr_offset;
 
          _msg.hdr_len = link_offset + hdr_offset + ip_hl + tcphdr_offset + ipip_offset;
 
          len -= link_offset + hdr_offset + ip_hl + tcphdr_offset + ipip_offset;
 
-         stats.received_tcp_packets++;
+                              stats.received_tcp_packets++;
 
          #if USE_IPv6
          /* if (ip_ver == 6)
@@ -650,186 +650,186 @@ void callback_proto(unsigned char *arg, struct pcap_pkthdr *pkthdr, unsigned cha
          */
          #endif
 
-         if ((int32_t) len < 0)
-             len = 0;
+                              if ((int32_t) len < 0)
+                                  len = 0;
 
-         /******************* Check for Websocket layer (skip it) **************************/
+                              /******************* Check for Websocket layer (skip it) **************************/
          int webLen = link_offset + hdr_offset + ip_hl + tcphdr_offset;
-         uint8_t *p_websock = packet + webLen;
+                              uint8_t *p_websock = packet + webLen;
 
-        if(tcpreasm[loc_index] != NULL &&  (len > 0) && (tcp_pkt->th_flags & TH_ACK)) {
+                              if(tcpreasm[loc_index] != NULL &&  (len > 0) && (tcp_pkt->th_flags & TH_ACK)) {
 
-            unsigned new_len;
-            u_char *new_p_2 = malloc(len + 10);
-            memcpy(new_p_2, data, len);
+                                  unsigned new_len;
+                                  u_char *new_p_2 = malloc(len + 10);
+                                  memcpy(new_p_2, data, len);
 
-            if ((tcp_pkt->th_flags & TH_PUSH))
-                psh = 1;
+                                  if ((tcp_pkt->th_flags & TH_PUSH))
+                                      psh = 1;
 
-            if (debug_socket_pcap_enable)
-                LDEBUG("DEFRAG TCP process: LEN:[%d], ACK:[%d], PSH[%d]\n", len, (tcp_pkt->th_flags & TH_ACK), psh);
+                                  if (debug_socket_pcap_enable)
+                                      LDEBUG("DEFRAG TCP process: LEN:[%d], ACK:[%d], PSH[%d]\n", len, (tcp_pkt->th_flags & TH_ACK), psh);
 
-            datatcp = tcpreasm_ip_next_tcp(tcpreasm[loc_index], new_p_2, len,
-                                           (tcpreasm_time_t) 1000000UL * pkthdr->ts.tv_sec + pkthdr->ts.tv_usec, &new_len,
-                                           &ip4_pkt->ip_src, &ip4_pkt->ip_dst, ntohs(tcp_pkt->th_sport),
-                                           ntohs(tcp_pkt->th_dport), psh);
+                                  datatcp = tcpreasm_ip_next_tcp(tcpreasm[loc_index], new_p_2, len,
+                                          (tcpreasm_time_t) 1000000UL * pkthdr->ts.tv_sec + pkthdr->ts.tv_usec, &new_len,
+                                          &ip4_pkt->ip_src, &ip4_pkt->ip_dst, ntohs(tcp_pkt->th_sport),
+                                          ntohs(tcp_pkt->th_dport), psh);
 
-            if (datatcp == NULL) {
-                return;
-            }
+                                  if (datatcp == NULL) {
+                                      return;
+                                  }
 
-            len = new_len;
+                                  len = new_len;
 
-            if (debug_socket_pcap_enable) {
-                LDEBUG("COMPLETE TCP DEFRAG: LEN[%d], PACKET:[%s]\n", len, datatcp);
-            }
+                                  if (debug_socket_pcap_enable) {
+                                      LDEBUG("COMPLETE TCP DEFRAG: LEN[%d], PACKET:[%s]\n", len, datatcp);
+                                  }
 
-            /* check websocket */
-            if(websocket_detection == 1)
-            {
-                p_websock = datatcp;
-                unsigned char decoded[3000];
-                memset(decoded, 0, 3000);
-                if(!websocket_header_detection(p_websock, webLen, datatcp, pkthdr->len))
-                {
-                    /* clear datatcp */
-                    if(datatcp)
-                        free(datatcp);
-                    goto error;
-                }
-                /* next position for websock */
-                p_websock++;
-            }
+                                  /* check websocket */
+                                  if(websocket_detection == 1)
+                                  {
+                                      p_websock = datatcp;
+                                      unsigned char decoded[3000];
+                                      memset(decoded, 0, 3000);
+                                      if(!websocket_header_detection(p_websock, webLen, datatcp, pkthdr->len))
+                                      {
+                                          /* clear datatcp */
+                                          if(datatcp)
+                                              free(datatcp);
+                                          goto error;
+                                      }
+                                      /* next position for websock */
+                                      p_websock++;
+                                  }
 
-            // Full packet
-            if (!profile_socket[profile_size].full_packet) {
+                                  // Full packet
+                                  if (!profile_socket[profile_size].full_packet) {
 
-                _msg.len = len;
+                                      _msg.len = len;
 
-                if( websocket_detection == 1) {
-                    unsigned char decoded[3000];
-                    memset(decoded, 0, 3000);
-                    if(!websocket_pre_decode(p_websock, decoded, &_msg)) {
-                        _msg.data = sll ?  packet + _msg.hdr_len : datatcp;
-                    }
-                } else {
-                    _msg.data = sll ?  packet + _msg.hdr_len : datatcp;
-                }
-            }
-            // Not full packet
-            else {
-                _msg.len = len;
-                if(websocket_detection == 1) {
-                    unsigned char decoded[3000];
-                    memset(decoded, 0, 3000);
-                    if(!websocket_pre_decode(p_websock, decoded, &_msg)) {
-                        _msg.data = sll ?  packet + _msg.hdr_len : datatcp;
-                    }
-                } else {
-                    _msg.data = sll ?  packet + _msg.hdr_len : datatcp;
-                }
-            }
+                                      if( websocket_detection == 1) {
+                                          unsigned char decoded[3000];
+                                          memset(decoded, 0, 3000);
+                                          if(!websocket_pre_decode(p_websock, decoded, &_msg)) {
+                                              _msg.data = sll ?  packet + _msg.hdr_len : datatcp;
+                                          }
+                                      } else {
+                                          _msg.data = sll ?  packet + _msg.hdr_len : datatcp;
+                                      }
+                                  }
+                                  // Not full packet
+                                  else {
+                                      _msg.len = len;
+                                      if(websocket_detection == 1) {
+                                          unsigned char decoded[3000];
+                                          memset(decoded, 0, 3000);
+                                          if(!websocket_pre_decode(p_websock, decoded, &_msg)) {
+                                              _msg.data = sll ?  packet + _msg.hdr_len : datatcp;
+                                          }
+                                      } else {
+                                          _msg.data = sll ?  packet + _msg.hdr_len : datatcp;
+                                      }
+                                  }
 
-            _msg.rcinfo.src_mac = mac_src;
-            _msg.rcinfo.dst_mac = mac_dst;
-            _msg.rcinfo.src_ip = ip_src;
-            _msg.rcinfo.dst_ip = ip_dst;
-            _msg.rcinfo.src_port = ntohs(tcp_pkt->th_sport);
-            _msg.rcinfo.dst_port = ntohs(tcp_pkt->th_dport);
-            _msg.rcinfo.ip_family = ip_ver == 4 ? AF_INET : AF_INET6;
-            _msg.rcinfo.ip_proto = ip_proto;
-            _msg.rcinfo.time_sec = pkthdr->ts.tv_sec;
-            _msg.rcinfo.time_usec = pkthdr->ts.tv_usec;
-            _msg.tcpflag = tcp_pkt->th_flags;
-            _msg.parse_it = 1;
+                                  _msg.rcinfo.src_mac = mac_src;
+                                  _msg.rcinfo.dst_mac = mac_dst;
+                                  _msg.rcinfo.src_ip = ip_src;
+                                  _msg.rcinfo.dst_ip = ip_dst;
+                                  _msg.rcinfo.src_port = ntohs(tcp_pkt->th_sport);
+                                  _msg.rcinfo.dst_port = ntohs(tcp_pkt->th_dport);
+                                  _msg.rcinfo.ip_family = ip_ver == 4 ? AF_INET : AF_INET6;
+                                  _msg.rcinfo.ip_proto = ip_proto;
+                                  _msg.rcinfo.time_sec = pkthdr->ts.tv_sec;
+                                  _msg.rcinfo.time_usec = pkthdr->ts.tv_usec;
+                                  _msg.tcpflag = tcp_pkt->th_flags;
+                                  _msg.parse_it = 1;
 
-            if(ipindex) {
-                /* src */
-                check_ip_data(_msg.rcinfo.src_ip, &_msg.rcinfo.src_port);
-                /* dst */
-                check_ip_data(_msg.rcinfo.dst_ip, &_msg.rcinfo.dst_port);
-            }
+                                  if(ipindex) {
+                                      /* src */
+                                      check_ip_data(_msg.rcinfo.src_ip, &_msg.rcinfo.src_port);
+                                      /* dst */
+                                      check_ip_data(_msg.rcinfo.dst_ip, &_msg.rcinfo.dst_port);
+                                  }
 
-            action_idx = profile_socket[loc_index].action;
-            run_actions(&ctx, main_ct.clist[action_idx], &_msg);
+                                  action_idx = profile_socket[loc_index].action;
+                                  run_actions(&ctx, main_ct.clist[action_idx], &_msg);
 
-            /* clear datatcp */
-            free(datatcp);
-        } else {
-            /* detect websocket */
-            if(websocket_detection == 1) {
-                if(!websocket_header_detection(p_websock, webLen, data, pkthdr->len)) {
-                    /* clear datatcp */
-                    goto error;
-                }
-                /* next position for websock */
-                p_websock++;
-            }
-            // full packet
-            if (!profile_socket[profile_size].full_packet) {
+                                  /* clear datatcp */
+                                  free(datatcp);
+                              } else {
+                                  /* detect websocket */
+                                  if(websocket_detection == 1) {
+                                      if(!websocket_header_detection(p_websock, webLen, data, pkthdr->len)) {
+                                          /* clear datatcp */
+                                          goto error;
+                                      }
+                                      /* next position for websock */
+                                      p_websock++;
+                                  }
+                                  // full packet
+                                  if (!profile_socket[profile_size].full_packet) {
 
-                _msg.len = len;
+                                      _msg.len = len;
 
-                if(websocket_detection == 1) {
-                    unsigned char decoded[3000];
-                    memset(decoded, 0, 3000);
-                    if(!websocket_pre_decode(p_websock, decoded, &_msg)) {
-                        _msg.data = data;
-                    }
-                } else {
-                    _msg.data = data;
-                }
-            }
-            // Not full packet
-            else {
+                                      if(websocket_detection == 1) {
+                                          unsigned char decoded[3000];
+                                          memset(decoded, 0, 3000);
+                                          if(!websocket_pre_decode(p_websock, decoded, &_msg)) {
+                                              _msg.data = data;
+                                          }
+                                      } else {
+                                          _msg.data = data;
+                                      }
+                                  }
+                                  // Not full packet
+                                  else {
 
                 _msg.len = pkthdr->caplen - link_offset - hdr_offset;
 
-                if(websocket_detection == 1) {
-                    unsigned char decoded[3000];
-                    memset(decoded, 0, 3000);
-                    if(!websocket_pre_decode(p_websock, decoded, &_msg)) {
+                                      if(websocket_detection == 1) {
+                                          unsigned char decoded[3000];
+                                          memset(decoded, 0, 3000);
+                                          if(!websocket_pre_decode(p_websock, decoded, &_msg)) {
                         _msg.data = (packet + link_offset + hdr_offset);
-                    }
-                } else {
-                    _msg.data = data;
-                }
-            }
+                                          }
+                                      } else {
+                                          _msg.data = data;
+                                      }
+                                  }
 
-            _msg.rcinfo.src_mac = mac_src;
-            _msg.rcinfo.dst_mac = mac_dst;
-            _msg.rcinfo.src_ip = ip_src;
-            _msg.rcinfo.dst_ip = ip_dst;
-            _msg.rcinfo.src_port = ntohs(tcp_pkt->th_sport);
-            _msg.rcinfo.dst_port = ntohs(tcp_pkt->th_dport);
-            _msg.rcinfo.ip_family = ip_ver == 4 ? AF_INET : AF_INET6;
-            _msg.rcinfo.ip_proto = ip_proto;
-            _msg.rcinfo.time_sec = pkthdr->ts.tv_sec;
-            _msg.rcinfo.time_usec = pkthdr->ts.tv_usec;
-            _msg.tcpflag = tcp_pkt->th_flags;
-            _msg.parse_it = 1;
+                                  _msg.rcinfo.src_mac = mac_src;
+                                  _msg.rcinfo.dst_mac = mac_dst;
+                                  _msg.rcinfo.src_ip = ip_src;
+                                  _msg.rcinfo.dst_ip = ip_dst;
+                                  _msg.rcinfo.src_port = ntohs(tcp_pkt->th_sport);
+                                  _msg.rcinfo.dst_port = ntohs(tcp_pkt->th_dport);
+                                  _msg.rcinfo.ip_family = ip_ver == 4 ? AF_INET : AF_INET6;
+                                  _msg.rcinfo.ip_proto = ip_proto;
+                                  _msg.rcinfo.time_sec = pkthdr->ts.tv_sec;
+                                  _msg.rcinfo.time_usec = pkthdr->ts.tv_usec;
+                                  _msg.tcpflag = tcp_pkt->th_flags;
+                                  _msg.parse_it = 1;
 
-            if(ipindex) {
-                /* src */
-                check_ip_data(_msg.rcinfo.src_ip, &_msg.rcinfo.src_port);
-                /* dst */
-                check_ip_data(_msg.rcinfo.dst_ip, &_msg.rcinfo.dst_port);
-            }
+                                  if(ipindex) {
+                                      /* src */
+                                      check_ip_data(_msg.rcinfo.src_ip, &_msg.rcinfo.src_port);
+                                      /* dst */
+                                      check_ip_data(_msg.rcinfo.dst_ip, &_msg.rcinfo.dst_port);
+                                  }
 
-            action_idx = profile_socket[loc_index].action;
-            run_actions(&ctx, main_ct.clist[action_idx], &_msg);
+                                  action_idx = profile_socket[loc_index].action;
+                                  run_actions(&ctx, main_ct.clist[action_idx], &_msg);
 
-            stats.send_packets++;
-        }
-     }
-         break;
+                                  stats.send_packets++;
+                              }
+                          }
+                          break;
 
-     case IPPROTO_UDP: {
+        case IPPROTO_UDP: {
 
-        struct udphdr *udp_pkt = (struct udphdr *) ((unsigned char *) (ip4_pkt) + ip_hl);
-        uint16_t udphdr_offset = (frag_offset) ? 0 : sizeof(*udp_pkt);
+                              struct udphdr *udp_pkt = (struct udphdr *) ((unsigned char *) (ip4_pkt) + ip_hl);
+                              uint16_t udphdr_offset = (frag_offset) ? 0 : sizeof(*udp_pkt);
 
-        data = (unsigned char *) (udp_pkt) + udphdr_offset;
+                              data = (unsigned char *) (udp_pkt) + udphdr_offset;
 
         _msg.hdr_len = link_offset + ip_hl + hdr_offset + udphdr_offset + ipip_offset;
 
@@ -843,135 +843,135 @@ void callback_proto(unsigned char *arg, struct pcap_pkthdr *pkthdr, unsigned cha
         */
         #endif
 
-        /* stats */
-        stats.received_udp_packets++;
+                              /* stats */
+                              stats.received_udp_packets++;
 
-        if ((int32_t) len < 0)
-            len = 0;
+                              if ((int32_t) len < 0)
+                                  len = 0;
 
-        _msg.rcinfo.src_port = ntohs(udp_pkt->uh_sport);
-        _msg.rcinfo.dst_port = ntohs(udp_pkt->uh_dport);
-        _msg.rcinfo.src_ip = ip_src;
-        _msg.rcinfo.dst_ip = ip_dst;
-        _msg.rcinfo.src_mac = mac_src;
-        _msg.rcinfo.dst_mac = mac_dst;
-        _msg.rcinfo.ip_family = ip_ver == 4 ? AF_INET : AF_INET6;
-        _msg.rcinfo.ip_proto = ip_proto;
-        _msg.rcinfo.time_sec = pkthdr->ts.tv_sec;
-        _msg.rcinfo.time_usec = pkthdr->ts.tv_usec;
-        _msg.tcpflag = 0;
-        _msg.parse_it = 1;
+                              _msg.rcinfo.src_port = ntohs(udp_pkt->uh_sport);
+                              _msg.rcinfo.dst_port = ntohs(udp_pkt->uh_dport);
+                              _msg.rcinfo.src_ip = ip_src;
+                              _msg.rcinfo.dst_ip = ip_dst;
+                              _msg.rcinfo.src_mac = mac_src;
+                              _msg.rcinfo.dst_mac = mac_dst;
+                              _msg.rcinfo.ip_family = ip_ver == 4 ? AF_INET : AF_INET6;
+                              _msg.rcinfo.ip_proto = ip_proto;
+                              _msg.rcinfo.time_sec = pkthdr->ts.tv_sec;
+                              _msg.rcinfo.time_usec = pkthdr->ts.tv_usec;
+                              _msg.tcpflag = 0;
+                              _msg.parse_it = 1;
 
-        if(!profile_socket[profile_size].full_packet) {
-            _msg.data = data;
-            _msg.len = len;
-        } else {
+                              if(!profile_socket[profile_size].full_packet) {
+                                  _msg.data = data;
+                                  _msg.len = len;
+                              } else {
             _msg.len = pkthdr->caplen - link_offset - hdr_offset;
             _msg.data = (packet + link_offset + hdr_offset);
-        }
+                              }
 
 
-        /* replace IP */
-        if(ipindex) {
-            /* src */
-            check_ip_data(_msg.rcinfo.src_ip, &_msg.rcinfo.src_port);
-            /* dst */
-            check_ip_data(_msg.rcinfo.dst_ip, &_msg.rcinfo.dst_port);
-        }
+                              /* replace IP */
+                              if(ipindex) {
+                                  /* src */
+                                  check_ip_data(_msg.rcinfo.src_ip, &_msg.rcinfo.src_port);
+                                  /* dst */
+                                  check_ip_data(_msg.rcinfo.dst_ip, &_msg.rcinfo.dst_port);
+                              }
 
-        action_idx = profile_socket[loc_index].action;
-        run_actions(&ctx, main_ct.clist[action_idx], &_msg);
+                              action_idx = profile_socket[loc_index].action;
+                              run_actions(&ctx, main_ct.clist[action_idx], &_msg);
 
-        stats.send_packets++;
-     }
-         break;
+                              stats.send_packets++;
+                          }
+                          break;
 
-     case IPPROTO_SCTP: {
-        struct sctp_common_hdr *sctp_hdr;
-        uint8_t *chunk_data;
-        int plen;
-        uint32_t chunk_read = 0;
+        case IPPROTO_SCTP: {
+                               struct sctp_common_hdr *sctp_hdr;
+                               uint8_t *chunk_data;
+                               int plen;
+                               uint32_t chunk_read = 0;
 
-        /* attempt at input validation */
+                               /* attempt at input validation */
         if (len <= link_offset + ip_hl + hdr_offset) {
-            LDEBUG("sctp: offset handling %zu vs. %zu",
+                                   LDEBUG("sctp: offset handling %zu vs. %zu",
                    len, link_offset + ip_hl + hdr_offset);
-            goto error;
-        }
+                                   goto error;
+                               }
 
         len -= link_offset + ip_hl + hdr_offset;
-        sctp_hdr = (struct sctp_common_hdr *) ((uint8_t *)(ip4_pkt) + ip_hl);
-        plen = sctp_parse_common(&_msg, (uint8_t *)sctp_hdr, len);
+                               sctp_hdr = (struct sctp_common_hdr *) ((uint8_t *)(ip4_pkt) + ip_hl);
+                               plen = sctp_parse_common(&_msg, (uint8_t *)sctp_hdr, len);
 
-        if (plen < 0)
-            goto error;
-        len -= plen;
+                               if (plen < 0)
+                                   goto error;
+                               len -= plen;
 
-        /* stats */
-        stats.received_sctp_packets++;
+                               /* stats */
+                               stats.received_sctp_packets++;
 
-        /* I don't understand the frag_offset in other protos */
+                               /* I don't understand the frag_offset in other protos */
 
-        /* same for the entire package */
+                               /* same for the entire package */
         _msg.hdr_len = link_offset + hdr_offset + ip_hl + sizeof(struct sctp_common_hdr);
-        _msg.rcinfo.src_ip = ip_src;
-        _msg.rcinfo.dst_ip = ip_dst;
-        _msg.rcinfo.src_mac = mac_src;
-        _msg.rcinfo.dst_mac = mac_dst;
-        _msg.rcinfo.ip_family = ip_ver == 4 ? AF_INET : AF_INET6;
-        _msg.rcinfo.ip_proto = ip_proto;
-        _msg.rcinfo.time_sec = pkthdr->ts.tv_sec;
-        _msg.rcinfo.time_usec = pkthdr->ts.tv_usec;
-        _msg.tcpflag = 0;
-        _msg.parse_it = 1;
+                               _msg.rcinfo.src_ip = ip_src;
+                               _msg.rcinfo.dst_ip = ip_dst;
+                               _msg.rcinfo.src_mac = mac_src;
+                               _msg.rcinfo.dst_mac = mac_dst;
+                               _msg.rcinfo.ip_family = ip_ver == 4 ? AF_INET : AF_INET6;
+                               _msg.rcinfo.ip_proto = ip_proto;
+                               _msg.rcinfo.time_sec = pkthdr->ts.tv_sec;
+                               _msg.rcinfo.time_usec = pkthdr->ts.tv_usec;
+                               _msg.tcpflag = 0;
+                               _msg.parse_it = 1;
 
-        /* replace IP */
-        if(ipindex) {
-            /* src */
-            check_ip_data(_msg.rcinfo.src_ip, &_msg.rcinfo.src_port);
-            /* dst */
-            check_ip_data(_msg.rcinfo.dst_ip, &_msg.rcinfo.dst_port);
-        }
+                               /* replace IP */
+                               if(ipindex) {
+                                   /* src */
+                                   check_ip_data(_msg.rcinfo.src_ip, &_msg.rcinfo.src_port);
+                                   /* dst */
+                                   check_ip_data(_msg.rcinfo.dst_ip, &_msg.rcinfo.dst_port);
+                               }
 
-        /* default the full packet */
+                               /* default the full packet */
         _msg.len = pkthdr->caplen - link_offset - hdr_offset;
         _msg.data = (packet + link_offset + hdr_offset);
 
-        chunk_data = &sctp_hdr->data[0];
+                               chunk_data = &sctp_hdr->data[0];
 
-        while (chunk_read < len) {
-            bool send_data;
-            uint8_t padding;
+                               while (chunk_read < len) {
+                                   bool send_data;
+                                   uint8_t padding;
 
-            plen = sctp_parse_chunk(&_msg, chunk_data, len - chunk_read, &send_data);
-            if (plen < 0)
-                goto error;
-            /* a chunk but no data chunk */
-            if (!send_data)
-                goto next;
+                                   plen = sctp_parse_chunk(&_msg, chunk_data, len - chunk_read, &send_data);
+                                   if (plen < 0)
+                                       goto error;
+                                   /* a chunk but no data chunk */
+                                   if (!send_data)
+                                       goto next;
 
-            if (!profile_socket[profile_size].full_packet) {
-                _msg.len = plen - 16;
-                _msg.data = chunk_data + 16;
-            }
-            action_idx = profile_socket[loc_index].action;
-            run_actions(&ctx, main_ct.clist[action_idx], &_msg);
+                                   if (!profile_socket[profile_size].full_packet) {
+                                       _msg.len = plen - 16;
+                                       _msg.data = chunk_data + 16;
+                                   }
+                                   action_idx = profile_socket[loc_index].action;
+                                   run_actions(&ctx, main_ct.clist[action_idx], &_msg);
 
-        next:
-            padding = (4 - (plen % 4)) & 0x3;
-            chunk_read += plen + padding;
-            chunk_data += plen + padding;
-        }
+next:
+                                   padding = (4 - (plen % 4)) & 0x3;
+                                   chunk_read += plen + padding;
+                                   chunk_data += plen + padding;
+                               }
 
-        stats.send_packets++;
-     }
-         break;
+                               stats.send_packets++;
+                           }
+                           break;
 
-    default:
-        break;
+        default:
+                           break;
     }
 
- error:
+error:
     if(pack != NULL)
         free(pack);
 }
@@ -1409,178 +1409,178 @@ static uint64_t serial_module(void)
 
 static int load_module(xml_node *config) {
 
-	char errbuf[PCAP_ERRBUF_SIZE];
-	xml_node *params, *profile=NULL, *settings;
-	char *key, *value = NULL;
-	unsigned int i = 0;
-	char loadplan[1024];
+    char errbuf[PCAP_ERRBUF_SIZE];
+    xml_node *params, *profile=NULL, *settings;
+    char *key, *value = NULL;
+    unsigned int i = 0;
+    char loadplan[1024];
     FILE* cfg_stream;
 
-	LNOTICE("Loaded %s", module_name);
+    LNOTICE("Loaded %s", module_name);
 
-	load_module_xml_config();
+    load_module_xml_config();
 
-	/* READ CONFIG */
-	profile = module_xml_config;
+    /* READ CONFIG */
+    profile = module_xml_config;
 
-	/* reset profile */
-	profile_size = 0;
+    /* reset profile */
+    profile_size = 0;
 
-	memset(sniffer_proto, 0, sizeof sniffer_proto);
-
-
-	//global_scripts_path
+    memset(sniffer_proto, 0, sizeof sniffer_proto);
 
 
-	while (profile) {
-
-		profile = xml_get("profile", profile, 1);
-
-		if (profile == NULL)
-			break;
-
-		if (!profile->attr[4] || strncmp(profile->attr[4], "enable", 6)) {
-			goto nextprofile;
-		}
-
-		/* if not equals "true" */
-		if (!profile->attr[5] || strncmp(profile->attr[5], "true", 4)) {
-			goto nextprofile;
-		}
-
-		if(profile_size == MAX_SOCKETS) {
-			break;
-		}
-
-		memset(&profile_socket[profile_size], 0, sizeof(profile_socket_t));
-		memset(&user_data[profile_size], 0, sizeof(socket_pcap_user_data_t));
-
-		/* set values */
-		profile_socket[profile_size].name = strdup(profile->attr[1]);
-		profile_socket[profile_size].description = strdup(profile->attr[3]);
-		profile_socket[profile_size].serial = atoi(profile->attr[7]);
-		profile_socket[profile_size].capture_plan = NULL;
-		profile_socket[profile_size].capture_filter = NULL;
-		profile_socket[profile_size].action = -1;
-		profile_socket[profile_size].ring_buffer = 12;
-		profile_socket[profile_size].snap_len = 3200;
-		profile_socket[profile_size].promisc = 0;
-		profile_socket[profile_size].timeout = 100;
-		profile_socket[profile_size].full_packet = 0;
-		profile_socket[profile_size].reasm = 0;
-		profile_socket[profile_size].erspan = 0;
-
-		/* SETTINGS */
-		settings = xml_get("settings", profile, 1);
-
-		if (settings != NULL) {
-
-			params = settings;
-
-			while (params) {
-
-				params = xml_get("param", params, 1);
-				if (params == NULL)
-					break;
-
-				if (params->attr[0] != NULL) {
-
-					/* bad parser */
-					if (strncmp(params->attr[0], "name", 4)) {
-						LERR("bad keys in the config");
-						goto nextparam;
-					}
-
-					key = params->attr[1];
-
-					if (params->attr[2] && params->attr[3] && !strncmp(params->attr[2], "value", 5)) {
-						value = params->attr[3];
-					} else {
-						value = params->child->value;
-					}
-
-					if (key == NULL || value == NULL) {
-						LERR("bad values in the config");
-						goto nextparam;
-					}
+    //global_scripts_path
 
 
-					if (!usefile && !strncmp(key, "dev", 3))
-						profile_socket[profile_size].device = strdup(value);
-					else if (!strncmp(key, "reasm", 5) && !strncmp(value, "true", 4))
-						profile_socket[profile_size].reasm |= REASM_UDP;
+    while (profile) {
+
+        profile = xml_get("profile", profile, 1);
+
+        if (profile == NULL)
+            break;
+
+        if (!profile->attr[4] || strncmp(profile->attr[4], "enable", 6)) {
+            goto nextprofile;
+        }
+
+        /* if not equals "true" */
+        if (!profile->attr[5] || strncmp(profile->attr[5], "true", 4)) {
+            goto nextprofile;
+        }
+
+        if(profile_size == MAX_SOCKETS) {
+            break;
+        }
+
+        memset(&profile_socket[profile_size], 0, sizeof(profile_socket_t));
+        memset(&user_data[profile_size], 0, sizeof(socket_pcap_user_data_t));
+
+        /* set values */
+        profile_socket[profile_size].name = strdup(profile->attr[1]);
+        profile_socket[profile_size].description = strdup(profile->attr[3]);
+        profile_socket[profile_size].serial = atoi(profile->attr[7]);
+        profile_socket[profile_size].capture_plan = NULL;
+        profile_socket[profile_size].capture_filter = NULL;
+        profile_socket[profile_size].action = -1;
+        profile_socket[profile_size].ring_buffer = 12;
+        profile_socket[profile_size].snap_len = 3200;
+        profile_socket[profile_size].promisc = 0;
+        profile_socket[profile_size].timeout = 100;
+        profile_socket[profile_size].full_packet = 0;
+        profile_socket[profile_size].reasm = 0;
+        profile_socket[profile_size].erspan = 0;
+
+        /* SETTINGS */
+        settings = xml_get("settings", profile, 1);
+
+        if (settings != NULL) {
+
+            params = settings;
+
+            while (params) {
+
+                params = xml_get("param", params, 1);
+                if (params == NULL)
+                    break;
+
+                if (params->attr[0] != NULL) {
+
+                    /* bad parser */
+                    if (strncmp(params->attr[0], "name", 4)) {
+                        LERR("bad keys in the config");
+                        goto nextparam;
+                    }
+
+                    key = params->attr[1];
+
+                    if (params->attr[2] && params->attr[3] && !strncmp(params->attr[2], "value", 5)) {
+                        value = params->attr[3];
+                    } else {
+                        value = params->child->value;
+                    }
+
+                    if (key == NULL || value == NULL) {
+                        LERR("bad values in the config");
+                        goto nextparam;
+                    }
+
+
+                    if (!usefile && !strncmp(key, "dev", 3))
+                        profile_socket[profile_size].device = strdup(value);
+                    else if (!strncmp(key, "reasm", 5) && !strncmp(value, "true", 4))
+                        profile_socket[profile_size].reasm |= REASM_UDP;
                     else if (!strncmp(key, "ipv4fragments", 13) && !strncmp(value, "true", 4))
-						user_data[profile_size].ipv4fragments = 1;
+                        user_data[profile_size].ipv4fragments = 1;
                     else if (!strncmp(key, "ipv6fragments", 13) && !strncmp(value, "true", 4))
-						user_data[profile_size].ipv6fragments = 1;
+                        user_data[profile_size].ipv6fragments = 1;
                     else if (!strncmp(key, "websocket-detection", strlen("websocket-detection")) && !strncmp(value, "true", 4))
                         websocket_detection = 1;
                     else if(!strncmp(key, "tcpdefrag", 9) && !strncmp(value, "true", 4))
                         profile_socket[profile_size].reasm |= REASM_TCP;
-					else if (!strncmp(key, "ring-buffer", 11))
-						profile_socket[profile_size].ring_buffer = atoi(value);
-					else if (!strncmp(key, "full-packet",11) && !strncmp(value, "true", 4))
-						profile_socket[profile_size].full_packet = 1;
-					else if (!strncmp(key, "timeout", 7))
-						profile_socket[profile_size].timeout = atoi(value);
-					else if (!strncmp(key, "snap-len", 8))
-						profile_socket[profile_size].snap_len = atoi(value);
-					else if (!strncmp(key, "promisc", 7) && !strncmp(value, "true", 4))
-						profile_socket[profile_size].promisc = 1;
-					else if (!strncmp(key, "filter", 6))
-						profile_socket[profile_size].filter = strdup(value);
-					else if (!strncmp(key, "capture-plan", 12))
-						profile_socket[profile_size].capture_plan = strdup(value);
+                    else if (!strncmp(key, "ring-buffer", 11))
+                        profile_socket[profile_size].ring_buffer = atoi(value);
+                    else if (!strncmp(key, "full-packet",11) && !strncmp(value, "true", 4))
+                        profile_socket[profile_size].full_packet = 1;
+                    else if (!strncmp(key, "timeout", 7))
+                        profile_socket[profile_size].timeout = atoi(value);
+                    else if (!strncmp(key, "snap-len", 8))
+                        profile_socket[profile_size].snap_len = atoi(value);
+                    else if (!strncmp(key, "promisc", 7) && !strncmp(value, "true", 4))
+                        profile_socket[profile_size].promisc = 1;
+                    else if (!strncmp(key, "filter", 6))
+                        profile_socket[profile_size].filter = strdup(value);
+                    else if (!strncmp(key, "capture-plan", 12))
+                        profile_socket[profile_size].capture_plan = strdup(value);
                     else if (!strncmp(key, "capture-filter", 14))
-						profile_socket[profile_size].capture_filter = strdup(value);
-					else if(!strncmp(key, "debug", 5) && !strncmp(value, "true", 4))
+                        profile_socket[profile_size].capture_filter = strdup(value);
+                    else if(!strncmp(key, "debug", 5) && !strncmp(value, "true", 4))
                         debug_socket_pcap_enable = 1;
-					else if (!strncmp(key, "erspan", 6) && !strncmp(value, "true", 4))
-						profile_socket[profile_size].erspan = 1;
-					else if (!strncmp(key, "stats-enable", strlen("stats-enable")) && !strncmp(value, "true", 4))
-						stats_enable = TRUE;
-					else if (!strncmp(key, "stats-interval", 14))
-						stats_interval = atoi(value);
-					else if (!strncmp(key, "ip-replace", 10))
-					{
+                    else if (!strncmp(key, "erspan", 6) && !strncmp(value, "true", 4))
+                        profile_socket[profile_size].erspan = 1;
+                    else if (!strncmp(key, "stats-enable", strlen("stats-enable")) && !strncmp(value, "true", 4))
+                        stats_enable = TRUE;
+                    else if (!strncmp(key, "stats-interval", 14))
+                        stats_interval = atoi(value);
+                    else if (!strncmp(key, "ip-replace", 10))
+                    {
                         load_ip_data(value);
                     }
-				}
+                }
 
-            nextparam: params = params->next;
+nextparam: params = params->next;
 
-			}
-		}
+            }
+        }
 
-		profile_size++;
+        profile_size++;
 
-    nextprofile: profile = profile->next;
-	}
+nextprofile: profile = profile->next;
+    }
 
-	/* free */
-	free_module_xml_config();
+    /* free */
+    free_module_xml_config();
 
-	for (i = 0; i < profile_size; i++) {
+    for (i = 0; i < profile_size; i++) {
 
-		unsigned int *arg = malloc(sizeof(arg));
+        unsigned int *arg = malloc(sizeof(arg));
 
-		*arg = i;
+        *arg = i;
 
-		/* DEV || FILE */
-		if (!usefile) {
-			if (!profile_socket[i].device)
-				profile_socket[i].device = pcap_lookupdev(errbuf);
-			if (!profile_socket[i].device) {
-				perror(errbuf);
-				exit(-1);
-			}
-		}
+        /* DEV || FILE */
+        if (!usefile) {
+            if (!profile_socket[i].device)
+                profile_socket[i].device = pcap_lookupdev(errbuf);
+            if (!profile_socket[i].device) {
+                perror(errbuf);
+                exit(-1);
+            }
+        }
 
-		// start thread
-		if (!init_socket(i)) {
-			LERR("couldn't init pcap");
-			return -1;
-		}
+        // start thread
+        if (!init_socket(i)) {
+            LERR("couldn't init pcap");
+            return -1;
+        }
 
         /* REASM */
         if (profile_socket[i].reasm & REASM_UDP) {
@@ -1596,33 +1596,33 @@ static int load_module(xml_node *config) {
         }
         else tcpreasm[i] = NULL;
 
-		if(profile_socket[i].capture_plan != NULL)
-		{
+        if(profile_socket[i].capture_plan != NULL)
+        {
 
-			snprintf(loadplan, sizeof(loadplan), "%s/%s", global_capture_plan_path, profile_socket[i].capture_plan);
+            snprintf(loadplan, sizeof(loadplan), "%s/%s", global_capture_plan_path, profile_socket[i].capture_plan);
 
             cfg_stream=fopen (loadplan, "r");
-			if (cfg_stream==0){
+            if (cfg_stream==0){
                 fprintf(stderr, "ERROR: loading config file(%s): %s\n", loadplan, strerror(errno));
-			}
+            }
 
-			yyin=cfg_stream;
-			if ((yyparse()!=0)||(cfg_errors)){
+            yyin=cfg_stream;
+            if ((yyparse()!=0)||(cfg_errors)){
                 fprintf(stderr, "ERROR: bad config file (%d errors)\n", cfg_errors);
                 //goto error;
-			}
+            }
 
-			profile_socket[i].action = main_ct.idx;
+            profile_socket[i].action = main_ct.idx;
 
-		}
+        }
 
-		pthread_create(&call_thread[i], NULL, proto_collect, arg);
-	}
+        pthread_create(&call_thread[i], NULL, proto_collect, arg);
+    }
 
 	if(stats_enable)
         pthread_create(&stat_thread, NULL, stat_collect, i);
 
-	return 0;
+    return 0;
 }
 
 static int unload_module(void) {
@@ -1804,9 +1804,9 @@ void proccess_packet(msg_t *_m, struct pcap_pkthdr *pkthdr, u_char *packet) {
     struct ether_header *eth = (struct ether_header *)packet;
 
     struct ip      *ip4_pkt = (struct ip *)     (packet + link_offset + hdr_offset);
-    #if USE_IPv6
+#if USE_IPv6
     struct ip6_hdr *ip6_pkt = (struct ip6_hdr *)(packet + link_offset + hdr_offset);
-    #endif
+#endif
 
     char ip_src[INET6_ADDRSTRLEN + 1], ip_dst[INET6_ADDRSTRLEN + 1];
 	char mac_src[20], mac_dst[20];
@@ -1845,7 +1845,7 @@ void proccess_packet(msg_t *_m, struct pcap_pkthdr *pkthdr, u_char *packet) {
     }
 		break;
 
-        #if USE_IPv6
+#if USE_IPv6
     case 6: {
         ip_hl = sizeof(struct ip6_hdr);
         ip_proto = ip6_pkt->ip6_nxt;
@@ -1864,7 +1864,7 @@ void proccess_packet(msg_t *_m, struct pcap_pkthdr *pkthdr, u_char *packet) {
         inet_ntop(AF_INET6, (const void *)&ip6_pkt->ip6_dst, ip_dst, sizeof(ip_dst));
     }
         break;
-        #endif
+#endif
 	}
 
 	switch (ip_proto) {
