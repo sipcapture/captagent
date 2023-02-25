@@ -1619,7 +1619,7 @@ nextprofile: profile = profile->next;
         pthread_create(&call_thread[i], NULL, proto_collect, arg);
     }
 
-	if(stats_enable)
+    if(stats_enable && !usefile)
         pthread_create(&stat_thread, NULL, stat_collect, i);
 
     return 0;
