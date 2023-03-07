@@ -111,9 +111,8 @@ struct module_exports exports = {
 hep_connection_t hep_connection_s[MAX_TRANPORTS];
 //hep_connection_t *hep_conn;
 
-int bind_usrloc(transport_module_api_t *api)
-{
-    api->send_f = send_hep;       // should be w_send_hep_api or w_send_hep_api_param
+int bind_usrloc(transport_module_api_t *api) {
+    api->send_f = send_hep_api;
     api->reload_f = reload_config;
     api->module_name = module_name;
 
@@ -229,6 +228,10 @@ void ensure_connected(int idx) {
         return;
 
     reconnect(idx);
+}
+
+int send_hep_api(msg_t *msg) {
+    return send_hep(msg, 1);
 }
 
 int send_hep(msg_t *msg, int freeParam) {
