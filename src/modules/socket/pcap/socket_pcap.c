@@ -46,8 +46,7 @@
 #ifndef __FAVOR_BSD
 #define __FAVOR_BSD
 #endif
-#include <net/ethernet.h>
-#include <netinet/in.h>
+#include <netinet/if_ether.h>
 #include <netinet/ip.h>
 #include <netinet/tcp.h>
 #include <netinet/udp.h>
@@ -305,7 +304,7 @@ void callback_proto(unsigned char *arg, struct pcap_pkthdr *pkthdr, unsigned cha
     }
 
     msg_t _msg;
-    struct ethhdr*       eth = NULL;
+    struct ether_header* eth = NULL;
     struct sll_header*   sll = NULL;
     struct sll2_header*  sll2 = NULL;
     struct ip*           ip4_pkt = NULL;
@@ -469,7 +468,7 @@ void callback_proto(unsigned char *arg, struct pcap_pkthdr *pkthdr, unsigned cha
     memcpy(&ethaddr, (packet + 12), 2);
     memcpy(&mplsaddr, (packet + 16), 2);
 
-    if (ntohs((uint16_t)*(&ethaddr)) == VLAN) {
+    if (ntohs((uint16_t)*(&ethaddr)) == ETHERTYPE_VLAN) {
         if (ntohs((uint16_t)*(&mplsaddr)) == MPLS_UNI) {
             hdr_offset = 8;
             vlan = 1;
@@ -485,21 +484,18 @@ void callback_proto(unsigned char *arg, struct pcap_pkthdr *pkthdr, unsigned cha
     } else if (type_datalink == DLT_LINUX_SLL2) {
         sll2 = (struct sll2_header *)(packet + hdr_preset);
     } else {
-        eth = (struct ethhdr *)(packet + hdr_preset);
+        eth = (struct ether_header *)(packet + hdr_preset);
     }
 
     if (eth) {
-        //snprintf(mac_src, sizeof(mac_src), "%.2X-%.2X-%.2X-%.2X-%.2X-%.2X", eth->ether_shost[0], eth->ether_shost[1], eth->ether_shost[2], eth->ether_shost[3], eth->ether_shost[4], eth->ether_shost[5]);
-        //snprintf(mac_dst, sizeof(mac_dst), "%.2X-%.2X-%.2X-%.2X-%.2X-%.2X", eth->ether_dhost[0], eth->ether_dhost[1], eth->ether_dhost[2], eth->ether_dhost[3], eth->ether_dhost[4], eth->ether_dhost[5]);
         snprintf(mac_src, sizeof(mac_src), "%.2X-%.2X-%.2X-%.2X-%.2X-%.2X",
-                 eth->h_source[0], eth->h_source[1], eth->h_source[2], eth->h_source[3], eth->h_source[4], eth->h_source[5]);
+                eth->ether_shost[0], eth->ether_shost[1], eth->ether_shost[2], eth->ether_shost[3], eth->ether_shost[4], eth->ether_shost[5]);
         snprintf(mac_dst, sizeof(mac_dst), "%.2X-%.2X-%.2X-%.2X-%.2X-%.2X",
-                 eth->h_dest[0], eth->h_dest[1], eth->h_dest[2], eth->h_dest[3], eth->h_dest[4], eth->h_dest[5]);
+                eth->ether_dhost[0], eth->ether_dhost[1], eth->ether_dhost[2], eth->ether_dhost[3], eth->ether_dhost[4], eth->ether_dhost[5]);
 
         if(vlan == 0 || vlan == 2) {
             // IP TYPE = 0x86dd (IPv6) or 0x0800 (IPv4) or (0x8100 VLAN)
-            //type_ip = ntohs(eth->ether_type);
-            type_ip = ntohs(eth->h_proto);
+            type_ip = ntohs(eth->ether_type);
         }
     }
     /* Linux cooked capture (v1 and v2) shows only Source MAC address */
@@ -1223,7 +1219,7 @@ void* proto_collect(void *arg) {
     /* detect link_offset */
     switch (type_datalink) {
         case DLT_EN10MB:
-            link_offset = ETHHDR_SIZE;
+            link_offset = ETHER_HDR_LEN;
             break;
 
         case DLT_IEEE802:

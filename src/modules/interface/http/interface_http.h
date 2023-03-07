@@ -73,6 +73,11 @@ typedef struct interface_http_stats {
 	uint64_t send_erros_total;
 } interface_http_stats_t;
 
+#if defined(__APPLE__)
+#define st_atim st_atimespec
+#define st_ctim st_ctimespec
+#define st_mtim st_mtimespec
+#endif
 
 #ifdef USE_IPV6
 #include <netinet/ip6.h>

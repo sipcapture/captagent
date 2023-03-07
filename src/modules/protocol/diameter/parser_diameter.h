@@ -28,7 +28,6 @@
 
 #include <string.h>
 #include <stdlib.h>
-#include <endian.h>
 #include <net/ethernet.h>
 #include <arpa/inet.h>
 

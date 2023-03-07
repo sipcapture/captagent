@@ -50,7 +50,6 @@
 extern char *global_config_path;
 extern char *global_scripts_path;
 
-extern char *usefile;
 extern int handler(int value);
 
 #define MAX_SOCKETS 10
