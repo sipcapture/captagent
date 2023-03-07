@@ -160,7 +160,7 @@ void homer_free(hep_connection_t *conn);
 int _handle_quit(hep_connection_t *conn);
 void _run_uv_loop(void *arg);
 int homer_alloc(hep_connection_t *conn);
-int init_udp_socket(hep_connection_t *conn, char *host, int port);
+int init_udp_socket(hep_connection_t *conn, char *host, int port, char *udp_bind_host, int udp_bind_port);
 void on_tcp_connect(uv_connect_t* connection, int status);
 int init_tcp_socket(hep_connection_t *conn, char *host, int port);
 

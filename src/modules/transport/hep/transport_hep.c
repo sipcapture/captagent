@@ -1023,7 +1023,7 @@ int homer_alloc(hep_connection_t *conn)
   return 1;
 }
 
-int init_udp_socket(hep_connection_t *conn, char *host, int port) {
+int init_udp_socket(hep_connection_t *conn, char *host, int port, char *udp_bind_host, int udp_bind_port) {
 
     struct sockaddr_in v4addr;
     int status = 0;
@@ -1050,17 +1050,20 @@ int init_udp_socket(hep_connection_t *conn, char *host, int port) {
     uv_udp_init(conn->loop, &conn->udp_handle);
 
 #if UV_VERSION_MAJOR == 0
-        v4addr = uv_ip4_addr("0.0.0.0", 0);
+    v4addr = uv_ip4_addr(udp_bind_host, udp_bind_port);
+    if (!v4addr) return -1;
 #else
-        status = uv_ip4_addr("0.0.0.0", 0, &v4addr);
+    status = uv_ip4_addr(udp_bind_host, udp_bind_port, &v4addr);
+    if (status) return status;
 #endif
 
 #if UV_VERSION_MAJOR == 0
     status = uv_udp_bind(&conn->udp_handle, v4addr, 0);
 #else
     status = uv_udp_bind(&conn->udp_handle, (struct sockaddr*)&v4addr, UV_UDP_REUSEADDR);
-
 #endif
+    if (status != 0) return status;
+
     uv_udp_set_broadcast(&conn->udp_handle, 1);
 
     conn->udp_handle.data = conn;
@@ -1079,9 +1082,9 @@ void on_tcp_connect(uv_connect_t* connection, int status)
 #if UV_VERSION_MAJOR == 0
         hep_connection_t* hep_conn = connection->handle->loop->data;
 #else
-
         hep_connection_t* hep_conn = uv_key_get(&hep_conn_key);
 #endif
+
         assert(hep_conn != NULL);
 
         if (status == 0)
@@ -1208,6 +1211,7 @@ static int load_module(xml_node *config) {
     char *key, *value = NULL;
     unsigned int i = 0;
     char module_api_name[256];
+    int ret = 0;
 
     LNOTICE("Loaded %s", module_name);
 
@@ -1243,11 +1247,14 @@ static int load_module(xml_node *config) {
             goto nextprofile;
         }
 
+        memset(&profile_transport[profile_size], 0, sizeof(profile_transport_t));
+
         /* set values */
         profile_transport[profile_size].name = strdup(profile->attr[1]);
         profile_transport[profile_size].description = strdup(profile->attr[3]);
         profile_transport[profile_size].serial = atoi(profile->attr[7]);
         profile_transport[profile_size].statistic_pipe = NULL;
+        profile_transport[profile_size].udp_bind_host = "0.0.0.0";
 
         /* SETTINGS */
         settings = xml_get("settings", profile, 1);
@@ -1287,14 +1294,13 @@ static int load_module(xml_node *config) {
                     if (!strncmp(key, "capture-host", 10)) profile_transport[profile_size].capt_host = strdup(value);
                     else if (!strncmp(key, "capture-port", 13)) profile_transport[profile_size].capt_port = strdup(value);
                     else if (!strncmp(key, "capture-proto", 14)) profile_transport[profile_size].capt_proto = strdup(value);
+                    else if (!strncmp(key, "udp-bind-host", 10)) profile_transport[profile_size].udp_bind_host = strdup(value);
+                    else if (!strncmp(key, "udp-bind-port", 13)) profile_transport[profile_size].udp_bind_port = atoi(strdup(value));
                     else if (!strncmp(key, "capture-password", 17)) profile_transport[profile_size].capt_password = strdup(value);
                     else if (!strncmp(key, "capture-id", 11)) profile_transport[profile_size].capt_id = atoi(value);
                     else if (!strncmp(key, "payload-compression", 19) && !strncmp(value, "true", 5)) profile_transport[profile_size].compression = 1;
                     else if (!strncmp(key, "version", 7)) profile_transport[profile_size].version = atoi(value);
 
-
-					//if (!strncmp(key, "ignore", 6))
-					//	profile_transport[profile_size].ignore = value;
                 }
 
 nextparam:
@@ -1343,7 +1349,8 @@ nextparam:
                 }
             }
 
-			nextstatistic: condition = condition->next;
+nextstatistic:
+            condition = condition->next;
         }
 
         profile_size++;
@@ -1366,12 +1373,15 @@ nextprofile:
 #endif /* USE_ZLIB */
         homer_alloc(&hep_connection_s[i]);
 
-			if(!strncmp(profile_transport[i].capt_proto, "udp", 3))
-			{
-				init_udp_socket(&hep_connection_s[i], profile_transport[i].capt_host, atoi(profile_transport[i].capt_port));
+        if (!strncmp(profile_transport[i].capt_proto, "udp", 3)) {
+            ret = init_udp_socket(&hep_connection_s[i], profile_transport[i].capt_host, atoi(profile_transport[i].capt_port),
+                    profile_transport[i].udp_bind_host, profile_transport[i].udp_bind_port);
+            if (ret != 0) {
+                LERR("Could not bind socket %s:%d", profile_transport[i].udp_bind_host, profile_transport[i].udp_bind_port);
+                return -1;
             }
-			else
-            {
+        }
+        else {
             init_tcp_socket(&hep_connection_s[i], profile_transport[i].capt_host, atoi(profile_transport[i].capt_port));
         }
 
