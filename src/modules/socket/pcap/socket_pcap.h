@@ -29,7 +29,6 @@
 
 #include <captagent/xmlread.h>
 
-extern char *usefile;
 extern int handler(int value);
 extern char *global_config_path;
 extern char *global_scripts_path;
@@ -37,7 +36,6 @@ extern char *global_scripts_path;
 /* Ethernet type in case of vlan or mpls header */
 #define IPV4_SIZE	20
 #define ERSPANHDR_SIZE	16
-#define VLAN            0x8100
 #define MPLS_UNI        0x8847
 #define MPLS_MULTI      0x8848
 #define ERSPAN          0x88be
@@ -77,7 +75,6 @@ struct sll2_header {
 #endif
 
 /* header offsets */
-#define ETHHDR_SIZE       14
 #define TOKENRING_SIZE    22
 #define PPPHDR_SIZE        4
 #define SLIPHDR_SIZE      16

@@ -57,7 +57,6 @@ typedef struct protocol_sip_stats {
 
 static protocol_sip_stats_t stats;
 
-extern char* usefile;
 extern int handler(int value);
 extern int set_raw_rtp_filter();
 
