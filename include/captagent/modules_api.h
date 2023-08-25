@@ -188,28 +188,30 @@ typedef struct profile_protocol {
 
 /* profile transport */
 typedef struct profile_transport {
-		char *name;
-		char *description;
-		int socket;
-		unsigned int usessl;
+    char *name;
+    char *description;
+    int socket;
+    unsigned int usessl;
 #ifdef USE_SSL
-		SSL *ssl;
-		SSL_CTX *ctx;
+    SSL *ssl;
+    SSL_CTX *ctx;
 #endif /* USE_SSL */
-		unsigned int initfails;
-		int serial;
-		int version;
-		char *capt_host;
-		char *capt_port;
-		char *capt_proto;
-		unsigned int capt_id;
-		char *capt_password;
-		int compression;
-		char *statistic_pipe;
-		char *statistic_profile;
-		int action;
-        struct profile_transport *next;
-        unsigned int flag;
+    unsigned int initfails;
+    int serial;
+    int version;
+    char *capt_host;
+    char *capt_port;
+    char *capt_proto;
+    char *udp_bind_host;
+    int udp_bind_port;
+    unsigned int capt_id;
+    char *capt_password;
+    int compression;
+    char *statistic_pipe;
+    char *statistic_profile;
+    int action;
+    struct profile_transport *next;
+    unsigned int flag;
 } profile_transport_t;
 
 /* database profile */

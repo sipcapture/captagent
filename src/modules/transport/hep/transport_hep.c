@@ -111,13 +111,12 @@ struct module_exports exports = {
 hep_connection_t hep_connection_s[MAX_TRANPORTS];
 //hep_connection_t *hep_conn;
 
-int bind_usrloc(transport_module_api_t *api)
-{
-    api->send_f = send_hep;       // should be w_send_hep_api or w_send_hep_api_param
-	api->reload_f = reload_config;
-	api->module_name = module_name;
+int bind_usrloc(transport_module_api_t *api) {
+    api->send_f = send_hep_api;
+    api->reload_f = reload_config;
+    api->module_name = module_name;
 
-        return 0;
+    return 0;
 }
 
 int w_send_hep_api(msg_t *_m, char *param1)
@@ -127,7 +126,7 @@ int w_send_hep_api(msg_t *_m, char *param1)
 
     _m->profile_name = param1;
 
-    ret =  send_hep(_m, 1);
+    ret = send_hep(_m, 1);
 
     return ret;
 }
@@ -152,7 +151,7 @@ int w_send_hep_api_param(msg_t *_m, char *param1, char *param2)
     int freeParam = 1;
 
     _m->profile_name = param1;
-    if(param2 != NULL && !strncmp(param2,"true", 4)) freeParam = 0;
+    if (param2 != NULL && !strncmp(param2,"true", 4)) freeParam = 0;
 
     ret = send_hep(_m, freeParam);
 
@@ -181,7 +180,7 @@ int reload_config (char *erbuf, int erlen) {
 
 	snprintf(module_config_name, 500, "%s/%s.xml", global_config_path, module_name);
 
-	if(xml_parse_with_report(module_config_name, erbuf, erlen)) {
+	if (xml_parse_with_report(module_config_name, erbuf, erlen)) {
 		unload_module();
 		load_module(config);
 		return 1;
@@ -194,10 +193,10 @@ profile_transport_t* get_profile_by_name(char *name) {
 
 	unsigned int i = 0;
 
-	if(profile_size == 1 || name == NULL) return &profile_transport[0];
+	if (profile_size == 1 || name == NULL) return &profile_transport[0];
 
 	for (i = 0; i < profile_size; i++) {
-		if(strlen(name) == strlen(profile_transport[i].name) && !strncmp(name, profile_transport[i].name, strlen(name))) {
+		if (strlen(name) == strlen(profile_transport[i].name) && !strncmp(name, profile_transport[i].name, strlen(name))) {
 			return &profile_transport[i];
 		}
 	}
@@ -209,10 +208,10 @@ unsigned int get_profile_index_by_name(char *name) {
 
 	unsigned int i = 0;
 
-	if(profile_size == 1 || name == NULL) return 0;
+	if (profile_size == 1 || name == NULL) return 0;
 
 	for (i = 0; i < profile_size; i++) {
-		if(strlen(name) == strlen(profile_transport[i].name) && !strncmp(name, profile_transport[i].name, strlen(name))) {
+		if (strlen(name) == strlen(profile_transport[i].name) && !strncmp(name, profile_transport[i].name, strlen(name))) {
 			return i;
 		}
 	}
@@ -231,7 +230,11 @@ void ensure_connected(int idx) {
     reconnect(idx);
 }
 
-int send_hep (msg_t *msg, int freeParam) {
+int send_hep_api(msg_t *msg) {
+    return send_hep(msg, 1);
+}
+
+int send_hep(msg_t *msg, int freeParam) {
 
         unsigned char *zipData = NULL;
         rc_info_t *rcinfo = NULL;
@@ -251,7 +254,7 @@ int send_hep (msg_t *msg, int freeParam) {
         int status = 0;
         unsigned long dlen;
 
-        if(profile_transport[idx].compression && profile_transport[idx].version == 3) {
+        if (profile_transport[idx].compression && profile_transport[idx].version == 3) {
                 //dlen = len/1000+len*len+13;
 
                 dlen = compressBound(msg->len);
@@ -260,10 +263,10 @@ int send_hep (msg_t *msg, int freeParam) {
 
                 /* do compress */
                 status = compress( zipData, &dlen, msg->data, msg->len );
-                if( status != Z_OK ){
+                if ( status != Z_OK ){
                 	  LERR("data couldn't be compressed");
                       sendzip = 0;
-                      if(zipData) free(zipData); /* release */
+                      if (zipData) free(zipData); /* release */
                       zipData = NULL;
                 }
                 else {
@@ -294,21 +297,21 @@ int send_hep (msg_t *msg, int freeParam) {
 
 #ifdef USE_ZLIB
 
-        if(profile_transport[idx].compression && zipData) {
+        if (profile_transport[idx].compression && zipData) {
             free(zipData);
             zipData = NULL;
         }
 
 #endif /* USE_ZLIB */
 
-        if(freeParam == 1)
+        if (freeParam == 1)
         {
-            if(msg->mfree == 1 && msg->data != NULL) {
+            if (msg->mfree == 1 && msg->data != NULL) {
                 LDEBUG("LET'S FREE IT!");
                 free(msg->data);
                 msg->data = NULL;
             }
-            if(msg->corrdata)
+            if (msg->corrdata)
             {
                 free(msg->corrdata);
                 msg->corrdata = NULL;
@@ -355,7 +358,7 @@ int send_hepv3 (rc_info_t *rcinfo, unsigned char *data, unsigned int len, unsign
     hg->ip_proto.chunk.length = htons(sizeof(hg->ip_proto));
 
     /* IPv4 */
-    if(rcinfo->ip_family == AF_INET) {
+    if (rcinfo->ip_family == AF_INET) {
         /* SRC IP */
         src_ip4.chunk.vendor_id = htons(0x0000);
         src_ip4.chunk.type_id   = htons(0x0003);
@@ -372,7 +375,7 @@ int send_hepv3 (rc_info_t *rcinfo, unsigned char *data, unsigned int len, unsign
     }
 #ifdef USE_IPv6
       /* IPv6 */
-    else if(rcinfo->ip_family == AF_INET6) {
+    else if (rcinfo->ip_family == AF_INET6) {
         /* SRC IPv6 */
         src_ip6.chunk.vendor_id = htons(0x0000);
         src_ip6.chunk.type_id   = htons(0x0005);
@@ -435,7 +438,7 @@ int send_hepv3 (rc_info_t *rcinfo, unsigned char *data, unsigned int len, unsign
     tlen = sizeof(struct hep_generic) + len + iplen + sizeof(hep_chunk_t);
 
     /* auth key */
-    if(profile_transport[idx].capt_password != NULL) {
+    if (profile_transport[idx].capt_password != NULL) {
 
           tlen += sizeof(hep_chunk_t);
           /* Auth key */
@@ -446,7 +449,7 @@ int send_hepv3 (rc_info_t *rcinfo, unsigned char *data, unsigned int len, unsign
     }
 
     /* correlation key */
-    if(rcinfo->correlation_id.s && rcinfo->correlation_id.len > 0) {
+    if (rcinfo->correlation_id.s && rcinfo->correlation_id.len > 0) {
 
              tlen += sizeof(hep_chunk_t);
              /* Correlation key */
@@ -456,7 +459,7 @@ int send_hepv3 (rc_info_t *rcinfo, unsigned char *data, unsigned int len, unsign
              tlen += rcinfo->correlation_id.len;
     }
 
-    if(rcinfo->cval1) {
+    if (rcinfo->cval1) {
               tlen += sizeof(hep_chunk_uint16_t);
               cval1.chunk.vendor_id = htons(0x0000);
               cval1.chunk.type_id   = htons(0x0020);
@@ -464,7 +467,7 @@ int send_hepv3 (rc_info_t *rcinfo, unsigned char *data, unsigned int len, unsign
               cval1.chunk.length = htons(sizeof(cval1));
     }
 
-    if(rcinfo->cval2) {
+    if (rcinfo->cval2) {
               tlen += sizeof(hep_chunk_uint16_t);
               cval2.chunk.vendor_id = htons(0x0000);
               cval2.chunk.type_id   = htons(0x0021);
@@ -472,7 +475,7 @@ int send_hepv3 (rc_info_t *rcinfo, unsigned char *data, unsigned int len, unsign
               cval2.chunk.length = htons(sizeof(cval2));
     }
 
-    if(rcinfo->tags.s && rcinfo->tags.len > 0) {
+    if (rcinfo->tags.s && rcinfo->tags.len > 0) {
               tlen += sizeof(hep_chunk_t);
               tags_chunk.vendor_id = htons(0x0000);
               tags_chunk.type_id   = htons(0x0026);
@@ -494,7 +497,7 @@ int send_hepv3 (rc_info_t *rcinfo, unsigned char *data, unsigned int len, unsign
     buflen = sizeof(struct hep_generic);
 
     /* IPv4 */
-    if(rcinfo->ip_family == AF_INET) {
+    if (rcinfo->ip_family == AF_INET) {
         /* SRC IP */
         memcpy((void*) buffer+buflen, &src_ip4, sizeof(struct hep_chunk_ip4));
         buflen += sizeof(struct hep_chunk_ip4);
@@ -504,7 +507,7 @@ int send_hepv3 (rc_info_t *rcinfo, unsigned char *data, unsigned int len, unsign
     }
 #ifdef USE_IPv6
       /* IPv6 */
-    else if(rcinfo->ip_family == AF_INET6) {
+    else if (rcinfo->ip_family == AF_INET6) {
         /* SRC IPv6 */
         memcpy((void*) buffer+buflen, &src_ip6, sizeof(struct hep_chunk_ip6));
         buflen += sizeof(struct hep_chunk_ip6);
@@ -515,7 +518,7 @@ int send_hepv3 (rc_info_t *rcinfo, unsigned char *data, unsigned int len, unsign
 #endif
 
     /* AUTH KEY CHUNK */
-    if(profile_transport[idx].capt_password != NULL) {
+    if (profile_transport[idx].capt_password != NULL) {
 
         memcpy((void*) buffer+buflen, &authkey_chunk,  sizeof(struct hep_chunk));
         buflen += sizeof(struct hep_chunk);
@@ -526,7 +529,7 @@ int send_hepv3 (rc_info_t *rcinfo, unsigned char *data, unsigned int len, unsign
     }
 
     /* Correlation KEY CHUNK */
-    if(rcinfo->correlation_id.s && rcinfo->correlation_id.len > 0) {
+    if (rcinfo->correlation_id.s && rcinfo->correlation_id.len > 0) {
 
            memcpy((void*) buffer+buflen, &correlation_chunk,  sizeof(struct hep_chunk));
            buflen += sizeof(struct hep_chunk);
@@ -537,7 +540,7 @@ int send_hepv3 (rc_info_t *rcinfo, unsigned char *data, unsigned int len, unsign
     }
 
     /* Tags KEY CHUNK */
-    if(rcinfo->tags.s && rcinfo->tags.len > 0) {
+    if (rcinfo->tags.s && rcinfo->tags.len > 0) {
 
            memcpy((void*) buffer+buflen, &tags_chunk,  sizeof(struct hep_chunk));
            buflen += sizeof(struct hep_chunk);
@@ -548,13 +551,13 @@ int send_hepv3 (rc_info_t *rcinfo, unsigned char *data, unsigned int len, unsign
     }
 
     /* CVAL1 CHUNK */
-    if(rcinfo->cval1) {
+    if (rcinfo->cval1) {
            memcpy((void*) buffer+buflen, &cval1,  sizeof(hep_chunk_uint16_t));
            buflen += sizeof(hep_chunk_uint16_t);
     }
 
     /* CVAL2 CHUNK */
-    if(rcinfo->cval2) {
+    if (rcinfo->cval2) {
            memcpy((void*) buffer+buflen, &cval2,  sizeof(hep_chunk_uint16_t));
            buflen += sizeof(hep_chunk_uint16_t);
     }
@@ -570,7 +573,7 @@ int send_hepv3 (rc_info_t *rcinfo, unsigned char *data, unsigned int len, unsign
     /* send this packet out of our socket */
     send_data(buffer, buflen, idx);
 
-    if(hg) {
+    if (hg) {
         free(hg);
         hg = NULL;
     }
@@ -617,7 +620,7 @@ int send_hepv2 (rc_info_t *rcinfo, unsigned char *data, unsigned int len, unsign
     totlen += sizeof(struct hep_hdr);
     totlen += len;
 
-    if(profile_transport[idx].version == 2) {
+    if (profile_transport[idx].version == 2) {
         totlen += sizeof(struct hep_timehdr);
         hep_time.tv_sec = rcinfo->time_sec;
         hep_time.tv_usec = rcinfo->time_usec;
@@ -661,7 +664,7 @@ int send_hepv2 (rc_info_t *rcinfo, unsigned char *data, unsigned int len, unsign
      }
 
      /* Version 2 has timestamp, captnode ID */
-     if(profile_transport[idx].version == 2) {
+     if (profile_transport[idx].version == 2) {
         /* TIMING  */
         memcpy((void*)buffer + buflen, &hep_time, sizeof(struct hep_timehdr));
         buflen += sizeof(struct hep_timehdr);
@@ -676,7 +679,7 @@ int send_hepv2 (rc_info_t *rcinfo, unsigned char *data, unsigned int len, unsign
      return 1;
 
 error:
-     if(buffer) {
+     if (buffer) {
          free(buffer);
          buffer = NULL;
      }
@@ -710,7 +713,7 @@ void _udp_recv_callback(uv_udp_t *handle, ssize_t nread, const uv_buf_t *buf, co
 #endif
 {
   printf("DATA RECV BACK\n");
-  if(buf && buf->base)
+  if (buf && buf->base)
       free(buf->base);
 
   return;
@@ -872,7 +875,7 @@ int _handle_send_tcp_request(hep_connection_t *conn, unsigned char *message, siz
 
   request = (struct hep_request *)async->data;
 
-  if(!request) return;
+  if (!request) return;
 
   conn = request->conn;
 
@@ -894,7 +897,7 @@ int _handle_send_tcp_request(hep_connection_t *conn, unsigned char *message, siz
     LDEBUG("Request %p, of type %d, failed with error code %d\n", (void *)request, (int)request->request_type, result);
   }
 
-  if(request) {
+  if (request) {
     free(request);
     request = NULL;
   }
@@ -969,7 +972,7 @@ void homer_free(hep_connection_t *conn)
 
 int _handle_quit(hep_connection_t *conn)
 {
-   if(conn->type == 1)  {
+   if (conn->type == 1)  {
 	  uv_udp_recv_stop(&conn->udp_handle);
 	  /* close all the handles */
 	  uv_close((uv_handle_t*)&conn->udp_handle, NULL);
@@ -1020,53 +1023,56 @@ int homer_alloc(hep_connection_t *conn)
   return 1;
 }
 
-int init_udp_socket(hep_connection_t *conn, char *host, int port) {
+int init_udp_socket(hep_connection_t *conn, char *host, int port, char *udp_bind_host, int udp_bind_port) {
 
-        struct sockaddr_in v4addr;
-        int status = 0;
-        struct addrinfo hints[1] = {{ 0 }};
-        struct addrinfo *ai;
-        char cport[15];
+    struct sockaddr_in v4addr;
+    int status = 0;
+    struct addrinfo hints[1] = {{ 0 }};
+    struct addrinfo *ai;
+    char cport[15];
 
-        hints->ai_family = AF_UNSPEC;
-        hints->ai_socktype = SOCK_DGRAM;
-        hints->ai_protocol = IPPROTO_UDP;
-        hints->ai_flags = 0;
+    hints->ai_family = AF_UNSPEC;
+    hints->ai_socktype = SOCK_DGRAM;
+    hints->ai_protocol = IPPROTO_UDP;
+    hints->ai_flags = 0;
 
-        snprintf(cport, sizeof(cport), "%d", port);
+    snprintf(cport, sizeof(cport), "%d", port);
 
-        if ((status = getaddrinfo(host, cport, hints, &ai)) != 0) {
-                LERR( "capture: getaddrinfo: %s", gai_strerror(status));
-                return 0;
-        }
+    if ((status = getaddrinfo(host, cport, hints, &ai)) != 0) {
+        LERR("capture: getaddrinfo: %s", gai_strerror(status));
+        return 0;
+    }
 
-	/* copy structure */
-        memcpy(&conn->send_addr, ai->ai_addr, sizeof(struct sockaddr));
+    /* copy structure */
+    memcpy(&conn->send_addr, ai->ai_addr, sizeof(struct sockaddr));
 
-        uv_async_init(conn->loop, &conn->async_handle, _async_callback);
-        uv_udp_init(conn->loop, &conn->udp_handle);
+    uv_async_init(conn->loop, &conn->async_handle, _async_callback);
+    uv_udp_init(conn->loop, &conn->udp_handle);
 
 #if UV_VERSION_MAJOR == 0
-        v4addr = uv_ip4_addr("0.0.0.0", 0);
+    v4addr = uv_ip4_addr(udp_bind_host, udp_bind_port);
+    if (!v4addr) return -1;
 #else
-        status = uv_ip4_addr("0.0.0.0", 0, &v4addr);
+    status = uv_ip4_addr(udp_bind_host, udp_bind_port, &v4addr);
+    if (status) return status;
 #endif
 
 #if UV_VERSION_MAJOR == 0
-        status = uv_udp_bind(&conn->udp_handle, v4addr,0);
+    status = uv_udp_bind(&conn->udp_handle, v4addr, 0);
 #else
-        status = uv_udp_bind(&conn->udp_handle, (struct sockaddr*)&v4addr, UV_UDP_REUSEADDR);
-
+    status = uv_udp_bind(&conn->udp_handle, (struct sockaddr*)&v4addr, UV_UDP_REUSEADDR);
 #endif
-        uv_udp_set_broadcast(&conn->udp_handle, 1);
+    if (status != 0) return status;
 
-        conn->udp_handle.data = conn;
+    uv_udp_set_broadcast(&conn->udp_handle, 1);
 
-        conn->type = 1;
+    conn->udp_handle.data = conn;
 
-        status = uv_thread_create(conn->thread, _run_uv_loop, conn);
+    conn->type = 1;
 
-        return status;
+    status = uv_thread_create(conn->thread, _run_uv_loop, conn);
+
+    return status;
 }
 
 void on_tcp_connect(uv_connect_t* connection, int status)
@@ -1076,9 +1082,9 @@ void on_tcp_connect(uv_connect_t* connection, int status)
 #if UV_VERSION_MAJOR == 0
         hep_connection_t* hep_conn = connection->handle->loop->data;
 #else
-
         hep_connection_t* hep_conn = uv_key_get(&hep_conn_key);
 #endif
+
         assert(hep_conn != NULL);
 
         if (status == 0)
@@ -1135,7 +1141,7 @@ int init_tcp_socket(hep_connection_t *conn, char *host, int port) {
         status = uv_tcp_connect(&conn->connect, &conn->tcp_handle, (struct sockaddr*)&v4addr, on_tcp_connect);
 #endif
 
-        if(status < 0)
+        if (status < 0)
         {
             LERR( "capture: bind error");
             return 2;
@@ -1194,190 +1200,197 @@ int load_module_xml_config() {
 void free_module_xml_config() {
 
 	/* now we are free */
-	if(module_xml_config) xml_free(module_xml_config);
+	if (module_xml_config) xml_free(module_xml_config);
 }
 
 
 /* modules external API */
 
 static int load_module(xml_node *config) {
-	xml_node *params, *profile, *settings, *condition, *action;
-	char *key, *value = NULL;
-	unsigned int i = 0;
-	char module_api_name[256];
+    xml_node *params, *profile, *settings, *condition, *action;
+    char *key, *value = NULL;
+    unsigned int i = 0;
+    char module_api_name[256];
+    int ret = 0;
 
-	LNOTICE("Loaded %s", module_name);
+    LNOTICE("Loaded %s", module_name);
 
 #if UV_VERSION_MAJOR == 0
-        /* not implemented */
+    /* not implemented */
 #else
-	uv_key_create(&hep_conn_key);
+    uv_key_create(&hep_conn_key);
 #endif
 
 
-	load_module_xml_config();
-	/* READ CONFIG */
-	profile = module_xml_config;
+    load_module_xml_config();
+    /* READ CONFIG */
+    profile = module_xml_config;
 
-	/* reset profile */
-	profile_size = 0;
+    /* reset profile */
+    profile_size = 0;
 
     sigPipe();
 
-	while (profile) {
+    while (profile) {
 
-		profile = xml_get("profile", profile, 1);
+        profile = xml_get("profile", profile, 1);
 
-		if (profile == NULL)
-			break;
+        if (profile == NULL)
+            break;
 
-		if(!profile->attr[4] || strncmp(profile->attr[4], "enable", 6)) {
-			goto nextprofile;
-		}
+        if (!profile->attr[4] || strncmp(profile->attr[4], "enable", 6)) {
+            goto nextprofile;
+        }
 
-		/* if not equals "true" */
-		if(!profile->attr[5] || strncmp(profile->attr[5], "true", 4)) {
-			goto nextprofile;
-		}
+        /* if not equals "true" */
+        if (!profile->attr[5] || strncmp(profile->attr[5], "true", 4)) {
+            goto nextprofile;
+        }
 
-		/* set values */
-		profile_transport[profile_size].name = strdup(profile->attr[1]);
-		profile_transport[profile_size].description = strdup(profile->attr[3]);
-		profile_transport[profile_size].serial = atoi(profile->attr[7]);
-		profile_transport[profile_size].statistic_pipe = NULL;
+        memset(&profile_transport[profile_size], 0, sizeof(profile_transport_t));
 
-		/* SETTINGS */
-		settings = xml_get("settings", profile, 1);
+        /* set values */
+        profile_transport[profile_size].name = strdup(profile->attr[1]);
+        profile_transport[profile_size].description = strdup(profile->attr[3]);
+        profile_transport[profile_size].serial = atoi(profile->attr[7]);
+        profile_transport[profile_size].statistic_pipe = NULL;
+        profile_transport[profile_size].udp_bind_host = "0.0.0.0";
 
-		if (settings != NULL) {
+        /* SETTINGS */
+        settings = xml_get("settings", profile, 1);
 
-			params = settings;
+        if (settings != NULL) {
 
-			while (params) {
+            params = settings;
 
-				params = xml_get("param", params, 1);
-				if (params == NULL) break;
+            while (params) {
 
-				if (params->attr[0] != NULL) {
+                params = xml_get("param", params, 1);
+                if (params == NULL) break;
 
-					/* bad parser */
-					if (strncmp(params->attr[0], "name", 4)) {
-						LERR("bad keys in the config");
-						goto nextparam;
-					}
+                if (params->attr[0] != NULL) {
 
-					key = params->attr[1];
+                    /* bad parser */
+                    if (strncmp(params->attr[0], "name", 4)) {
+                        LERR("bad keys in the config");
+                        goto nextparam;
+                    }
 
-					if(params->attr[2] && params->attr[3] && !strncmp(params->attr[2], "value", 5)) {
-							value = params->attr[3];
-					}
-					else {
-						value = params->child->value;
-					}
+                    key = params->attr[1];
 
-					if (key == NULL || value == NULL) {
-						LERR("bad values in the config");
-						goto nextparam;
+                    if (params->attr[2] && params->attr[3] && !strncmp(params->attr[2], "value", 5)) {
+                        value = params->attr[3];
+                    }
+                    else {
+                        value = params->child->value;
+                    }
 
-					}
+                    if (key == NULL || value == NULL) {
+                        LERR("bad values in the config");
+                        goto nextparam;
 
-					if(!strncmp(key, "capture-host", 10)) profile_transport[profile_size].capt_host = strdup(value);
-					else if(!strncmp(key, "capture-port", 13)) profile_transport[profile_size].capt_port = strdup(value);
-					else if(!strncmp(key, "capture-proto", 14)) profile_transport[profile_size].capt_proto = strdup(value);
-					else if(!strncmp(key, "capture-password", 17)) profile_transport[profile_size].capt_password = strdup(value);
-					else if(!strncmp(key, "capture-id", 11)) profile_transport[profile_size].capt_id = atoi(value);
-					else if(!strncmp(key, "payload-compression", 19) && !strncmp(value, "true", 5)) profile_transport[profile_size].compression = 1;
-					else if(!strncmp(key, "version", 7)) profile_transport[profile_size].version = atoi(value);
+                    }
 
+                    if (!strncmp(key, "capture-host", 10)) profile_transport[profile_size].capt_host = strdup(value);
+                    else if (!strncmp(key, "capture-port", 13)) profile_transport[profile_size].capt_port = strdup(value);
+                    else if (!strncmp(key, "capture-proto", 14)) profile_transport[profile_size].capt_proto = strdup(value);
+                    else if (!strncmp(key, "udp-bind-host", 10)) profile_transport[profile_size].udp_bind_host = strdup(value);
+                    else if (!strncmp(key, "udp-bind-port", 13)) profile_transport[profile_size].udp_bind_port = atoi(strdup(value));
+                    else if (!strncmp(key, "capture-password", 17)) profile_transport[profile_size].capt_password = strdup(value);
+                    else if (!strncmp(key, "capture-id", 11)) profile_transport[profile_size].capt_id = atoi(value);
+                    else if (!strncmp(key, "payload-compression", 19) && !strncmp(value, "true", 5)) profile_transport[profile_size].compression = 1;
+                    else if (!strncmp(key, "version", 7)) profile_transport[profile_size].version = atoi(value);
 
-					//if (!strncmp(key, "ignore", 6))
-					//	profile_transport[profile_size].ignore = value;
-				}
+                }
 
-				nextparam:
-					params = params->next;
+nextparam:
+                params = params->next;
 
-			}
-		}
-
-
-		/* STATS */
-
-		condition = xml_get("statistic", profile, 1);
-
-		while (condition) {
-
-			condition = xml_get("condition", condition, 1);
-
-			if (condition == NULL)	break;
-
-			if (condition->attr[0] != NULL && condition->attr[2] != NULL) {
-
-						/* bad parser */
-						if (strncmp(condition->attr[0], "field", 5) || strncmp(condition->attr[2], "expression", 10)) {
-							LERR("bad keys in the config");
-							goto nextstatistic;
-						}
-
-						key = condition->attr[1];
-						value = condition->attr[3];
-
-						if (key == NULL || value == NULL) {
-							LERR("bad values in the config");
-							goto nextstatistic;
-						}
-
-						action = condition->child;
-						if (action && !strncmp(action->key, "action", 6)) {
-							for (i = 0; action->attr[i]; i++) {
-								if (!strncmp(action->attr[i], "application", 4)) {
-									profile_transport[profile_size].statistic_pipe = strdup(action->attr[i + 1]);
-								}
-								else if (!strncmp(action->attr[i], "profile", 7)) {
-									profile_transport[profile_size].statistic_profile = strdup(action->attr[i + 1]);
-								}
-							}
-						}
-			}
-
-			nextstatistic: condition = condition->next;
-		}
-
-		profile_size++;
-
-		nextprofile:
-			profile = profile->next;
-	}
-
-	/* free it */
-	free_module_xml_config();
+            }
+        }
 
 
-	for (i = 0; i < profile_size; i++) {
+        /* STATS */
+
+        condition = xml_get("statistic", profile, 1);
+
+        while (condition) {
+
+            condition = xml_get("condition", condition, 1);
+
+            if (condition == NULL) break;
+
+            if (condition->attr[0] != NULL && condition->attr[2] != NULL) {
+
+                /* bad parser */
+                if (strncmp(condition->attr[0], "field", 5) || strncmp(condition->attr[2], "expression", 10)) {
+                    LERR("bad keys in the config");
+                    goto nextstatistic;
+                }
+
+                key = condition->attr[1];
+                value = condition->attr[3];
+
+                if (key == NULL || value == NULL) {
+                    LERR("bad values in the config");
+                    goto nextstatistic;
+                }
+
+                action = condition->child;
+                if (action && !strncmp(action->key, "action", 6)) {
+                    for (i = 0; action->attr[i]; i++) {
+                        if (!strncmp(action->attr[i], "application", 4)) {
+                            profile_transport[profile_size].statistic_pipe = strdup(action->attr[i + 1]);
+                        }
+                        else if (!strncmp(action->attr[i], "profile", 7)) {
+                            profile_transport[profile_size].statistic_profile = strdup(action->attr[i + 1]);
+                        }
+                    }
+                }
+            }
+
+nextstatistic:
+            condition = condition->next;
+        }
+
+        profile_size++;
+
+nextprofile:
+        profile = profile->next;
+    }
+
+    /* free it */
+    free_module_xml_config();
+
+
+    for (i = 0; i < profile_size; i++) {
 
 #ifndef USE_ZLIB
-			if(profile_transport[i].compression) {
-				printf("The captagent has not compiled with zlib. Please reconfigure with --enable-compression\n");
-				LERR("The captagent has not compiled with zlib. Please reconfigure with --enable-compression");
-			}
+        if (profile_transport[i].compression) {
+            printf("The captagent has not compiled with zlib. Please reconfigure with --enable-compression\n");
+            LERR("The captagent has not compiled with zlib. Please reconfigure with --enable-compression");
+        }
 #endif /* USE_ZLIB */
-			homer_alloc(&hep_connection_s[i]);
+        homer_alloc(&hep_connection_s[i]);
 
-			if(!strncmp(profile_transport[i].capt_proto, "udp", 3))
-			{
-				init_udp_socket(&hep_connection_s[i], profile_transport[i].capt_host, atoi(profile_transport[i].capt_port));
-			}
-			else
-            {
-                init_tcp_socket(&hep_connection_s[i], profile_transport[i].capt_host, atoi(profile_transport[i].capt_port));
-			}
+        if (!strncmp(profile_transport[i].capt_proto, "udp", 3)) {
+            ret = init_udp_socket(&hep_connection_s[i], profile_transport[i].capt_host, atoi(profile_transport[i].capt_port),
+                    profile_transport[i].udp_bind_host, profile_transport[i].udp_bind_port);
+            if (ret != 0) {
+                LERR("Could not bind socket %s:%d", profile_transport[i].udp_bind_host, profile_transport[i].udp_bind_port);
+                return -1;
+            }
+        }
+        else {
+            init_tcp_socket(&hep_connection_s[i], profile_transport[i].capt_host, atoi(profile_transport[i].capt_port));
+        }
 
-			if(profile_transport[i].statistic_pipe) {
-				snprintf(module_api_name, 256, "%s_bind_api", profile_transport[i].statistic_pipe);
-			}
-	}
+        if (profile_transport[i].statistic_pipe) {
+            snprintf(module_api_name, 256, "%s_bind_api", profile_transport[i].statistic_pipe);
+        }
+    }
 
-	return 0;
+    return 0;
 }
 
 static int unload_module(void)
