@@ -1456,6 +1456,10 @@ static int free_profile(unsigned int idx) {
         free(profile_transport[idx].capt_password);
         profile_transport[idx].capt_password = NULL;
     }
+    if (profile_transport[idx].correlation_id) {
+        free(profile_transport[idx].correlation_id);
+        profile_transport[idx].correlation_id = NULL;
+    }
 	if (profile_transport[idx].statistic_pipe) {
         free(profile_transport[idx].statistic_pipe);
         profile_transport[idx].statistic_pipe = NULL;
