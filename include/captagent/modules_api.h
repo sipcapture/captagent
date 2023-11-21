@@ -206,6 +206,7 @@ typedef struct profile_transport {
     int udp_bind_port;
     unsigned int capt_id;
     char *capt_password;
+    char *correlation_id;
     int compression;
     char *statistic_pipe;
     char *statistic_profile;
