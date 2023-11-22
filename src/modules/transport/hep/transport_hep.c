@@ -534,11 +534,6 @@ int send_hepv3 (rc_info_t *rcinfo, unsigned char *data, unsigned int len, unsign
     }
 
     /* Correlation KEY CHUNK */
-    if (profile_transport[idx].correlation_id != NULL) {
-           rcinfo->correlation_id.s = profile_transport[idx].correlation_id;
-           rcinfo->correlation_id.len = strlen(rcinfo->correlation_id.s);
-    }
-
     if (rcinfo->correlation_id.s && rcinfo->correlation_id.len > 0) {
 
            memcpy((void*) buffer+buflen, &correlation_chunk,  sizeof(struct hep_chunk));
