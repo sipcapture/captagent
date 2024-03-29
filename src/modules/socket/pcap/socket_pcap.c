@@ -1289,6 +1289,7 @@ void* proto_collect(void *arg) {
 
     if (is_file) {
         LDEBUG("Process, pid=%d\n", getpid());
+        sleep(1000); // <-- we close the pcap with C^C
         kill(getpid(), SIGTERM);
     }
 
