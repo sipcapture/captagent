@@ -5,7 +5,7 @@
  *  Duplicate SIP messages in Homer Encapulate Protocol [HEP] [ipv6 version]
  *
  *  Author: Alexandr Dubovikov <alexandr.dubovikov@gmail.com>
- *  (C) Homer Project 2012-2023 (http://www.sipcapture.org)
+ *  (C) Homer Project 2012-2024 (http://www.sipcapture.org)
  *
  * Homer capture agent is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -52,17 +52,16 @@
 #include <captagent/action.h>
 #include "conf_function.h"
 
-#define E_UNSPEC      -1
-#define MAX_REC_LEV 100 /* maximum number of recursive calls */
-#define ROUTE_MAX_REC_LEV 10 /* maximum number of recursive calls
-                                                           for capture()*/
+#define E_UNSPEC           -1
+#define MAX_REC_LEV       100 /* maximum number of recursive calls */
+#define ROUTE_MAX_REC_LEV  10 /* maximum number of recursive calls for capture() */
 
 struct sr_module* modules; /* global module list */
 
 
-/* ret= 0! if action -> end of list(e.g DROP),
-      > 0 to continue processing next actions
-   and <0 on error */
+/* ret = 0! if action -> end of list(e.g DROP),
+       > 0 to continue processing next actions
+   and < 0 on error */
 int do_action(struct run_act_ctx* h, struct action* a, msg_t* msg)
 {
         int ret = 0;
@@ -97,7 +96,7 @@ int do_action(struct run_act_ctx* h, struct action* a, msg_t* msg)
                                                         LERR("WARNING: do_action: error in expression\n");
                                                 }
                                         }
-                                         
+
                                         ret=1;  /*default is continue */
                                         if (v>0) {
                                                 if ((a->p2_type==ACTIONS_ST)&&a->p2.data){
@@ -107,8 +106,8 @@ int do_action(struct run_act_ctx* h, struct action* a, msg_t* msg)
                                                         ret=run_actions(h,(struct action*)a->p3.data, msg);
                                         }
                                 }
-                        break;   
-                    
+                        break;
+
                case MODULE_T:
                         if ( ((a->p1_type==CMDF_ST)&&a->p1.data)){
                                 ret=((cmd_function)(a->p1.data))(msg, (char*)a->p2.data, (char*)a->p3.data);
@@ -116,7 +115,7 @@ int do_action(struct run_act_ctx* h, struct action* a, msg_t* msg)
                                 LERR("BUG: do_action: bad module call\n");
                         }
                         break;
-                    
+
                 default:
                         LERR("BUG: do_action: unknown type %d\n", a->type);
                         ret = 0;
@@ -125,12 +124,12 @@ int do_action(struct run_act_ctx* h, struct action* a, msg_t* msg)
         return ret;
 }
 
+
 static int eval_elem(struct run_act_ctx* h, struct expr* e, msg_t* msg)
 {
- 
         int ret;
         ret=E_BUG;
- 
+
         if (e->type!=ELEM_T){
                 LERR(" BUG: eval_elem: invalid type\n");
                 goto error;
@@ -154,22 +153,20 @@ error:
 }
 
 
-
-
 /* ret= 0/1 (true/false) ,  -1 on error or EXPR_DROP (-127)  */
 int eval_expr(struct run_act_ctx* h, struct expr* e, msg_t* msg)
 {
         int ret;
-        
-        LDEBUG("EVAL_EXPR: [%d]->[%d]", h->route_rec_lev, h->rec_lev);
+
+        //LDEBUG("EVAL_EXPR: [%d]->[%d]", h->route_rec_lev, h->rec_lev);
 
         h->rec_lev++;
         if (h->rec_lev>MAX_REC_LEV){
                 LERR("ERROR: eval_expr: too many expressions (%d)\n", h->rec_lev);
-                ret=-1;   
+                ret=-1;
                 goto skip;
         }
-        
+
         if (e->type==ELEM_T){
                 ret=eval_elem(h, e, msg);
         }else if (e->type==EXP_T){
@@ -214,14 +211,14 @@ int run_actions(struct run_act_ctx* h, struct action* a, msg_t* msg)
         int ret=E_UNSPEC;
         struct sr_module *mod;
 
-        LDEBUG("RUN: [%d]->[%d]", h->route_rec_lev, h->rec_lev);
+        //LDEBUG("RUN: [%d]->[%d]", h->route_rec_lev, h->rec_lev);
 
         h->route_rec_lev++;
         if (h->route_rec_lev>ROUTE_MAX_REC_LEV){
                 printf("WARNING: too many recursive routing table lookups (%d)"
                                         " giving up!\n", h->route_rec_lev);
-                printf("WARNING: Action: type: (%d), Ret: (%d), p2_type: (%s), p3_type: (%s)\n", a->type, ret, (char *)a->p2.data, (char *)a->p3.data);                                
-                                                                        
+                printf("WARNING: Action: type: (%d), Ret: (%d), p2_type: (%s), p3_type: (%s)\n", a->type, ret, (char *)a->p2.data, (char *)a->p3.data);
+
                 ret=E_UNSPEC;
                 goto error;
         }
@@ -265,9 +262,9 @@ int capture_get(struct capture_list* rt, char* name)
 
         rt->entries+=1;
         rt->idx+=1;
-        
+
         //printf("!!!!!!!!!!!!!!!---------------> ROUTE GET NN: [%d], I:[%d]\n", rt->entries, rt->idx);
-        
+
         /* check if exists an non empty*/
         return rt->idx;
 error:
@@ -277,17 +274,16 @@ error:
 /* adds an action list to head; a must be null terminated (last a->next=0))*/
 void push(struct action* a, struct action** head)
 {
+    struct action *t;
+    if (*head==0){
+        *head=a;
+        return;
+    }
 
-        struct action *t;
-        if (*head==0){
-                *head=a;
-                return;
-        }
-
-        /* go to the end of the list, then append */
-        for (t=*head; t->next;t=t->next)
-                ;
-        t->next=a;
+    /* go to the end of the list, then append */
+    for (t=*head; t->next;t=t->next)
+        ;
+    t->next=a;
 }
 
 /* searches the module list and returns a pointer to the "name" function or
@@ -340,7 +336,7 @@ void* find_param_export(char* mod, char* name, modparam_t type)
 struct action* append_action(struct action* a, struct action* b)
 {
         struct action *t;
-        
+
 
         if (b==0) return a;
         if (a==0) return b;
@@ -355,8 +351,8 @@ struct action* append_action(struct action* a, struct action* b)
 struct expr* mk_exp(int op, struct expr* left, struct expr* right)
 {
         struct expr * e;
-        
-        
+
+
         e=(struct expr*)malloc(sizeof (struct expr));
         if (e==0) goto error;
         e->type=EXP_T;
@@ -373,7 +369,7 @@ error:
 struct expr* mk_elem(int op, int subtype, int operand, void* param)
 {
         struct expr * e;
-        
+
         e=(struct expr*)malloc(sizeof (struct expr));
         if (e==0) goto error;
         e->type=ELEM_T;
@@ -387,11 +383,10 @@ error:
         return 0;
 }
 
-struct action* mk_action(int type, int p1_type, int p2_type,
-                                                                                        void* p1, void* p2)
+struct action* mk_action(int type, int p1_type, int p2_type, void* p1, void* p2)
 {
         struct action* a;
-        
+
         a=(struct action*)malloc(sizeof(struct action));
         if (a==0) goto  error;
         memset(a,0,sizeof(struct action));
@@ -411,8 +406,7 @@ error:
 
 
 
-struct action* mk_action3(int type, int p1_type, int p2_type, int p3_type,
-                                                        void* p1, void* p2, void* p3)
+struct action* mk_action3(int type, int p1_type, int p2_type, int p3_type, void* p1, void* p2, void* p3)
 {
         struct action* a;
 
@@ -430,7 +424,7 @@ struct action* mk_action3(int type, int p1_type, int p2_type, int p3_type,
 /* new one */
 cmd_export_t* find_export_record(char* name,  int param_no, int flags, unsigned* mod_if_ver)
 {
-        return find_mod_export_record(0, name, param_no, flags, mod_if_ver);
+    return find_mod_export_record(0, name, param_no, flags, mod_if_ver);
 }
 
 cmd_export_t* find_mod_export_record(char* mod, char* name, int param_no, int flags, unsigned* mod_if_ver)
@@ -447,7 +441,7 @@ cmd_export_t* find_mod_export_record(char* mod, char* name, int param_no, int fl
                         for(cmd=&t->cmds[0]; cmd->name; cmd++) {
                                 //LERR("NAME: [%s] vs [%s]\n", name, cmd->name);
                                 //LERR("PARAM: [%d] vs [%d]\n", param_no, cmd->param_no);
-                        
+
                                 if((strcmp(name, cmd->name) == 0) &&
                                         ((cmd->param_no == param_no) ||
                                          (cmd->param_no==VAR_PARAM_NO)) &&
@@ -477,15 +471,9 @@ cmd_function find_mod_export(char* mod, char* name, int param_no, int flags)
 
 cmd_function find_export(char* name, int param_no, int flags)
 {
-        cmd_export_t* cmd;
-        unsigned mver;
+    cmd_export_t* cmd;
+    unsigned mver;
 
-        cmd = find_export_record(name, param_no, flags, &mver);
-        return cmd?cmd->function:0;
+    cmd = find_export_record(name, param_no, flags, &mver);
+    return cmd?cmd->function:0;
 }
-
-
-
-
-
-
