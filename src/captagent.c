@@ -139,12 +139,12 @@ static void print_all_devices()
     pcap_if_t *all_devs, *d = NULL;
     char err_buff[PCAP_ERRBUF_SIZE];
 
-    printf("List of available devices on your system:\n");
-    if (pcap_findalldevs(&all_devs, err_buff) == -1) {
+    if (pcap_findalldevs(&all_devs, err_buff) == PCAP_ERROR) {
         fprintf(stderr, "Error in pcap_findalldevs: %s\n", err_buff);
-        usage(0);
         exit(-1);
     }
+
+    printf("List of available devices on your system:\n");
     for (d = all_devs; d; d = d->next) {
         if ((strncmp(d->name, "any", 3) != 0) && (strncmp(d->name, "lo", 2) != 0)) {
             printf("device %d = %s", ++i, d->name);
@@ -154,6 +154,7 @@ static void print_all_devices()
                 printf("\t\t No description available for this device\n");
         }
     }
+    pcap_freealldevs(all_devs);
 }
 
 
