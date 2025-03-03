@@ -1207,7 +1207,7 @@ int set_raw_filter(unsigned int loc_idx, char *filter) {
 }
 
 
-void* proto_collect(void *arg) {
+void *proto_collect(void *arg) {
 
     unsigned int loc_idx = *((unsigned int *)arg);
     int ret = 0, is_file = 0;
@@ -1299,7 +1299,7 @@ void* proto_collect(void *arg) {
 }
 
 
-static void stat_collect(void* arg) {
+static void *stat_collect(void *arg) {
 
     LDEBUG("STARTING STATS....");
     int i = 0;
@@ -1613,11 +1613,11 @@ nextprofile: profile = profile->next;
 
         }
 
-        pthread_create(&call_thread[i], NULL, proto_collect, arg);
+        pthread_create(&call_thread[i], NULL, proto_collect, (void *)arg);
     }
 
     if(stats_enable && !usefile)
-        pthread_create(&stat_thread, NULL, stat_collect, i);
+        pthread_create(&stat_thread, NULL, stat_collect, NULL);
 
     return 0;
 }
