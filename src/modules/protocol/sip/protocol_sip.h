@@ -29,7 +29,6 @@
 #include <captagent/xmlread.h>
 
 #ifdef USE_PCRE2
-#define PCRE2_CODE_UNIT_WIDTH 8
 #include <pcre2.h>
 typedef pcre2_code pcre;
 #else
@@ -69,12 +68,12 @@ extern int handler(int value);
 extern int set_raw_rtp_filter();
 
 #ifdef USE_PCRE2
-uint32_t pcre_options = PCRE2_UNGREEDY|PCRE2_CASELESS;
+extern uint32_t pcre_options;
 #else
-uint32_t pcre_options = PCRE_UNGREEDY|PCRE_CASELESS;
+extern uint32_t pcre_options;
 #endif
-int32_t err_offset;
-char *re_err = NULL;
+extern int32_t err_offset;
+extern char *re_err;
 
 #define MAX_PROTOCOLS 10
 profile_protocol_t profile_protocol[MAX_PROTOCOLS];

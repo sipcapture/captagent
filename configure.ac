@@ -230,6 +230,8 @@ if test "$PCRE" = "yes"; then
 		], [
 			AC_MSG_ERROR([libpcre2-8 required but not found])
 		])
+		# Restore CPPFLAGS after successful PCRE2 detection
+		CPPFLAGS="$save_CPPFLAGS"
 	], [
 		# Restore CPPFLAGS and try PCRE
 		CPPFLAGS="$save_CPPFLAGS"

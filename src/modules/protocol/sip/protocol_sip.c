@@ -57,6 +57,14 @@ unsigned int profile_size = 0;
 extern char *customHeaderMatch;
 extern int customHeaderLen;
 
+#ifdef USE_PCRE2
+uint32_t pcre_options = PCRE2_UNGREEDY|PCRE2_CASELESS;
+#else
+uint32_t pcre_options = PCRE_UNGREEDY|PCRE_CASELESS;
+#endif
+int32_t err_offset;
+char *re_err = NULL;
+
 
 static cmd_export_t cmds[] = {
         {"protocol_sip_bind_api",  (cmd_function)bind_api,   1, 0, 0, 0},
@@ -608,6 +616,11 @@ int8_t re_match_func (pcre *pattern, char *data, uint32_t len)
 
 #ifdef USE_PCRE2
         match_data = pcre2_match_data_create_from_pattern(pattern, NULL);
+        if (!match_data) {
+            LERR("Failed to allocate PCRE2 match data");
+            return -1;
+        }
+        
         pcreExtRet = pcre2_match(pattern, (PCRE2_SPTR)escapeData, strlen(escapeData), 0, 0, match_data, NULL);
         pcre2_match_data_free(match_data);
 
