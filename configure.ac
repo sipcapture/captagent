@@ -72,9 +72,10 @@ AC_MSG_CHECKING([whether to use pcre])
 AC_ARG_ENABLE([pcre], AS_HELP_STRING([--enable-pcre],[Enable pcre support]))
 AS_IF([test "x$enable_pcre" = "xyes"], [
         usePCRE=yes
+	PCRE=yes
 	AC_DEFINE([PCRE], [1], [Enable pcre support])
 ])
-AC_MSG_RESULT([$PCRE])
+AC_MSG_RESULT([$usePCRE])
 AC_SUBST([PCRE])
 
 useRedis=no
@@ -217,6 +218,9 @@ dnl
 if test "$PCRE" = "yes"; then
 	AC_CHECKING([for pcre2 Library and Header files])
 	# Try PCRE2 first (preferred for modern systems)
+	# Define PCRE2_CODE_UNIT_WIDTH before checking the header
+	save_CPPFLAGS="$CPPFLAGS"
+	CPPFLAGS="$CPPFLAGS -DPCRE2_CODE_UNIT_WIDTH=8"
 	AC_CHECK_HEADER([pcre2.h], [
 		AC_DEFINE(PCRE2_CODE_UNIT_WIDTH, 8, [PCRE2 8-bit code unit width])
 		AC_CHECK_LIB([pcre2-8], [pcre2_compile_8], [
@@ -227,6 +231,8 @@ if test "$PCRE" = "yes"; then
 			AC_MSG_ERROR([libpcre2-8 required but not found])
 		])
 	], [
+		# Restore CPPFLAGS and try PCRE
+		CPPFLAGS="$save_CPPFLAGS"
 		# Fall back to PCRE if PCRE2 is not available
 		AC_CHECKING([for pcre Library and Header files])
 		AC_CHECK_HEADER([pcre.h], [

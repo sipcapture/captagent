@@ -206,7 +206,7 @@ int w_header_reg_match(msg_t *_m, char *param1, char *param2)
     {
         if(_m->sip.userAgent.s && _m->sip.userAgent.len > 0)
         {
-			if((re_match_func(pattern_match[index], &_m->sip.userAgent.s, _m->sip.userAgent.len)) == 1) {
+			if((re_match_func(pattern_match[index], _m->sip.userAgent.s, _m->sip.userAgent.len)) == 1) {
                 LDEBUG(">>>> UserAgent SIP matched: [%.*s]", _m->sip.userAgent.len, _m->sip.userAgent.s);
                 return 1;
 			}
@@ -216,7 +216,7 @@ int w_header_reg_match(msg_t *_m, char *param1, char *param2)
     {
         if(_m->sip.customHeader.s && _m->sip.customHeader.len > 0)
         {
-			if((re_match_func(pattern_match[index], &_m->sip.customHeader.s, _m->sip.customHeader.len)) == 1) {
+			if((re_match_func(pattern_match[index], _m->sip.customHeader.s, _m->sip.customHeader.len)) == 1) {
 				LDEBUG(">>>> Custom SIP matched: [%.*s]", _m->sip.customHeader.len, _m->sip.customHeader.s);
                 return 1;
 			}
@@ -226,7 +226,7 @@ int w_header_reg_match(msg_t *_m, char *param1, char *param2)
     {
         if(_m->data && _m->len > 0)
         {
-			if((re_match_func(pattern_match[index], &_m->data, _m->len)) == 1) {
+			if((re_match_func(pattern_match[index], _m->data, _m->len)) == 1) {
 				LDEBUG(">>>> Body SIP matched");
                 return 1;
 			}
