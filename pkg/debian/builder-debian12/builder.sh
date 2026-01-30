@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Captgent - Debian 12 Builder
+# Captagent - Debian 12 Builder
 #
 
 VERSION_MAJOR="6.4"
