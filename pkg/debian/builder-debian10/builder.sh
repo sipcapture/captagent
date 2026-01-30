@@ -7,12 +7,14 @@ VERSION_MAJOR="6.4"
 VERSION_MINOR="1"
 PROJECT_NAME="captagent"
 OS="buster"
+ARCH=$(dpkg --print-architecture)
 
 export CODE_VERSION="${VERSION_MAJOR}.${VERSION_MINOR}"
 export TMP_DIR=/tmp/build
 
 #apt-get -y update
-#apt-get -y install make gcc curl libmcrypt-dev libexpat-dev libpcap-dev libjson-c-dev libtool automake autoconf flex bison libpcre>apt-get -y install git
+#apt-get -y install make gcc curl libmcrypt-dev libexpat-dev libpcap-dev libjson-c-dev libtool automake autoconf flex bison libpcre
+#apt-get -y install git
 
 apt-get -y update
 
@@ -29,7 +31,7 @@ apt-get -y install git
 apt-get -y install libmcrypt-dev libssl-dev
 
 # various
-apt-get -y install make curl libexpat-dev libpcap-dev libjson-c-dev bison libpcre3-dev libuv1-dev
+apt-get -y install curl libexpat-dev libpcap-dev libjson-c-dev bison libpcre3-dev libuv1-dev
 
 # ruby - fpm
 apt-get -y install ruby-dev rubygems
@@ -37,7 +39,7 @@ apt-get -y install ruby-dev rubygems
 gem install public_suffix -v 4.0.7
 gem install --no-ri --no-rdoc fpm
 
-DEPENDENCY=`dpkg -l | grep -E "libmcrypt|libfl|libexpat|libpcap|libjson-c|libpcre3|libuv" | grep -v "dev" | grep -v "pcre32" | awk '{print $2}' | sed -e 's/:amd64//g' | tr '\n' ','`
+DEPENDENCY=$(dpkg -l | grep -E "libmcrypt|libfl|libexpat|libpcap|libjson-c|libpcre3|libuv" | grep -v "dev" | grep -v "pcre32" | awk '{print $2}' | sed -e 's/:${ARCH}//g' | tr '\n' ',')
 # Remove last characters
 DEPENDENCY=${DEPENDENCY%?};
 
@@ -77,7 +79,7 @@ chmod +x ${TMP_CAPT}/etc/init.d/captagent
 # FPM CAPTAGENT
 fpm -s dir -t deb -C ${TMP_CAPT} \
 	--name ${PROJECT_NAME} --version ${CODE_VERSION} \
-	-p "captagent_${VERSION_MAJOR}.${VERSION_MINOR}.${OS}.amd64.deb" \
+	-p "captagent_${VERSION_MAJOR}.${VERSION_MINOR}.${OS}.${ARCH}.deb" \
 	--config-files /usr/local/${PROJECT_NAME}/etc/${PROJECT_NAME} --config-files /etc/default/${PROJECT_NAME} \
 	--iteration 1 --deb-no-default-config-files --depends ${DEPENDENCY} --description "${PROJECT_NAME} ${CODE_VERSION}" .
 
