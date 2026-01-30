@@ -27,7 +27,15 @@
 #define _PROTOCOL_SIP_H_
 
 #include <captagent/xmlread.h>
+
+#ifdef USE_PCRE2
+#define PCRE2_CODE_UNIT_WIDTH 8
+#include <pcre2.h>
+typedef pcre2_code pcre;
+#else
 #include <pcre.h>
+#endif
+
 #include "parser_sip.h"
 
 #define FILTER_LEN 4080
@@ -60,7 +68,11 @@ static protocol_sip_stats_t stats;
 extern int handler(int value);
 extern int set_raw_rtp_filter();
 
+#ifdef USE_PCRE2
+uint32_t pcre_options = PCRE2_UNGREEDY|PCRE2_CASELESS;
+#else
 uint32_t pcre_options = PCRE_UNGREEDY|PCRE_CASELESS;
+#endif
 int32_t err_offset;
 char *re_err = NULL;
 

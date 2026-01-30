@@ -593,7 +593,11 @@ int8_t re_match_func (pcre *pattern, char *data, uint32_t len)
 
     char escapeData[250];
     int escapeLen = 0, pcreExtRet = 0;
+#ifdef USE_PCRE2
+    pcre2_match_data *match_data;
+#else
     int subStrVec[30];
+#endif
 
     makeEscape(data, len, escapeData, 200);
 
@@ -602,6 +606,34 @@ int8_t re_match_func (pcre *pattern, char *data, uint32_t len)
     if(pattern && len > 0)
     {
 
+#ifdef USE_PCRE2
+        match_data = pcre2_match_data_create_from_pattern(pattern, NULL);
+        pcreExtRet = pcre2_match(pattern, (PCRE2_SPTR)escapeData, strlen(escapeData), 0, 0, match_data, NULL);
+        pcre2_match_data_free(match_data);
+
+        if(pcreExtRet < 0)
+        {
+            switch (pcreExtRet) {
+            case PCRE2_ERROR_NULL:
+            case PCRE2_ERROR_BADOPTION:
+            case PCRE2_ERROR_BADMAGIC:
+            case PCRE2_ERROR_NOMEMORY:
+                LDEBUG ("bad result of regexp match");
+                break;
+            case PCRE2_ERROR_NOMATCH:
+                LDEBUG ("NOT MATCHED: [%d]\n", pcreExtRet);
+                return -1;
+            }
+
+            LDEBUG ("NOT MATCHED: [%.*s] [%d]\n", len, data, pcreExtRet);
+
+            return -1;
+        }
+        else {
+            LDEBUG ("MATCHED: [%.*s]\n", len, data);
+            return 1;
+        }
+#else
         pcreExtRet = pcre_exec(pattern, 0, escapeData, strlen(escapeData), 0, 0, subStrVec, 30);
 
         if(pcreExtRet < 0)
@@ -627,6 +659,7 @@ int8_t re_match_func (pcre *pattern, char *data, uint32_t len)
             LDEBUG ("MATCHED: [%.*s]\n", len, data);
             return 1;
         }
+#endif
     }
     else if(pattern) {
         LDEBUG ("LEN BAD\n");
@@ -733,7 +766,11 @@ void free_regexp() {
 	unsigned int i = 0;
 	for (i = 0; i < profile_size; i++) {
 		if(regexpIndexName[i]) free(regexpIndexName[i]);
+#ifdef USE_PCRE2
+		if(pattern_match[i]) pcre2_code_free(pattern_match[i]);
+#else
 		pcre_free(pattern_match[i]);
+#endif
 	}
 }
 
@@ -876,11 +913,29 @@ static int load_module(xml_node *config) {
 					{
 						if(regexpIndex < MAX_REGEXP_INDEXES) {
 
+#ifdef USE_PCRE2
+							int errcode;
+							PCRE2_SIZE erroffset;
+							pattern_match[regexpIndex] = pcre2_compile(
+								(PCRE2_SPTR)regexpIndexName[regexpIndex],
+								PCRE2_ZERO_TERMINATED,
+								pcre_options,
+								&errcode,
+								&erroffset,
+								NULL);
+							if (!pattern_match[regexpIndex]) {
+								PCRE2_UCHAR buffer[256];
+								pcre2_get_error_message(errcode, buffer, sizeof(buffer));
+								LERR("pattern_match I:[%d] compile failed: %s\n", regexpIndex, buffer);
+							}
+							else regexpIndex++;
+#else
 							pattern_match[regexpIndex] = pcre_compile (regexpIndexName[regexpIndex], pcre_options, (const char **) &re_err, &err_offset, 0);
                             if (!pattern_match[regexpIndex]) {
                                 LERR("pattern_match I:[%d] compile failed: %s\n", regexpIndex, re_err);
                             }
                             else regexpIndex++;
+#endif
 						}
 					}
 				}
