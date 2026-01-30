@@ -47,16 +47,6 @@ AS_IF([test "x$enable_ssl" = "xyes"], [
 AC_MSG_RESULT([$SSL])
 AC_SUBST([SSL])
 
-useMysql=no
-AC_MSG_CHECKING([whether to use mysql])
-AC_ARG_ENABLE([mysql], AS_HELP_STRING([--enable-mysql],[Enable MySQL support]))
-AS_IF([test "x$enable_mysql" = "xyes"], [
-        useMysql=yes
-        AC_DEFINE([MYSQL], [1], [Enable MySQL support])
-])
-AC_MSG_RESULT([$MYSQL])
-AC_SUBST([MYSQL])
-
 useEpan=no
 AC_ARG_ENABLE([epan], AS_HELP_STRING([--enable-epan],[Enable EPAN support / Wireshark dissectors]))
 AS_IF([test "x$enable_epan" = "xyes"], [
@@ -278,22 +268,6 @@ fi
 dnl
 dnl check for redis library
 dnl
-dnl
-dnl check for MYSQL library
-dnl
-
-if test "$MYSQL" = "yes"; then
-    AC_CHECKING([for MYSQL Library and Header files])
-    AC_CHECK_HEADER([mysql/mysql.h], ,AC_MSG_ERROR([Could not find mysql headers !]))
-    AC_CHECK_LIB(mysqlclient, mysql_init, [ MYSQL_LIBS="-lmysqlclient" ], [AC_MSG_ERROR([$PACKAGE_NAME requires but cannot find mysqlclient])])
-    AC_DEFINE(USE_MYSQL, 1, [Use MYSQL library])
-    AC_SUBST(MYSQL_LIBS)
-fi
-
-
-dnl
-dnl check for redis library
-dnl
 
 if test "$REDIS" = "yes"; then
    AC_CHECKING([for redis Library and Header files])
@@ -413,7 +387,6 @@ echo Bison....................... : ${YACC:-NONE}
 
 echo
 echo Build with REDIS............ : $useRedis
-echo Build with MySQL............ : $useMysql
 echo Build with PCRE............. : $usePCRE
 echo Build with LibUV............ : $useLIBUV
 echo Build with EPAN............. : $useEpan
