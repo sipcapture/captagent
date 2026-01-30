@@ -268,8 +268,6 @@ fi
 dnl
 dnl check for redis library
 dnl
-dnl check for redis library
-dnl
 
 if test "$REDIS" = "yes"; then
    AC_CHECKING([for redis Library and Header files])
