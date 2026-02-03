@@ -1,7 +1,7 @@
 DIRECTORY="captagent_build"
 
 if [ -d "$DIRECTORY" ]; then
-   cd $DIRECTORY
+   cd "$DIRECTORY"
    git pull
    cd ..
 else
