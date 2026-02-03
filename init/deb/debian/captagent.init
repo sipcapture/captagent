@@ -3,8 +3,8 @@
 ### BEGIN INIT INFO
 # Provides:          captagent
 # Required-Start:    $syslog $network $local_fs $remote_fs $time
-# Should-Start:      $named slapd mysql postgresql snmpd radiusd
-# Should-Stop:       $named slapd mysql postgresql snmpd radiusd
+# Should-Start:      $named slapd postgresql snmpd radiusd
+# Should-Stop:       $named slapd postgresql snmpd radiusd
 # Required-Stop:     $syslog $network $local_fs $remote_fs
 # Default-Start:     2 3 4 5
 # Default-Stop:      0 1 6

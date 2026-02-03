@@ -30,7 +30,7 @@
 #include "config.h"
 #include <captagent/api.h>
 
-#define CAPTAGENT_VERSION "6.1.0"
+#define CAPTAGENT_VERSION "6.2.0"
 
 #define DEFAULT_CAPT_CONFIG AGENT_CONFIG_DIR "captagent.xml"
 
