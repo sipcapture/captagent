@@ -8,4 +8,4 @@ else
 	git clone https://github.com/sipcapture/captagent.git $DIRECTORY
 fi
 
-docker run --rm -v $(pwd)/:/tmp/build -v $(pwd)/:/scripts --entrypoint=/scripts/builder.sh debian:bookworm
+docker run --rm -v "$(pwd)"/:/tmp/build -v "$(pwd)"/:/scripts --entrypoint=/scripts/builder.sh debian:bookworm
