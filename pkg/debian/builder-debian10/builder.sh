@@ -39,7 +39,7 @@ apt-get -y install ruby-dev rubygems
 gem install public_suffix -v 4.0.7
 gem install --no-ri --no-rdoc fpm
 
-DEPENDENCY=$(dpkg -l | grep -E "libmcrypt|libfl|libexpat|libpcap|libjson-c|libpcre3|libuv" | grep -v "dev" | grep -v "pcre32" | awk '{print $2}' | sed -e 's/:${ARCH}//g' | tr '\n' ',')
+DEPENDENCY=$(dpkg -l | grep -E "libmcrypt|libfl|libexpat|libpcap|libjson-c|libpcre3|libuv" | grep -v "dev" | grep -v "pcre32" | awk '{print $2}' | sed -e "s/:${ARCH}//g" | tr '\n' ',')
 # Remove last characters
 DEPENDENCY=${DEPENDENCY%?};
 
