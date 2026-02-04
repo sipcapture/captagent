@@ -927,13 +927,13 @@ static int load_module(xml_node *config) {
 						customHeaderLen = strlen(customHeaderMatch);
 					}
 #ifdef PCRE
-					else if (!strncmp(key, "regexp-name", strlen("regex-name")))
+					else if (!strncmp(key, "regexp-name", strlen("regexp-name")))
 					{
 						if(regexpIndex < MAX_REGEXP_INDEXES) {
 							regexpIndexName[regexpIndex] = strdup(value);
 						}
 					}
-					else if (!strncmp(key, "regexp-value", strlen("regex-value")))
+					else if (!strncmp(key, "regexp-value", strlen("regexp-value")))
 					{
 						if(regexpIndex < MAX_REGEXP_INDEXES) {
 
