@@ -41,7 +41,6 @@ xml_node *module_xml_config = NULL;
 char *module_name="protocol_sip";
 uint64_t module_serial = 0;
 char *module_description = NULL;
-uint8_t regexpIndex = 0;
 
 static int load_module(xml_node *config);
 static int unload_module(void);
@@ -50,13 +49,17 @@ static int statistic(char *buf, size_t len);
 static int free_profile(unsigned int idx);
 static uint64_t serial_module(void);
 
+#ifdef PCRE
+uint8_t regexpIndex = 0;
 #define MAX_REGEXP_INDEXES 10
 pcre *pattern_match[MAX_REGEXP_INDEXES];
 char *regexpIndexName[MAX_REGEXP_INDEXES];
+#endif
 unsigned int profile_size = 0;
 extern char *customHeaderMatch;
 extern int customHeaderLen;
 
+#ifdef PCRE
 #ifdef USE_PCRE2
 uint32_t pcre_options = PCRE2_UNGREEDY|PCRE2_CASELESS;
 #else
@@ -64,6 +67,7 @@ uint32_t pcre_options = PCRE_UNGREEDY|PCRE_CASELESS;
 #endif
 int32_t err_offset;
 char *re_err = NULL;
+#endif
 
 
 static cmd_export_t cmds[] = {
@@ -71,7 +75,9 @@ static cmd_export_t cmds[] = {
         {"msg_check", (cmd_function) w_proto_check_size, 2, 0, 0, 0 },
         {"sip_check", (cmd_function) w_sip_check, 2, 0, 0, 0 },
         {"header_check", (cmd_function) w_header_check, 2, 0, 0, 0 },
+#ifdef PCRE
         {"header_regexp_match", (cmd_function) w_header_reg_match, 2, 0, 0, 0 },
+#endif
         {"set_tag", (cmd_function) w_set_tag, 2, 0, 0, 0 },
         {"sip_is_method", (cmd_function) w_sip_is_method, 0, 0, 0, 0 },
         {"light_parse_sip", (cmd_function) w_light_parse_sip, 0, 0, 0, 0 },
@@ -203,7 +209,7 @@ int w_header_check(msg_t *_m, char *param1, char *param2)
     return -1;
 }
 
-
+#ifdef PCRE
 int w_header_reg_match(msg_t *_m, char *param1, char *param2)
 {
     uint8_t index = 0;
@@ -243,6 +249,7 @@ int w_header_reg_match(msg_t *_m, char *param1, char *param2)
 
     return -1;
 }
+#endif
 
 
 int w_sip_check(msg_t *_m, char *param1, char *param2)
@@ -595,7 +602,7 @@ int light_parse_sip(msg_t *msg) {
 	return ret;
 }
 
-
+#ifdef PCRE
 int8_t re_match_func (pcre *pattern, char *data, uint32_t len)
 {
 
@@ -683,6 +690,7 @@ int8_t re_match_func (pcre *pattern, char *data, uint32_t len)
 
     return -1;
 }
+#endif
 
 
 int makeEscape(const char *s, int len, char *out, int max)
@@ -725,7 +733,7 @@ int set_value(unsigned int idx, msg_t *msg) {
     return 1;
 }
 
-
+#ifdef PCRE
 uint8_t get_pcre_index_by_name(char *name) {
 
 	unsigned int i = 0;
@@ -741,6 +749,7 @@ uint8_t get_pcre_index_by_name(char *name) {
 
 	return -1;
 }
+#endif
 
 
 profile_protocol_t* get_profile_by_name(char *name) {
@@ -773,7 +782,7 @@ unsigned int get_profile_index_by_name(char *name) {
 	return 0;
 }
 
-
+#ifdef PCRE
 void free_regexp() {
 
 	unsigned int i = 0;
@@ -786,6 +795,7 @@ void free_regexp() {
 #endif
 	}
 }
+#endif
 
 
 int load_module_xml_config() {
@@ -916,13 +926,14 @@ static int load_module(xml_node *config) {
 						customHeaderMatch = strdup(value);
 						customHeaderLen = strlen(customHeaderMatch);
 					}
-					else if (!strncmp(key, "regexp-name", strlen("regex-name")))
+#ifdef PCRE
+					else if (!strncmp(key, "regexp-name", strlen("regexp-name")))
 					{
 						if(regexpIndex < MAX_REGEXP_INDEXES) {
 							regexpIndexName[regexpIndex] = strdup(value);
 						}
 					}
-					else if (!strncmp(key, "regexp-value", strlen("regex-value")))
+					else if (!strncmp(key, "regexp-value", strlen("regexp-value")))
 					{
 						if(regexpIndex < MAX_REGEXP_INDEXES) {
 
@@ -951,6 +962,7 @@ static int load_module(xml_node *config) {
 #endif
 						}
 					}
+#endif
 				}
 
             nextparam: params = params->next;

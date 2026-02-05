@@ -28,11 +28,13 @@
 
 #include <captagent/xmlread.h>
 
+#ifdef PCRE
 #ifdef USE_PCRE2
 #include <pcre2.h>
 typedef pcre2_code pcre;
 #else
 #include <pcre.h>
+#endif
 #endif
 
 #include "parser_sip.h"
@@ -67,6 +69,7 @@ static protocol_sip_stats_t stats;
 extern int handler(int value);
 extern int set_raw_rtp_filter();
 
+#ifdef PCRE
 #ifdef USE_PCRE2
 extern uint32_t pcre_options;
 #else
@@ -74,6 +77,7 @@ extern uint32_t pcre_options;
 #endif
 extern int32_t err_offset;
 extern char *re_err;
+#endif
 
 #define MAX_PROTOCOLS 10
 profile_protocol_t profile_protocol[MAX_PROTOCOLS];
@@ -104,8 +108,10 @@ int w_clog(msg_t *_m, char *param1, char* param2);
 int w_sip_is_method(msg_t *_m);
 int w_sip_check(msg_t *_m, char *param1, char *param2);
 int w_header_check(msg_t *_m, char *param1, char *param2);
+#ifdef PCRE
 int8_t re_match_func (pcre *pattern, char *data, uint32_t len);
 int w_header_reg_match(msg_t *_m, char *param1, char *param2);
+#endif
 
 int w_send_reply_p(msg_t *_m, char *param1, char *param2);
 int w_send_reply(msg_t *_m);
@@ -116,8 +122,10 @@ int w_is_flag_set(msg_t *_m, char *param1, char *param2);
 int endswith(str *str, const char *suffix);
 int startwith(str *str, const char *suffix);
 
+#ifdef PCRE
 uint8_t get_pcre_index_by_name(char *name);
 void free_regexp();
+#endif
 
 
 #endif /* _PROTOCOL_SIP_H_ */
