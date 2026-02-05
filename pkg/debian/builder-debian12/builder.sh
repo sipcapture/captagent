@@ -4,7 +4,7 @@
 #
 
 VERSION_MAJOR="6.4"
-VERSION_MINOR="1"
+VERSION_MINOR="2"
 PROJECT_NAME="captagent"
 OS="bookworm"
 ARCH=$(dpkg --print-architecture)
