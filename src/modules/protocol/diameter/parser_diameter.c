@@ -176,8 +176,7 @@ int diameter_dissector(const u_char *packet, int size_payload, char *json_buffer
     char class[20] = {0};
     // string for JSON command and app IDs
     const char com_string[5] = {0};
-    const char app_string[5] = {0};
-
+    
     // check param
     if(!packet || size_payload == 0) {
         LERR("::Error:: parameters not valid\n");
@@ -202,7 +201,7 @@ int diameter_dissector(const u_char *packet, int size_payload, char *json_buffer
 
     // check if the Command is correct
     command = diameter->com_code[2] + (diameter->com_code[1] << 8) + (diameter->com_code[0] << 8);
-    classCom = check_command(command, &com_string);
+    classCom = check_command(command, com_string);
     if(classCom == UNK) {
         LERR("::Warning:: Command unknown for Diameter protocol\n");
         snprintf(com_string, (strlen("Unknown")+1), "Unknown");
