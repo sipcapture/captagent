@@ -1,5 +1,5 @@
-AC_PREREQ(2.61)
-AC_INIT(captagent,6.4.2,support@sipcapture.org,,[http://www.sipcapture.org])
+AC_PREREQ([2.71])
+AC_INIT([captagent],[6.4.2],[support@sipcapture.org],[],[http://www.sipcapture.org])
 AC_COPYRIGHT("SIP Capture Solution")
 AC_CONFIG_MACRO_DIR([m4])
 AM_INIT_AUTOMAKE(foreign tar-ustar)
@@ -115,7 +115,7 @@ AC_SUBST(OUR_MODS)
 #AC_ENABLE_SHARED(yes)
 #AC_ENABLE_STATIC(no)
 
-#AC_CANONICAL_SYSTEM
+#AC_CANONICAL_TARGET
 #AM_INIT_AUTOMAKE()
 
 LT_INIT
@@ -154,8 +154,11 @@ AC_PROG_CC
 AC_PROG_INSTALL
 AC_PROG_LN_S
 AC_PROG_MAKE_SET
-AC_LIBTOOL_DLOPEN
-AC_PROG_LIBTOOL
+_LT_SET_OPTION([LT_INIT],[dlopen])
+m4_warn([obsolete],[AC_LIBTOOL_DLOPEN: Remove this warning and the call to _LT_SET_OPTION when you
+put the 'dlopen' option into LT_INIT's first parameter.])
+
+LT_INIT
 AC_PROG_LEX
 
 if test "x$LEXLIB" = "x"; then
@@ -206,7 +209,7 @@ dnl
 
 # Checks for libpcre or libpcre2
 if test "$PCRE" = "yes"; then
-	AC_CHECKING([for pcre2 Library and Header files])
+	AS_MESSAGE([checking for pcre2 Library and Header files...])
 	# Try PCRE2 first (preferred for modern systems)
 	# Define PCRE2_CODE_UNIT_WIDTH before checking the header
 	save_CPPFLAGS="$CPPFLAGS"
@@ -226,7 +229,7 @@ if test "$PCRE" = "yes"; then
 		# Restore CPPFLAGS and try PCRE
 		CPPFLAGS="$save_CPPFLAGS"
 		# Fall back to PCRE if PCRE2 is not available
-		AC_CHECKING([for pcre Library and Header files])
+		AS_MESSAGE([checking for pcre Library and Header files...])
 		AC_CHECK_HEADER([pcre.h], [
 			AC_CHECK_LIB([pcre], [pcre_compile], [
 				PCRE_LIBS="-lpcre"
@@ -247,7 +250,7 @@ dnl check for compression library
 dnl
 
 if test "$ZLIB" = "yes"; then
-   AC_CHECKING([for zip Library and Header files])
+   AS_MESSAGE([checking for zip Library and Header files...])
    AC_CHECK_HEADER(zlib.h,,[AC_MSG_ERROR([zlib.h headers not found.])])
    AC_CHECK_LIB(z, inflate, [ LIBS="${LIBS} -lz" ], [AC_MSG_ERROR([$PACKAGE_NAME requires but cannot find lz])])
    AC_DEFINE(USE_ZLIB, 1, [Use ZIP library])
@@ -258,7 +261,7 @@ dnl check for epan library
 dnl
 
 if test "$EPAN" = "yes"; then
-   AC_CHECKING([for epan Library and Header files])
+   AS_MESSAGE([checking for epan Library and Header files...])
    AC_CHECK_HEADER(epan.h,,[AC_MSG_ERROR([epan.h headers not found.])])
    AC_CHECK_LIB(wireshark, epan_get_version, [ LIBS="${LIBS}" ], [AC_MSG_ERROR([$PACKAGE_NAME requires but cannot find wireshark libraries])])
    AC_DEFINE(USE_EPAN, 1, [Use EPAN library])
@@ -270,7 +273,7 @@ dnl check for redis library
 dnl
 
 if test "$REDIS" = "yes"; then
-   AC_CHECKING([for redis Library and Header files])
+   AS_MESSAGE([checking for redis Library and Header files...])
    AC_CHECK_HEADER(hiredis/hiredis.h,,[AC_MSG_ERROR([hiredis/hiredis.h headers not found.])])
    AC_CHECK_LIB(hiredis, redisCommand, [ HIREDIS_LIBS="-lhiredis" ], [AC_MSG_ERROR([$PACKAGE_NAME requires but cannot find lhiredis])])
    AC_DEFINE(USE_REDIS, 1, [Use REDIS library])
@@ -278,12 +281,12 @@ if test "$REDIS" = "yes"; then
 fi
 
 if test "$TLS" = "yes"; then
-  AC_CHECKING([for gcrypt Library and Header files])
+  AS_MESSAGE([checking for gcrypt Library and Header files...])
   AC_CHECK_HEADER(gcrypt.h,,[AC_MSG_ERROR([ gcrypt.h headers not found.])])
   AC_CHECK_LIB(gcrypt, gcry_control, [ GCRYPT_LIBS="-lgcrypt" ], [AC_MSG_ERROR([$PACKAGE_NAME requires but cannot find lgcrypt])])
   AC_DEFINE(USE_GCRYPT, 1, [Use GCRYPT library])
   AC_SUBST(GCRYPT_LIBS)
-  AC_CHECKING([for crypto Library and Header files])
+  AS_MESSAGE([checking for crypto Library and Header files...])
   AC_CHECK_LIB(crypto, CRYPTO_new_ex_data, [CRYPTO_LIBS="-lcrypto"], [AC_MSG_ERROR([library 'crypto' is required for OpenSSL])])
   AC_DEFINE(USE_GCRYPTO, 1, [Use CRYPTO library])
   AC_SUBST(CRYPTO_LIBS)
@@ -295,7 +298,7 @@ dnl check for extra modules
 dnl
 
 if test "$EXTRAMODULES" = "yes"; then
-   AC_CHECKING([for extra modules files])
+   AS_MESSAGE([checking for extra modules files...])
    AC_DEFINE(HAVE_EXTRA_MODULES, 1, [We have extra modules])
 fi
 
@@ -304,7 +307,7 @@ dnl
 dnl check for libuv library
 dnl
 
-AC_CHECKING([for LiBUV and Header files])
+AS_MESSAGE([checking for LiBUV and Header files...])
 AC_CHECK_HEADER(uv.h,,[AC_MSG_ERROR([uv.h headers not found.])])
 AC_CHECK_LIB(uv, uv_now, [ UV_LIBS="-luv" ], [AC_MSG_ERROR([$PACKAGE_NAME requires but cannot find libuv])])
 AC_DEFINE(USE_LIBUV, 1, [Use lib UV])
@@ -317,7 +320,7 @@ dnl check for OpenSSL-SSL library
 dnl
 
 if test "$SSL" = "yes"; then
-   AC_CHECKING([for OpenSSL SSL Library and Header files])
+   AS_MESSAGE([checking for OpenSSL SSL Library and Header files...])
    AC_CHECK_HEADER(openssl/ssl.h,, [AC_MSG_ERROR([OpenSSL SSL headers not found.])])
    AC_CHECK_LIB(ssl, SSL_accept, [ LIBS="${LIBS} -lssl" ], [AC_MSG_ERROR([$PACKAGE_NAME requires but cannot find ssl])])
    AC_DEFINE(USE_SSL, 1, [Use OpenSSL SSL library])
