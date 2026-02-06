@@ -34,7 +34,7 @@ bash build.sh
 ./configure
 
 # With PCRE (enables regex header matching):
-./configure --with-pcre
+./configure --enable-pcre
 
 # 4. Compile captagent
 make
@@ -173,7 +173,7 @@ if (header_check("X-Priority", "CRITICAL")) {
     send_hep("homer_default");
 }
 
-// 3. With PCRE regex (if compiled with --with-pcre)
+// 3. With PCRE regex (if compiled with --enable-pcre)
 if (header_regexp_match("X-Serialnumber", "pattern_name")) {
     send_hep("homer_matched");
 }

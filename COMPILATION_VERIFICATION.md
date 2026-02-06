@@ -67,7 +67,7 @@ bash build.sh
 # 2. Configure with optional PCRE support
 ./configure
 # or
-./configure --with-pcre
+./configure --enable-pcre
 
 # 3. Compile
 make
@@ -160,7 +160,7 @@ bash build.sh && ./configure && make && sudo make install
 
 # Or step by step
 bash build.sh          # Generate configure
-./configure            # Configure (optionally: --with-pcre)
+./configure            # Configure (optionally: --enable-pcre)
 make                   # Compile
 sudo make install      # Install
 ```
