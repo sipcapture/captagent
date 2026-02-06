@@ -6,6 +6,7 @@
 #include <captagent/proto_sip.h>
 #include <captagent/log.h>
 #include <string.h>
+#include <strings.h>
 #include <stdlib.h>
 #include <stdio.h>
 
@@ -718,6 +719,87 @@ splitCSeq (sip_msg_t * sipStruct, char *s, int len)
   return FALSE;
 }
 
+
+
+/*
+ * Find header value in a SIP message by header name
+ * Returns 0 if found and header_value is set, -1 if not found
+ * This function handles case-insensitive header name matching
+ */
+int
+find_header_value(const char *message, unsigned int msg_len, const char *header_name, str *header_value)
+{
+    const char *ptr = message;
+    const char *end = message + msg_len;
+    int header_name_len;
+    const char *line_end;
+    const char *value_start;
+    const char *value_end;
+    int header_len;
+
+    if (!message || !header_name || !header_value || msg_len == 0) {
+        return -1;
+    }
+
+    header_name_len = strlen(header_name);
+    header_value->s = NULL;
+    header_value->len = 0;
+
+    /* Search through the message for the header */
+    while (ptr < end) {
+        /* Find the end of the current line */
+        line_end = ptr;
+        while (line_end < end && *line_end != '\r' && *line_end != '\n') {
+            line_end++;
+        }
+
+        /* Check if this line matches the header we're looking for */
+        if (line_end - ptr > header_name_len + 1) {
+            /* Check for header name match (case-insensitive) followed by ':' */
+            if (strncasecmp(ptr, header_name, header_name_len) == 0 &&
+                *(ptr + header_name_len) == ':') {
+                
+                /* Found the header, extract the value */
+                value_start = ptr + header_name_len + 1;
+                
+                /* Skip leading whitespace */
+                while (value_start < line_end && (*value_start == ' ' || *value_start == '\t')) {
+                    value_start++;
+                }
+                
+                /* Find the end of the value (before \r or \n) */
+                value_end = line_end;
+                while (value_end > value_start && (*(value_end - 1) == ' ' || *(value_end - 1) == '\t')) {
+                    value_end--;
+                }
+                
+                header_len = value_end - value_start;
+                if (header_len > 0 && header_len < MAX_PARSE_LEN) {
+                    header_value->s = (char *)value_start;
+                    header_value->len = header_len;
+                    return 0;
+                }
+                return -1;
+            }
+        }
+
+        /* Move to the next line */
+        if (line_end < end && *line_end == '\r' && (line_end + 1) < end && *(line_end + 1) == '\n') {
+            ptr = line_end + 2;
+        } else if (line_end < end && (*line_end == '\r' || *line_end == '\n')) {
+            ptr = line_end + 1;
+        } else {
+            break;
+        }
+
+        /* Stop at the blank line that separates headers from body */
+        if (ptr < end && (*ptr == '\r' || *ptr == '\n')) {
+            break;
+        }
+    }
+
+    return -1;
+}
 
 
 int

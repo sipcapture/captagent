@@ -27,6 +27,7 @@ int w_sip_has_sdp(msg_t *_m);
 bool getUser(str *user, str *domain, char *s, int len);
 bool getTag(str *hname, char *uri, int len);
 int parseVQRtcpXR(char *body, sip_msg_t *psip);
+int find_header_value(const char *message, unsigned int msg_len, const char *header_name, str *header_value);
 
 
 

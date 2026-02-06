@@ -191,13 +191,21 @@ int w_set_tag(msg_t *_m, char *param1, char *param2)
 
 int w_header_check(msg_t *_m, char *param1, char *param2)
 {
-    if(!strncmp("User-Agent", param1, strlen("User-Agent")) || strncmp("useragent", param1, strlen("useragent")))
+    str header_value;
+    
+    if(!param1 || !param2) {
+        return -1;
+    }
+    
+    /* Check for User-Agent header (backward compatibility) */
+    if(!strncmp("User-Agent", param1, strlen("User-Agent")) || !strncmp("useragent", param1, strlen("useragent")))
     {
         if(startwith(&_m->sip.userAgent, param2))
         {
             return 1;
         }
     }
+    /* Check for custom header (backward compatibility with pre-configured header) */
     else if(!strncmp("custom", param1, strlen("custom")))
     {
         if(_m->sip.hasCustomHeader && startwith(&_m->sip.customHeader, param2))
@@ -205,18 +213,31 @@ int w_header_check(msg_t *_m, char *param1, char *param2)
             return 1;
         }
     }
+    /* Try to find any header by name */
+    else if(find_header_value(_m->data, _m->len, param1, &header_value) == 0)
+    {
+        if(header_value.s && header_value.len > 0)
+        {
+            if(startwith(&header_value, param2))
+            {
+                return 1;
+            }
+        }
+    }
 
     return -1;
 }
+
 
 #ifdef PCRE
 int w_header_reg_match(msg_t *_m, char *param1, char *param2)
 {
     uint8_t index = 0;
+    str header_value;
 
     if(param2 != NULL) index = get_pcre_index_by_name(param2);
 
-    if(!strncmp("User-Agent", param1, strlen("User-Agent")) || strncmp("useragent", param1, strlen("useragent")))
+    if(!strncmp("User-Agent", param1, strlen("User-Agent")) || !strncmp("useragent", param1, strlen("useragent")))
     {
         if(_m->sip.userAgent.s && _m->sip.userAgent.len > 0)
         {
@@ -242,6 +263,17 @@ int w_header_reg_match(msg_t *_m, char *param1, char *param2)
         {
 			if((re_match_func(pattern_match[index], _m->data, _m->len)) == 1) {
 				LDEBUG(">>>> Body SIP matched");
+                return 1;
+			}
+        }
+    }
+    /* Try to find any header by name and match with regex */
+    else if(find_header_value(_m->data, _m->len, param1, &header_value) == 0)
+    {
+        if(header_value.s && header_value.len > 0)
+        {
+			if((re_match_func(pattern_match[index], header_value.s, header_value.len)) == 1) {
+				LDEBUG(">>>> Header [%s] SIP matched: [%.*s]", param1, header_value.len, header_value.s);
                 return 1;
 			}
         }
