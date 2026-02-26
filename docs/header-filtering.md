@@ -362,16 +362,3 @@ capture[pcap] {
     drop;
 }
 ```
-
----
-
-## Notes on Responses and Transaction Tracking
-
-SIP **responses** (200 OK, 180 Ringing, etc.) typically do **not** carry request-only headers such as `X-Serialnumber`. If you filter exclusively on such a header, only INVITEs and similar requests will match; their responses will fall through to the default path.
-
-**Approaches to handle responses:**
-
-1. **Send all traffic to both Homers** (duplicate) and filter at the Homer/analytics layer.
-2. **Use a symmetric header** that appears on both requests and responses, such as a `Call-ID` prefix or a custom header that FreeSWITCH/Asterisk echoes back on replies.
-3. **Use `msg_check("any_ip", "...")`** — if the device always communicates from/to a known IP, IP-based routing is fully symmetric and captures both requests and responses.
-4. **Use `customHeader`** declared in `protocol_sip.xml` together with transaction tracking in [HEPIC](https://hepic.tel) (unlike Homer, HEPIC supports transaction-level state for cross-message correlation).
