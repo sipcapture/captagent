@@ -23,7 +23,6 @@ This document explains how to compile Captagent with SIP header filtering suppor
   - [Route by regex on any header](#route-by-regex-on-any-header)
   - [Route by regex on User-Agent](#route-by-regex-on-user-agent)
   - [Combining multiple conditions](#combining-multiple-conditions)
-- [Notes on Responses and Transaction Tracking](#notes-on-responses-and-transaction-tracking)
 
 ---
 
