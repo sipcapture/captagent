@@ -189,9 +189,34 @@ int w_set_tag(msg_t *_m, char *param1, char *param2)
     return 1;
 }
 
+static char* find_sip_header(const char *data, unsigned int len, const char *header_name, int *value_len)
+{
+    size_t hdr_len = strlen(header_name);
+    unsigned int i = 0;
+
+    while (i < len) {
+        if ((i == 0 || data[i - 1] == '\n') &&
+            i + hdr_len + 1 <= len &&
+            strncasecmp(data + i, header_name, hdr_len) == 0 &&
+            data[i + hdr_len] == ':') {
+            unsigned int j = i + hdr_len + 1;
+            while (j < len && (data[j] == ' ' || data[j] == '\t')) j++;
+            unsigned int start = j;
+            while (j < len && data[j] != '\r' && data[j] != '\n') j++;
+            unsigned int end = j;
+            while (end > start && (data[end - 1] == ' ' || data[end - 1] == '\t')) end--;
+            *value_len = (int)(end - start);
+            return (char *)(data + start);
+        }
+        while (i < len && data[i] != '\n') i++;
+        i++;
+    }
+    return NULL;
+}
+
 int w_header_check(msg_t *_m, char *param1, char *param2)
 {
-    if(!strncmp("User-Agent", param1, strlen("User-Agent")) || strncmp("useragent", param1, strlen("useragent")))
+    if(!strncmp("User-Agent", param1, strlen("User-Agent")) || !strncmp("useragent", param1, strlen("useragent")))
     {
         if(startwith(&_m->sip.userAgent, param2))
         {
@@ -205,6 +230,20 @@ int w_header_check(msg_t *_m, char *param1, char *param2)
             return 1;
         }
     }
+    else if(_m->data && _m->len > 0 && param2 != NULL)
+    {
+        int value_len = 0;
+        char *value = find_sip_header((const char *)_m->data, _m->len, param1, &value_len);
+        if(value != NULL)
+        {
+            size_t param2_len = strlen(param2);
+            if(value_len > 0 && (size_t)value_len >= param2_len && strncmp(value, param2, param2_len) == 0)
+            {
+                LDEBUG(">>>> Header [%s] matched: [%.*s]", param1, value_len, value);
+                return 1;
+            }
+        }
+    }
 
     return -1;
 }
@@ -216,7 +255,7 @@ int w_header_reg_match(msg_t *_m, char *param1, char *param2)
 
     if(param2 != NULL) index = get_pcre_index_by_name(param2);
 
-    if(!strncmp("User-Agent", param1, strlen("User-Agent")) || strncmp("useragent", param1, strlen("useragent")))
+    if(!strncmp("User-Agent", param1, strlen("User-Agent")) || !strncmp("useragent", param1, strlen("useragent")))
     {
         if(_m->sip.userAgent.s && _m->sip.userAgent.len > 0)
         {
@@ -244,6 +283,18 @@ int w_header_reg_match(msg_t *_m, char *param1, char *param2)
 				LDEBUG(">>>> Body SIP matched");
                 return 1;
 			}
+        }
+    }
+    else if(_m->data && _m->len > 0)
+    {
+        int value_len = 0;
+        char *value = find_sip_header((const char *)_m->data, _m->len, param1, &value_len);
+        if(value != NULL && value_len > 0)
+        {
+            if((re_match_func(pattern_match[index], value, value_len)) == 1) {
+                LDEBUG(">>>> Header [%s] SIP matched: [%.*s]", param1, value_len, value);
+                return 1;
+            }
         }
     }
 
