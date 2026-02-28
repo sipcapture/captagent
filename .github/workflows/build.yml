@@ -1,0 +1,62 @@
+name: Build Packages
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+    branches: [master, main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build ${{ matrix.os_name }} package
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os_name: Debian 12
+            image: debian:bookworm
+            builder: pkg/debian/builder-debian12
+            artifact_pattern: "*.deb"
+            artifact_name: debian12-package
+          - os_name: Debian 13
+            image: debian:trixie
+            builder: pkg/debian/builder-debian13
+            artifact_pattern: "*.deb"
+            artifact_name: debian13-package
+          - os_name: Rocky Linux 8
+            image: rockylinux:8
+            builder: pkg/rocky/builder-rocky8
+            artifact_pattern: "*.rpm"
+            artifact_name: rocky8-package
+          - os_name: Rocky Linux 9
+            image: rockylinux:9
+            builder: pkg/rocky/builder-rocky9
+            artifact_pattern: "*.rpm"
+            artifact_name: rocky9-package
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          path: captagent_build
+
+      - name: Make builder script executable
+        run: chmod +x "${{ github.workspace }}/captagent_build/${{ matrix.builder }}/builder.sh"
+
+      - name: Build package
+        run: |
+          docker run --rm \
+            -v "${{ github.workspace }}:/tmp/build" \
+            -v "${{ github.workspace }}/captagent_build/${{ matrix.builder }}:/scripts" \
+            --entrypoint=/scripts/builder.sh \
+            ${{ matrix.image }}
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: "${{ github.workspace }}/${{ matrix.artifact_pattern }}"
