@@ -130,10 +130,10 @@ int dump_proto_packet(struct pcap_pkthdr *, u_char *, uint8_t, char *, uint32_t,
             char *, uint16_t, uint16_t, uint8_t,uint16_t, uint8_t, uint16_t, uint32_t, uint32_t);
 
 
-/*IPv4 filter*/
-#define BPF_DEFRAGMENTION_FILTER_IPV4 "(ip[6:2] & 0x1fff != 0)"
-/*IPv6 filter*/
-#define BPF_DEFRAGMENTION_FILTER_IPV6 "(ip6[6]=44 and (ip6[42:2] & 0xfff8 != 0))"
+/*IPv4 filter: matches packets with MF flag set (0x2000) or non-zero fragment offset (0x1fff) */
+#define BPF_DEFRAGMENTION_FILTER_IPV4 "(ip[6:2] & 0x3fff != 0)"
+/*IPv6 filter: matches packets with non-zero fragment offset (0xfff8) or M flag set (0x0001) */
+#define BPF_DEFRAGMENTION_FILTER_IPV6 "(ip6[6]=44 and (ip6[42:2] & 0xfff9 != 0))"
 
 #define REASM_UDP (1<<0)
 #define REASM_TCP (1<<1)
