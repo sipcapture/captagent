@@ -191,12 +191,8 @@ int reload_config(char *erbuf, int erlen) {
  **/
 static int check_port_filter(char *filter, int port_arg1, int port_arg2) {
 
-    char port_str[10], port_str_1[10], port_str_2[10];
-    int len1, ret, port = 0, portrange = 0;
-    char *space, *dash, *p, *end;
-
-    len1 = strlen(filter);
-    end = filter+len1-1;
+    int ret = -1, port = 0, portrange = 0;
+    char *space, *dash, *p;
 
     p = strstr(filter, "portrange");
     if(p) {
@@ -211,12 +207,15 @@ static int check_port_filter(char *filter, int port_arg1, int port_arg2) {
         }
     }
 
-    space = strchr(filter, ' ');
+    space = strchr(p, ' ');
+    if(!space) {
+        LERR("error - bad BPF here\n");
+        return -1;
+    }
     filter = space + 1;
-    memcpy(port_str, filter, end - filter + 1);
 
     if(port == 1) { /* Extract port */
-        int port_int = atoi(port_str);
+        int port_int = atoi(filter);
         if(port_int == port_arg1 || port_int == port_arg2) {
             LDEBUG("Port match!\n");
             ret = 0;
@@ -228,11 +227,12 @@ static int check_port_filter(char *filter, int port_arg1, int port_arg2) {
     } else if(portrange == 1) { /* Extract portrange */
 
         dash = strchr(filter, '-');
-        memcpy(port_str_1, filter, dash - filter + 1);
-        int port_int_1 = atoi(port_str_1);
-        filter = dash + 1;
-        memcpy(port_str_2, filter, end - filter + 1);
-        int port_int_2 = atoi(port_str_2);
+        if(!dash) {
+            LERR("error - bad portrange BPF here\n");
+            return -1;
+        }
+        int port_int_1 = atoi(filter);
+        int port_int_2 = atoi(dash + 1);
 
         if((port_arg1 >= port_int_1 && port_arg1 <= port_int_2) ||
            (port_arg2 >= port_int_1 && port_arg2 <= port_int_2)) {
@@ -651,6 +651,13 @@ void callback_proto(unsigned char *arg, struct pcap_pkthdr *pkthdr, unsigned cha
                               if ((int32_t) len < 0)
                                   len = 0;
 
+                              /* For IP-in-IP tunneled packets, verify inner ports match the configured filter */
+                              if(ipip_offset > 0 && profile_socket[loc_index].filter) {
+                                  if(check_port_filter(profile_socket[loc_index].filter, ntohs(tcp_pkt->th_sport), ntohs(tcp_pkt->th_dport)) != 0) {
+                                      goto error;
+                                  }
+                              }
+
                               /******************* Check for Websocket layer (skip it) **************************/
          int webLen = link_offset + hdr_offset + ip_hl + tcphdr_offset;
                               uint8_t *p_websock = packet + webLen;
@@ -846,6 +853,13 @@ void callback_proto(unsigned char *arg, struct pcap_pkthdr *pkthdr, unsigned cha
 
                               if ((int32_t) len < 0)
                                   len = 0;
+
+                              /* For IP-in-IP tunneled packets, verify inner ports match the configured filter */
+                              if(ipip_offset > 0 && profile_socket[loc_index].filter) {
+                                  if(check_port_filter(profile_socket[loc_index].filter, ntohs(udp_pkt->uh_sport), ntohs(udp_pkt->uh_dport)) != 0) {
+                                      goto error;
+                                  }
+                              }
 
                               _msg.rcinfo.src_port = ntohs(udp_pkt->uh_sport);
                               _msg.rcinfo.dst_port = ntohs(udp_pkt->uh_dport);
