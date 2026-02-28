@@ -323,6 +323,8 @@ void callback_proto(unsigned char *arg, struct pcap_pkthdr *pkthdr, unsigned cha
     uint8_t ip_proto = 0, erspan_offset = 0;
     uint8_t tmp_ip_proto = 0, tmp_ip_len = 0, is_only_gre = 0;
 
+    time_t now = use_current_timestamp ? time(NULL) : 0;
+
     unsigned char* ethaddr  = NULL;
     unsigned char* mplsaddr = NULL;
 
@@ -449,8 +451,8 @@ void callback_proto(unsigned char *arg, struct pcap_pkthdr *pkthdr, unsigned cha
         _msg.rcinfo.ip_family = DLT_MTP2;
         _msg.rcinfo.ip_proto = DLT_MTP2;
 
-        _msg.rcinfo.time_sec = pkthdr->ts.tv_sec;
-        _msg.rcinfo.time_usec = pkthdr->ts.tv_usec;
+        _msg.rcinfo.time_sec = use_current_timestamp ? now : pkthdr->ts.tv_sec;
+        _msg.rcinfo.time_usec = use_current_timestamp ? 0 : pkthdr->ts.tv_usec;
         _msg.tcpflag = 0;
         _msg.parse_it = 1;
 
@@ -741,8 +743,8 @@ void callback_proto(unsigned char *arg, struct pcap_pkthdr *pkthdr, unsigned cha
                                   _msg.rcinfo.dst_port = ntohs(tcp_pkt->th_dport);
                                   _msg.rcinfo.ip_family = ip_ver == 4 ? AF_INET : AF_INET6;
                                   _msg.rcinfo.ip_proto = ip_proto;
-                                  _msg.rcinfo.time_sec = pkthdr->ts.tv_sec;
-                                  _msg.rcinfo.time_usec = pkthdr->ts.tv_usec;
+                                  _msg.rcinfo.time_sec = use_current_timestamp ? now : pkthdr->ts.tv_sec;
+                                  _msg.rcinfo.time_usec = use_current_timestamp ? 0 : pkthdr->ts.tv_usec;
                                   _msg.tcpflag = tcp_pkt->th_flags;
                                   _msg.parse_it = 1;
 
@@ -807,8 +809,8 @@ void callback_proto(unsigned char *arg, struct pcap_pkthdr *pkthdr, unsigned cha
                                   _msg.rcinfo.dst_port = ntohs(tcp_pkt->th_dport);
                                   _msg.rcinfo.ip_family = ip_ver == 4 ? AF_INET : AF_INET6;
                                   _msg.rcinfo.ip_proto = ip_proto;
-                                  _msg.rcinfo.time_sec = pkthdr->ts.tv_sec;
-                                  _msg.rcinfo.time_usec = pkthdr->ts.tv_usec;
+                                  _msg.rcinfo.time_sec = use_current_timestamp ? now : pkthdr->ts.tv_sec;
+                                  _msg.rcinfo.time_usec = use_current_timestamp ? 0 : pkthdr->ts.tv_usec;
                                   _msg.tcpflag = tcp_pkt->th_flags;
                                   _msg.parse_it = 1;
 
@@ -867,8 +869,8 @@ void callback_proto(unsigned char *arg, struct pcap_pkthdr *pkthdr, unsigned cha
                               _msg.rcinfo.dst_mac = mac_dst;
                               _msg.rcinfo.ip_family = ip_ver == 4 ? AF_INET : AF_INET6;
                               _msg.rcinfo.ip_proto = ip_proto;
-                              _msg.rcinfo.time_sec = pkthdr->ts.tv_sec;
-                              _msg.rcinfo.time_usec = pkthdr->ts.tv_usec;
+                              _msg.rcinfo.time_sec = use_current_timestamp ? now : pkthdr->ts.tv_sec;
+                              _msg.rcinfo.time_usec = use_current_timestamp ? 0 : pkthdr->ts.tv_usec;
                               _msg.tcpflag = 0;
                               _msg.parse_it = 1;
 
@@ -930,8 +932,8 @@ void callback_proto(unsigned char *arg, struct pcap_pkthdr *pkthdr, unsigned cha
                                _msg.rcinfo.dst_mac = mac_dst;
                                _msg.rcinfo.ip_family = ip_ver == 4 ? AF_INET : AF_INET6;
                                _msg.rcinfo.ip_proto = ip_proto;
-                               _msg.rcinfo.time_sec = pkthdr->ts.tv_sec;
-                               _msg.rcinfo.time_usec = pkthdr->ts.tv_usec;
+                               _msg.rcinfo.time_sec = use_current_timestamp ? now : pkthdr->ts.tv_sec;
+                               _msg.rcinfo.time_usec = use_current_timestamp ? 0 : pkthdr->ts.tv_usec;
                                _msg.tcpflag = 0;
                                _msg.parse_it = 1;
 
@@ -1128,11 +1130,11 @@ int init_socket(unsigned int loc_idx) {
 
 			if (user_data[loc_idx].ipv4fragments) {
 				LDEBUG("Reassembling of IPv4 packets is enabled, adding '%s' to filter", BPF_DEFRAGMENTION_FILTER_IPV4);
-				len += snprintf(filter_expr+len, sizeof(filter_expr), " or %s", BPF_DEFRAGMENTION_FILTER_IPV4);
+				len += snprintf(filter_expr+len, sizeof(filter_expr)-len, " or %s", BPF_DEFRAGMENTION_FILTER_IPV4);
 			}
 			if (user_data[loc_idx].ipv6fragments) {
 				LDEBUG("Reassembling of IPv6 packets is enabled, adding '%s' to filter", BPF_DEFRAGMENTION_FILTER_IPV6);
-				len += snprintf(filter_expr+len, sizeof(filter_expr), " or %s", BPF_DEFRAGMENTION_FILTER_IPV6);
+				len += snprintf(filter_expr+len, sizeof(filter_expr)-len, " or %s", BPF_DEFRAGMENTION_FILTER_IPV6);
 			}
 		}
 	}

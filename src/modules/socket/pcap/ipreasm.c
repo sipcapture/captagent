@@ -414,6 +414,27 @@ is_complete (struct reasm_ip_entry *entry)
 }
 
 
+static uint16_t
+ip_checksum (const void *data, unsigned len)
+{
+	const uint16_t *words = data;
+	uint32_t sum = 0;
+
+	while (len > 1) {
+		sum += *words++;
+		len -= 2;
+	}
+
+	if (len == 1)
+		sum += *(const uint8_t *) words;
+
+	sum = (sum >> 16) + (sum & 0xffff);
+	sum += (sum >> 16);
+
+	return ~sum;
+}
+
+
 static unsigned char *
 assemble (struct reasm_ip_entry *entry, unsigned *output_len)
 {
@@ -454,7 +475,8 @@ assemble (struct reasm_ip_entry *entry, unsigned *output_len)
 			struct ip *ip_header = (struct ip *) p;
 			ip_header->ip_len = htons (offset0 + entry->len);
 			ip_header->ip_off = 0;
-			//  XXX recompute the checksum
+			ip_header->ip_sum = 0;
+			ip_header->ip_sum = ip_checksum (p, ip_header->ip_hl * 4);
 			break;
 		}
 
