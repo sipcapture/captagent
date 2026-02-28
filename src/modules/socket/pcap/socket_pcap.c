@@ -1116,11 +1116,11 @@ int init_socket(unsigned int loc_idx) {
 
 			if (user_data[loc_idx].ipv4fragments) {
 				LDEBUG("Reassembling of IPv4 packets is enabled, adding '%s' to filter", BPF_DEFRAGMENTION_FILTER_IPV4);
-				len += snprintf(filter_expr+len, sizeof(filter_expr), " or %s", BPF_DEFRAGMENTION_FILTER_IPV4);
+				len += snprintf(filter_expr+len, sizeof(filter_expr)-len, " or %s", BPF_DEFRAGMENTION_FILTER_IPV4);
 			}
 			if (user_data[loc_idx].ipv6fragments) {
 				LDEBUG("Reassembling of IPv6 packets is enabled, adding '%s' to filter", BPF_DEFRAGMENTION_FILTER_IPV6);
-				len += snprintf(filter_expr+len, sizeof(filter_expr), " or %s", BPF_DEFRAGMENTION_FILTER_IPV6);
+				len += snprintf(filter_expr+len, sizeof(filter_expr)-len, " or %s", BPF_DEFRAGMENTION_FILTER_IPV6);
 			}
 		}
 	}
