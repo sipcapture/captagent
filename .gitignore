@@ -50,3 +50,4 @@ src/captagent
 src/capplan.tab.c
 *.dh-orig
 
+test/node_modules/
