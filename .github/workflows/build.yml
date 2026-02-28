@@ -57,3 +57,4 @@ jobs:
         with:
           name: ${{ matrix.artifact_name }}
           path: "${{ github.workspace }}/${{ matrix.artifact_pattern }}"
+          if-no-files-found: error

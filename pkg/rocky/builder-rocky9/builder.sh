@@ -18,7 +18,7 @@ dnf -y install pkgconfig
 
 dnf -y install dnf-plugins-core
 # In Rocky Linux 9, powertools is called crb (CodeReady Builder)
-dnf -y config-manager --enable crb
+dnf -y config-manager --set-enabled crb
 
 echo "ENABLE EPEL"
 dnf -y install https://dl.fedoraproject.org/pub/epel/epel-release-latest-9.noarch.rpm
