@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 #
 # Captagent - Rocky Linux 9 Builder
 #
@@ -41,7 +42,7 @@ dnf -y install git
 
 # ruby - fpm
 dnf -y install ruby ruby-devel rpm-build rubygems
-gem install --no-document fpm
+gem install --no-document fpm -v 1.17.0
 
 # openssl
 dnf -y install openssl-devel
