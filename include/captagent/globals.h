@@ -50,6 +50,7 @@ extern char *backup_dir;
 extern char *global_node_name;
 extern int timestart;
 extern int serial;
+extern int use_current_timestamp;
 extern const char *captagent_config;
 
 extern struct capture_list main_ct;
