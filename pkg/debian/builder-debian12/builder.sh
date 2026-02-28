@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 #
 # Captagent - Debian 12 Builder
 #
@@ -30,7 +31,7 @@ apt-get -y install curl libexpat-dev libpcap-dev libjson-c-dev bison libpcre3-de
 apt-get -y install ruby-dev rubygems
 #gem install rake
 gem install public_suffix -v 4.0.7
-gem install fpm
+gem install --no-document fpm -v 1.17.0
 
 DEPENDENCY=$(dpkg -l | grep -E "libmcrypt|libfl|libexpat|libpcap|libjson-c|libpcre3|libuv" | grep -Ev "dev|pcre32" | awk '{print $2}' | sed -e "s/:${ARCH}//g" | tr '\n' ',')
 # Remove last characters
@@ -43,7 +44,7 @@ cd captagent_build
 ./build.sh
 
 # CONFIGURE
-./configure ${STRING_PARAM}
+./configure ${STRING_PARAM:-}
 
 # Create dir for Captagent
 TMP_CAPT=/tmp/captagent
