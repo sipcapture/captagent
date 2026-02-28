@@ -74,6 +74,7 @@ char *backup_dir;
 char *pid_file = NULL;
 int timestart;
 int serial;
+int use_current_timestamp = 0;
 const char *captagent_config;
 struct capture_list main_ct;
 struct action *clist[20];
@@ -127,6 +128,7 @@ void usage(int8_t e)
         "   -n  enable foreground mode\n"
         "   -f  [/path/to/rtpagent.xml] to specify a config file\n"
         "   -D  [/path/to/file.pcap] to specify a pcap file as input\n"
+        "   -t  [0] use current timestamp instead of pcap packet timestamp (0 = current time)\n"
         "   -x  [1 - 10] set debug level\n");
 	exit(e);
 }
@@ -280,7 +282,7 @@ int main(int argc, char *argv[])
 
     captagent_config = DEFAULT_CAPT_CONFIG;
 
-    while ((c = getopt(argc, argv, "adcvhnEKf:D:x:")) != EOF) {
+    while ((c = getopt(argc, argv, "adcvhnEKf:D:t:x:")) != EOF) {
 
         switch (c) {
         case 'v':
@@ -302,6 +304,11 @@ int main(int argc, char *argv[])
             break;
         case 'D':
             usefile = optarg;
+            break;
+        case 't':
+            if (atoi(optarg) == 0) {
+                use_current_timestamp = 1;
+            }
             break;
         case 'E':
             errout = 0;
