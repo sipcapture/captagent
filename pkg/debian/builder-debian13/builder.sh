@@ -5,7 +5,7 @@ set -euo pipefail
 #
 
 VERSION_MAJOR="6.4"
-VERSION_MINOR="2"
+VERSION_MINOR="3"
 PROJECT_NAME="captagent"
 OS="trixie"
 ARCH=$(dpkg --print-architecture)
