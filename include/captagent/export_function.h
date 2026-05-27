@@ -27,6 +27,8 @@
 #ifndef EXPORT_FUNC_H_
 #define EXPORT_FUNC_H_
 
+#include <captagent/modules_api.h>
+
 /* new */
 cmd_function find_export(char* name, int param_no, int flags);
 cmd_export_t* find_mod_export_record(char* mod, char* name, int param_no, int flags, unsigned* mod_if_ver);

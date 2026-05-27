@@ -9,6 +9,7 @@
 #define _PARSE_SIP_H
 
 #include <captagent/api.h>
+#include <captagent/structure.h>
 
 #define MAX_PARSE_LEN 256
 

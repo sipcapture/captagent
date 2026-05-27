@@ -27,6 +27,9 @@
 #ifndef MODULES_H_
 #define MODULES_H_
 
+#include <captagent/api.h>
+#include <captagent/modules_api.h>
+
 extern char *module_path;
 
 #define VAR_PARAM_NO  -128

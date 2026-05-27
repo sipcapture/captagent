@@ -81,13 +81,32 @@ struct action *clist[20];
 
 struct stats_object stats_obj;
 
-void handler(int value)
-{
-    int terminating = 1;
+static volatile sig_atomic_t terminate_requested = 0;
 
+static int replace_owned_string(char **dst, const char *src, const char *key_name)
+{
+    char *tmp;
+
+    if (src == NULL)
+        return 1;
+
+    tmp = strdup(src);
+    if (tmp == NULL) {
+        LERR("failed to allocate memory for %s", key_name);
+        return 0;
+    }
+
+    free(*dst);
+    *dst = tmp;
+    return 1;
+}
+
+static void shutdown_agent(int exit_code)
+{
     LDEBUG("The agent has been terminated");
 
-    unlink(pid_file);
+    if (pid_file)
+        unlink(pid_file);
 
     if (!unregister_modules()) {
         LDEBUG("modules unload");
@@ -110,10 +129,18 @@ void handler(int value)
         free(global_node_name);
     if (global_capture_plan_path)
         free(global_capture_plan_path);
+    if (backup_dir)
+        free(backup_dir);
 
     destroy_log();
 
-    exit(0);
+    exit(exit_code);
+}
+
+void handler(int value)
+{
+    (void)value;
+    terminate_requested = 1;
 }
 
 void usage(int8_t e)
@@ -162,7 +189,6 @@ static void print_all_devices()
 
 int get_basestat(char *module, char *buf, size_t len)
 {
-    char *res;
     int pos = 0, ret = 0;
     char stats[200];
 
@@ -196,7 +222,7 @@ int daemonize(int nofork)
 {
     FILE *pid_stream;
     pid_t pid;
-    int p;
+    int p = -1;
     struct sigaction new_action;
 
     if (!nofork) {
@@ -211,19 +237,22 @@ int daemonize(int nofork)
 
     if (pid_file != 0 && !nofork) {
         if ((pid_stream = fopen(pid_file, "r")) != NULL) {
-            if (fscanf(pid_stream, "%d", &p) < 0) {
+            if (fscanf(pid_stream, "%d", &p) != 1 || p <= 0) {
                 LERR("could not parse pid file %s", pid_file);
-            }
-            fclose(pid_stream);
-            if (p == -1) {
-                LERR("pid file %s exists, but doesn't contain a valid" " pid number", pid_file);
+                fclose(pid_stream);
                 goto error;
             }
+            fclose(pid_stream);
+
+            errno = 0;
             if (kill((pid_t) p, 0) == 0 || errno == EPERM) {
                 LERR("running process found in the pid file %s", pid_file);
                 goto error;
-            } else {
+            } else if (errno == ESRCH) {
                 LERR("pid file contains old pid, replacing pid");
+            } else {
+                LERR("unable to verify pid file %s: %s", pid_file, strerror(errno));
+                goto error;
             }
         }
         pid = getpid();
@@ -336,7 +365,10 @@ int main(int argc, char *argv[])
     init_log("captagent", 0);
 
     /* PATH */
-    module_path = MODULE_DIR;
+    if (!replace_owned_string(&module_path, MODULE_DIR, "module_path")) {
+        destroy_log();
+        exit(EXIT_FAILURE);
+    }
 
     load_xml_config();
 
@@ -344,10 +376,16 @@ int main(int argc, char *argv[])
 
     if (!(config = get_core_config("core", tree))) {
         LERR("Config for core has been not found");
-    } else {
-        if (!core_config(config)) {
-            LERR("Config for core found");
-        }
+        free_xml_config();
+        destroy_log();
+        return EXIT_FAILURE;
+    }
+
+    if (!core_config(config)) {
+        LERR("Config for core is invalid");
+        free_xml_config();
+        destroy_log();
+        return EXIT_FAILURE;
     }
 
     if (checkout == 1)          // read config and exit
@@ -365,7 +403,19 @@ int main(int argc, char *argv[])
     register_modules(tree);
     free_xml_config();
     LDEBUG("The Captagent is ready");
-    select(0, NULL, NULL, NULL, NULL);
+
+    while (!terminate_requested) {
+        errno = 0;
+        if (select(0, NULL, NULL, NULL, NULL) == -1 && errno == EINTR)
+            continue;
+
+        if (errno != 0 && errno != EINTR) {
+            LERR("select() failed: %s", strerror(errno));
+            break;
+        }
+    }
+
+    shutdown_agent(EXIT_SUCCESS);
     return EXIT_SUCCESS;
 }
 
@@ -421,11 +471,11 @@ xml_node *get_module_config(const char *mod_name, xml_node * mytree)
         if (next == NULL)
             break;
 
-        for (i = 0; next->attr[i]; i++) {
+        for (i = 0; next->attr && next->attr[i]; i++) {
 
-            if (!strncmp(next->attr[i], "name", 4)) {
+            if (!strcmp(next->attr[i], "name")) {
 
-                if (!strncmp(next->attr[i + 1], mod_name, strlen(mod_name))) {
+                if (next->attr[i + 1] && !strcmp(next->attr[i + 1], mod_name)) {
                     modules = next;
                     break;
                 }
@@ -447,6 +497,10 @@ xml_node *get_core_config(const char *mod_name, xml_node * mytree)
         return modules;
 
     ret = snprintf(cfg, sizeof(cfg), "%s.conf", mod_name);
+    if (ret < 0 || ret >= (int)sizeof(cfg)) {
+        LERR("core config name is too long: %s", mod_name);
+        return modules;
+    }
 
     next = mytree;
 
@@ -457,9 +511,9 @@ xml_node *get_core_config(const char *mod_name, xml_node * mytree)
         if (next == NULL)
             break;
 
-        for (i = 0; next->attr[i]; i++) {
-            if (!strncmp(next->attr[i], "name", 4)) {
-                if (!strncmp(next->attr[i + 1], cfg, ret)) {
+        for (i = 0; next->attr && next->attr[i]; i++) {
+            if (!strcmp(next->attr[i], "name")) {
+                if (next->attr[i + 1] && !strcmp(next->attr[i + 1], cfg)) {
                     modules = next;
                     break;
                 }
@@ -477,8 +531,12 @@ int core_config(xml_node * config)
     char *dev, *usedev = NULL;
     xml_node *modules;
     char *key, *value;
+    const char *plan_base_path;
+    const char *plan_sep;
+    size_t plan_base_len;
     int _use_syslog = 0;
     int mlen = 0;
+    char default_plan_path[1024];
 
     LNOTICE("Loaded core config");
 
@@ -490,15 +548,19 @@ int core_config(xml_node * config)
     modules = config;
 
     while (modules) {
-        //if (modules == NULL) break;
         modules = xml_get("param", modules, 1);
-        if (modules->attr[0] != NULL && modules->attr[2] != NULL) {
+        if (modules == NULL)
+            break;
+
+        if (modules->attr && modules->attr[0] != NULL && modules->attr[1] != NULL
+            && modules->attr[2] != NULL && modules->attr[3] != NULL) {
 
             /* bad parser */
             if (strncmp(modules->attr[2], "value", 5)
                 || strncmp(modules->attr[0], "name", 4)) {
                 LERR("bad keys in the config");
-                goto next;
+                modules = modules->next;
+                continue;
             }
 
             key = modules->attr[1];
@@ -506,7 +568,8 @@ int core_config(xml_node * config)
 
             if (key == NULL || value == NULL) {
                 LERR("bad values in the config");
-                goto next;
+                modules = modules->next;
+                continue;
             }
 
             if (!strncmp(key, "debug", 5)) {
@@ -520,45 +583,71 @@ int core_config(xml_node * config)
                      && nofork == 1)
                 nofork = 0;
             else if (!strncmp(key, "module_path", 11))
-                module_path = strdup(value);
+                if (!replace_owned_string(&module_path, value, "module_path"))
+                    return 0;
             else if (!strncmp(key, "syslog", 6) && !strncmp(value, "true", 4))
                 _use_syslog = 1;
             else if (!strncmp(key, "pid_file", 8)) {
-                free(pid_file);
-                pid_file = strdup(value);
+                if (!replace_owned_string(&pid_file, value, "pid_file"))
+                    return 0;
             } else if (!strncmp(key, "license", 7))
-                global_license = strdup(value);
+                if (!replace_owned_string(&global_license, value, "license"))
+                    return 0;
             else if (!strncmp(key, "uuid", 4))
-                global_uuid = strdup(value);
+                if (!replace_owned_string(&global_uuid, value, "uuid"))
+                    return 0;
             else if (!strncmp(key, "chroot", 6))
-                global_chroot = strdup(value);
+                if (!replace_owned_string(&global_chroot, value, "chroot"))
+                    return 0;
             else if (!strncmp(key, "config_path", 11))
-                global_config_path = strdup(value);
+                if (!replace_owned_string(&global_config_path, value, "config_path"))
+                    return 0;
             else if (!strncmp(key, "node", 4))
-                global_node_name = strdup(value);
+                if (!replace_owned_string(&global_node_name, value, "node"))
+                    return 0;
             else if (!strncmp(key, "capture_plans_path", 18))
-                global_capture_plan_path = strdup(value);
+                if (!replace_owned_string(&global_capture_plan_path, value, "capture_plans_path"))
+                    return 0;
             else if (!strncmp(key, "backup", 6))
-                backup_dir = strdup(value);
+                if (!replace_owned_string(&backup_dir, value, "backup"))
+                    return 0;
+        } else {
+            LERR("bad values in the config");
         }
- next:
+
         modules = modules->next;
     }
 
     if (!pid_file)
-        pid_file = strdup(DEFAULT_PIDFILE);
+        if (!replace_owned_string(&pid_file, DEFAULT_PIDFILE, "pid_file"))
+            return 0;
 
     if (!global_node_name) {
         global_node_name = malloc(8);
+        if (!global_node_name) {
+            LERR("failed to allocate memory for node");
+            return 0;
+        }
         snprintf(global_node_name, 8, "default");
     }
 
     if (!global_config_path) {
-        global_config_path = strdup(AGENT_CONFIG_DIR);
+        if (!replace_owned_string(&global_config_path, AGENT_CONFIG_DIR, "config_path"))
+            return 0;
     }
 
     if (!global_capture_plan_path) {
-        global_capture_plan_path = strdup(AGENT_PLAN_DIR);
+        plan_base_path = global_config_path ? global_config_path : AGENT_CONFIG_DIR;
+        plan_base_len = strlen(plan_base_path);
+        plan_sep = (plan_base_len > 0 && plan_base_path[plan_base_len - 1] == '/') ? "" : "/";
+        if (snprintf(default_plan_path, sizeof(default_plan_path), "%s%scaptureplans",
+                     plan_base_path, plan_sep) >= (int)sizeof(default_plan_path)) {
+            LERR("capture plans path is too long");
+            return 0;
+        }
+
+        if (!replace_owned_string(&global_capture_plan_path, default_plan_path, "capture_plans_path"))
+            return 0;
     }
 
     /* reinit syslog */
