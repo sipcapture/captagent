@@ -24,6 +24,45 @@ Captagent is a powerful, flexible, completely modular HEP packet capture and mir
 ### Get Started
 Setup & Configuration instructions are available on the Project [Wiki](https://github.com/sipcapture/captagent/wiki/Installation)
 
+### Build Dependencies (DEB/RPM)
+
+For local builds, install the required development tools and libraries first.
+
+Debian/Ubuntu packages:
+- m4
+- automake
+- autoconf
+- libtool
+- make
+- gcc
+- flex
+- libfl-dev
+- bison
+- libexpat-dev
+- libpcap-dev
+- libjson-c-dev
+- libuv1-dev
+
+RHEL/Fedora packages:
+- m4
+- automake
+- autoconf
+- libtool
+- make
+- gcc
+- flex
+- flex-devel
+- bison
+- expat-devel
+- libpcap-devel
+- json-c-devel
+- libuv-devel
+
+Optional auto-install helper:
+- The build script supports an opt-in dependency bootstrap for DEB/RPM systems.
+- Run with AUTO_INSTALL_DEPS=1 to let build.sh install Flex and libfl/flex-devel automatically before autoreconf.
+- Example: AUTO_INSTALL_DEPS=1 ./build.sh
+
 -------------
 
 ### Support

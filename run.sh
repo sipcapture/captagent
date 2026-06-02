@@ -8,4 +8,3 @@ echo "CONFIGURE..."
 echo
 echo "MAKE and INSTALL..."
 make && sudo make install
-echo "Captagent built and installed succesfully!"

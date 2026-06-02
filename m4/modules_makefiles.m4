@@ -1,6 +1,7 @@
 AC_CONFIG_FILES([
 	src/modules/protocol/sip/Makefile
 	src/modules/protocol/sip/captureplan/Makefile
+	src/modules/protocol/epan/Makefile
 	src/modules/protocol/ss7/Makefile
 	src/modules/protocol/tls/Makefile
 	src/modules/protocol/tls/captureplan/Makefile

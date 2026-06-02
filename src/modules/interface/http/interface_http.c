@@ -1405,7 +1405,8 @@ static int load_module(xml_node *config) {
 	m = module_list;
 	while (m) {
 
-		snprintf(module_api_name, 256, "%s_bind_api", m->name);
+		snprintf(module_api_name, sizeof(module_api_name), "%.*s_bind_api",
+			(int)(sizeof(module_api_name) - sizeof("_bind_api")), m->name);
 
 		if (!strncmp(m->name, "socket", 6) && socket_count < MAX_API) {
 			socket_bind_api = (bind_socket_module_api_t) find_export(module_api_name, 1, 0);
