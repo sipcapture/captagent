@@ -467,7 +467,7 @@ void callback_proto(unsigned char *arg, struct pcap_pkthdr *pkthdr, unsigned cha
 
     /** DATALINK LAYER **/
 
-    {
+    if (type_datalink == DLT_EN10MB && pkthdr->caplen >= 18) {
         uint16_t eth_type = 0;
         uint16_t mpls_type = 0;
 
