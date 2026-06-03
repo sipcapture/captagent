@@ -321,8 +321,11 @@ static int validate_module_xml_configs(xml_node *mytree)
             break;
 
         for (i = 0; next->attr[i]; i++) {
-            if (!strncmp(next->attr[i], "name", 4)
-                && !strncmp(next->attr[i + 1], "modules.conf", 13)) {
+            if (next->attr[i + 1] == NULL) {
+                continue;
+            }
+            if (!strcmp(next->attr[i], "name")
+                && !strcmp(next->attr[i + 1], "modules.conf")) {
 
                 modules = next;
                 while (modules) {
