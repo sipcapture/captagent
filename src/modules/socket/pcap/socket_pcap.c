@@ -1255,6 +1255,7 @@ int set_raw_filter(unsigned int loc_idx, char *filter) {
     #if ( defined (OS_LINUX) || defined (OS_SOLARIS) )
     if(setsockopt(fd, SOL_SOCKET, SO_ATTACH_FILTER, &raw_filter, sizeof(raw_filter)) < 0 ) {
         LERR(" setsockopt filter: [%s] [%d]", strerror(errno), errno);
+        pcap_freecode((struct bpf_program *) &raw_filter);
         return -1;
     }
     #endif
