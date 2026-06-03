@@ -197,6 +197,7 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
   /* Pat Callahan's patch for MPLS */
   unsigned char ethaddr[3], mplsaddr[3];
           
+  if (pkthdr->caplen < 18) return;
   memcpy(&ethaddr, (packet + 12), 2);
   memcpy(&mplsaddr, (packet + 16), 2);
                       
