@@ -1,45 +1,39 @@
 #!/bin/bash
+set -euo pipefail
 #
-# Captagent - Debian 10 Builder
+# Captagent - Debian 13 Builder
 #
 
 VERSION_MAJOR="6.4"
 VERSION_MINOR="3"
 PROJECT_NAME="captagent"
-OS="buster"
+OS="trixie"
 ARCH=$(dpkg --print-architecture)
 
 export CODE_VERSION="${VERSION_MAJOR}.${VERSION_MINOR}"
 export TMP_DIR=/tmp/build
 
-#apt-get -y update
-#apt-get -y install make gcc curl libmcrypt-dev libexpat-dev libpcap-dev libjson-c-dev libtool automake autoconf flex bison libpcre
-#apt-get -y install git
-
 apt-get -y update
 
 # gcc - make
-apt-get -y install make gcc libtool automake autoconf build-essential
+apt-get -y install make gcc-14 libtool automake autoconf build-essential
 
 # flex
 apt-get -y install flex libfl-dev
 
-# git
-apt-get -y install git
-
 # libssl - libmcrypt
-apt-get -y install libmcrypt-dev libssl-dev
+apt-get -y install libssl-dev libmcrypt-dev libgcrypt20-dev
 
 # various
-apt-get -y install curl libexpat-dev libpcap-dev libjson-c-dev bison libpcre3-dev libuv1-dev
+apt-get -y install curl libexpat-dev libpcap-dev libjson-c-dev bison libpcre2-dev libuv1-dev libgpg-error-dev
 
 # ruby - fpm
 apt-get -y install ruby-dev rubygems
 #gem install rake
 gem install public_suffix -v 4.0.7
-gem install --no-ri --no-rdoc fpm
+gem install --no-document fpm -v 1.17.0
 
-DEPENDENCY=$(dpkg -l | grep -E "libmcrypt|libfl|libexpat|libpcap|libjson-c|libpcre3|libuv" | grep -v "dev" | grep -v "pcre32" | awk '{print $2}' | sed -e "s/:${ARCH}//g" | tr '\n' ',')
+DEPENDENCY=$(dpkg -l | grep -E "libmcrypt|libfl|libexpat|libpcap|libjson-c|libpcre2|libuv" | grep -Ev "dev|pcre32" | awk '{print $2}' | sed -e "s/:${ARCH}//g" | tr '\n' ',')
 # Remove last characters
 DEPENDENCY=${DEPENDENCY%?};
 
@@ -50,7 +44,7 @@ cd captagent_build
 ./build.sh
 
 # CONFIGURE
-./configure
+./configure ${STRING_PARAM:-}
 
 # Create dir for Captagent
 TMP_CAPT=/tmp/captagent
@@ -78,10 +72,10 @@ chmod +x ${TMP_CAPT}/etc/init.d/captagent
 
 # FPM CAPTAGENT
 fpm -s dir -t deb -C ${TMP_CAPT} \
-	--name ${PROJECT_NAME} --version ${CODE_VERSION} \
-	-p "captagent_${VERSION_MAJOR}.${VERSION_MINOR}.${OS}.${ARCH}.deb" \
-	--config-files /usr/local/${PROJECT_NAME}/etc/${PROJECT_NAME} --config-files /etc/default/${PROJECT_NAME} \
-	--iteration 1 --deb-no-default-config-files --depends ${DEPENDENCY} --description "${PROJECT_NAME} ${CODE_VERSION}" .
+        --name ${PROJECT_NAME} --version ${CODE_VERSION} \
+        -p "captagent_${VERSION_MAJOR}.${VERSION_MINOR}.${OS}.${ARCH}.deb" \
+        --config-files /usr/local/${PROJECT_NAME}/etc/${PROJECT_NAME} --config-files /etc/default/${PROJECT_NAME} \
+        --iteration 1 --deb-no-default-config-files --depends ${DEPENDENCY} --description "${PROJECT_NAME} ${CODE_VERSION}" .
 
 ls -alF *.deb
 cp -v *.deb ${TMP_DIR}

@@ -1,5 +1,5 @@
 AC_PREREQ([2.71])
-AC_INIT([captagent],[6.4.2],[support@sipcapture.org],[],[http://www.sipcapture.org])
+AC_INIT([captagent],[6.4.3],[support@sipcapture.org],[],[http://www.sipcapture.org])
 AC_COPYRIGHT("SIP Capture Solution")
 AC_CONFIG_MACRO_DIR([m4])
 AM_INIT_AUTOMAKE(foreign tar-ustar)
@@ -16,7 +16,7 @@ fi
 
 AM_CONDITIONAL([RTPAGENT], [test "$PACKAGE_NAME" = rtpagent])
 AS_AC_EXPAND(agent_config_dir, "$sysconfdir/$PACKAGE_NAME/")
-AS_AC_EXPAND(agent_plan_dir, "$sysconfdir/$PACKAGE_NAME/")
+AS_AC_EXPAND(agent_plan_dir, "$sysconfdir/$PACKAGE_NAME/captureplans")
 AS_AC_EXPAND(agent_backup, "$sysconfdir/$PACKAGE_NAME/backup")
 AS_AC_EXPAND(agent_capture_plan, "$sysconfdir/$PACKAGE_NAME/captureplans")
 AS_AC_EXPAND(agent_chroot, "$sysconfdir/$PACKAGE_NAME")

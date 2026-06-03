@@ -27,6 +27,7 @@
 #ifndef XMLREAD_H_
 #define XMLREAD_H_
 
+#include <captagent/api.h>
 
 xml_node *xml_parse( const char *filename );
 int xml_parse_with_report(const char *filename, char *erbuf, int erlen);

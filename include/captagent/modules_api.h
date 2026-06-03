@@ -32,6 +32,8 @@
 #include <openssl/err.h>
 #endif /* USE_SSL */
 
+#include <captagent/api.h>
+#include <captagent/structure.h>
 
 typedef struct module_exports* (*module_register)(void);
 typedef int (*cmd_function)(msg_t*, char* param1, char* param2);

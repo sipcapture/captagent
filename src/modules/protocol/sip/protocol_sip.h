@@ -26,6 +26,9 @@
 #ifndef _PROTOCOL_SIP_H_
 #define _PROTOCOL_SIP_H_
 
+#include <captagent/api.h>
+#include <captagent/structure.h>
+#include <captagent/modules_api.h>
 #include <captagent/xmlread.h>
 
 #ifdef PCRE

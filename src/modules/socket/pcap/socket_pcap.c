@@ -180,6 +180,97 @@ int reload_config(char *erbuf, int erlen) {
 	return 0;
 }
 
+/**
+   Function to check the ports in the pkts to the port(or portrange) defined in filter
+   NOTE: this is to trigger correctly the function strip_fcs_end()
+   @par filter = the BPF filter
+   @par port_arg1 = the source port from pkt
+   @par port_arg2 = the destination port from pkt
+
+   @return 0 if port matched; -1 if port NOT matched
+ **/
+static int check_port_filter(char *filter, int port_arg1, int port_arg2) {
+
+    int ret = -1, port = 0, portrange = 0;
+    char *space, *dash, *p;
+
+    p = strstr(filter, "portrange");
+    if(p) {
+        portrange = 1;
+    } else {
+        p = strstr(filter, "port");
+        if(p) {
+            port = 1;
+        } else {
+            LERR("error - bad BPF here\n");
+            return -1;
+        }
+    }
+
+    space = strchr(p, ' ');
+    if(!space) {
+        LERR("error - bad BPF here\n");
+        return -1;
+    }
+    filter = space + 1;
+
+    if(port == 1) { /* Extract port */
+        int port_int = atoi(filter);
+        if(port_int == port_arg1 || port_int == port_arg2) {
+            LDEBUG("Port match!\n");
+            ret = 0;
+        } else {
+            LDEBUG("Port does not match: [%d] vs [%d][%d]\n", port_int, port_arg1, port_arg2);
+            ret = -1;
+        }
+
+    } else if(portrange == 1) { /* Extract portrange */
+
+        dash = strchr(filter, '-');
+        if(!dash) {
+            LERR("error - bad portrange BPF here\n");
+            return -1;
+        }
+        int port_int_1 = atoi(filter);
+        int port_int_2 = atoi(dash + 1);
+
+        if((port_arg1 >= port_int_1 && port_arg1 <= port_int_2) ||
+           (port_arg2 >= port_int_1 && port_arg2 <= port_int_2)) {
+            LDEBUG("Port match!\n");
+            ret = 0;
+        } else {
+            LDEBUG("Port does not match: [%d][%d] v [%d][%d]\n", port_int_1, port_int_2, port_arg1, port_arg2);
+            ret = -1;
+        }
+    }
+
+    return ret;
+}
+
+/**
+   Function to strip out fcs byte in the end of pkts (if exist)
+   @par data = the payload to parse
+   @par len  = the len of the payload
+
+   @return the new len of payload stripped
+**/
+static int strip_fcs_end(unsigned char *data, int len) {
+
+    if(data == NULL || len == 0)
+        return 0;
+
+    do {
+        if((data[len-1] == 0x0a && data[len-2] == 0x0d) ||
+           data[len-1] == 0x0d) {
+            return len;
+        } else {
+            len--;
+        }
+    } while(data[len-1] != 0x0a);
+
+    return len;
+}
+
 static void websocket_decode(uint8_t *dst, const uint8_t *src, size_t len, const uint8_t mask[4])
 {
     int i;
@@ -231,6 +322,11 @@ void callback_proto(unsigned char *arg, struct pcap_pkthdr *pkthdr, unsigned cha
     uint8_t hdr_preset = 0, hdr_offset = 0, vlan = 0;
     uint8_t ip_proto = 0, erspan_offset = 0;
     uint8_t tmp_ip_proto = 0, tmp_ip_len = 0, is_only_gre = 0;
+
+    time_t now = use_current_timestamp ? time(NULL) : 0;
+
+    unsigned char* ethaddr  = NULL;
+    unsigned char* mplsaddr = NULL;
 
     uint8_t loc_index = (uint8_t) *arg;
 
@@ -355,8 +451,8 @@ void callback_proto(unsigned char *arg, struct pcap_pkthdr *pkthdr, unsigned cha
         _msg.rcinfo.ip_family = DLT_MTP2;
         _msg.rcinfo.ip_proto = DLT_MTP2;
 
-        _msg.rcinfo.time_sec = pkthdr->ts.tv_sec;
-        _msg.rcinfo.time_usec = pkthdr->ts.tv_usec;
+        _msg.rcinfo.time_sec = use_current_timestamp ? now : pkthdr->ts.tv_sec;
+        _msg.rcinfo.time_usec = use_current_timestamp ? 0 : pkthdr->ts.tv_usec;
         _msg.tcpflag = 0;
         _msg.parse_it = 1;
 
@@ -590,6 +686,13 @@ void callback_proto(unsigned char *arg, struct pcap_pkthdr *pkthdr, unsigned cha
                               if ((int32_t) len < 0)
                                   len = 0;
 
+                              /* For IP-in-IP tunneled packets, verify inner ports match the configured filter */
+                              if(ipip_offset > 0 && profile_socket[loc_index].filter) {
+                                  if(check_port_filter(profile_socket[loc_index].filter, ntohs(tcp_pkt->th_sport), ntohs(tcp_pkt->th_dport)) != 0) {
+                                      goto error;
+                                  }
+                              }
+
                               /******************* Check for Websocket layer (skip it) **************************/
          int webLen = link_offset + hdr_offset + ip_hl + tcphdr_offset;
                               uint8_t *p_websock = packet + webLen;
@@ -675,8 +778,8 @@ void callback_proto(unsigned char *arg, struct pcap_pkthdr *pkthdr, unsigned cha
                                   _msg.rcinfo.dst_port = ntohs(tcp_pkt->th_dport);
                                   _msg.rcinfo.ip_family = ip_ver == 4 ? AF_INET : AF_INET6;
                                   _msg.rcinfo.ip_proto = ip_proto;
-                                  _msg.rcinfo.time_sec = pkthdr->ts.tv_sec;
-                                  _msg.rcinfo.time_usec = pkthdr->ts.tv_usec;
+                                  _msg.rcinfo.time_sec = use_current_timestamp ? now : pkthdr->ts.tv_sec;
+                                  _msg.rcinfo.time_usec = use_current_timestamp ? 0 : pkthdr->ts.tv_usec;
                                   _msg.tcpflag = tcp_pkt->th_flags;
                                   _msg.parse_it = 1;
 
@@ -741,8 +844,8 @@ void callback_proto(unsigned char *arg, struct pcap_pkthdr *pkthdr, unsigned cha
                                   _msg.rcinfo.dst_port = ntohs(tcp_pkt->th_dport);
                                   _msg.rcinfo.ip_family = ip_ver == 4 ? AF_INET : AF_INET6;
                                   _msg.rcinfo.ip_proto = ip_proto;
-                                  _msg.rcinfo.time_sec = pkthdr->ts.tv_sec;
-                                  _msg.rcinfo.time_usec = pkthdr->ts.tv_usec;
+                                  _msg.rcinfo.time_sec = use_current_timestamp ? now : pkthdr->ts.tv_sec;
+                                  _msg.rcinfo.time_usec = use_current_timestamp ? 0 : pkthdr->ts.tv_usec;
                                   _msg.tcpflag = tcp_pkt->th_flags;
                                   _msg.parse_it = 1;
 
@@ -786,6 +889,13 @@ void callback_proto(unsigned char *arg, struct pcap_pkthdr *pkthdr, unsigned cha
                               if ((int32_t) len < 0)
                                   len = 0;
 
+                              /* For IP-in-IP tunneled packets, verify inner ports match the configured filter */
+                              if(ipip_offset > 0 && profile_socket[loc_index].filter) {
+                                  if(check_port_filter(profile_socket[loc_index].filter, ntohs(udp_pkt->uh_sport), ntohs(udp_pkt->uh_dport)) != 0) {
+                                      goto error;
+                                  }
+                              }
+
                               _msg.rcinfo.src_port = ntohs(udp_pkt->uh_sport);
                               _msg.rcinfo.dst_port = ntohs(udp_pkt->uh_dport);
                               _msg.rcinfo.src_ip = ip_src;
@@ -794,8 +904,8 @@ void callback_proto(unsigned char *arg, struct pcap_pkthdr *pkthdr, unsigned cha
                               _msg.rcinfo.dst_mac = mac_dst;
                               _msg.rcinfo.ip_family = ip_ver == 4 ? AF_INET : AF_INET6;
                               _msg.rcinfo.ip_proto = ip_proto;
-                              _msg.rcinfo.time_sec = pkthdr->ts.tv_sec;
-                              _msg.rcinfo.time_usec = pkthdr->ts.tv_usec;
+                              _msg.rcinfo.time_sec = use_current_timestamp ? now : pkthdr->ts.tv_sec;
+                              _msg.rcinfo.time_usec = use_current_timestamp ? 0 : pkthdr->ts.tv_usec;
                               _msg.tcpflag = 0;
                               _msg.parse_it = 1;
 
@@ -857,8 +967,8 @@ void callback_proto(unsigned char *arg, struct pcap_pkthdr *pkthdr, unsigned cha
                                _msg.rcinfo.dst_mac = mac_dst;
                                _msg.rcinfo.ip_family = ip_ver == 4 ? AF_INET : AF_INET6;
                                _msg.rcinfo.ip_proto = ip_proto;
-                               _msg.rcinfo.time_sec = pkthdr->ts.tv_sec;
-                               _msg.rcinfo.time_usec = pkthdr->ts.tv_usec;
+                               _msg.rcinfo.time_sec = use_current_timestamp ? now : pkthdr->ts.tv_sec;
+                               _msg.rcinfo.time_usec = use_current_timestamp ? 0 : pkthdr->ts.tv_usec;
                                _msg.tcpflag = 0;
                                _msg.parse_it = 1;
 
@@ -1055,11 +1165,11 @@ int init_socket(unsigned int loc_idx) {
 
 			if (user_data[loc_idx].ipv4fragments) {
 				LDEBUG("Reassembling of IPv4 packets is enabled, adding '%s' to filter", BPF_DEFRAGMENTION_FILTER_IPV4);
-				len += snprintf(filter_expr+len, sizeof(filter_expr), " or %s", BPF_DEFRAGMENTION_FILTER_IPV4);
+				len += snprintf(filter_expr+len, sizeof(filter_expr)-len, " or %s", BPF_DEFRAGMENTION_FILTER_IPV4);
 			}
 			if (user_data[loc_idx].ipv6fragments) {
 				LDEBUG("Reassembling of IPv6 packets is enabled, adding '%s' to filter", BPF_DEFRAGMENTION_FILTER_IPV6);
-				len += snprintf(filter_expr+len, sizeof(filter_expr), " or %s", BPF_DEFRAGMENTION_FILTER_IPV6);
+				len += snprintf(filter_expr+len, sizeof(filter_expr)-len, " or %s", BPF_DEFRAGMENTION_FILTER_IPV6);
 			}
 		}
 	}

@@ -1,56 +1,54 @@
 #!/bin/bash
+set -euo pipefail
 #
-# Captgent - CentOS 8 Builder
+# Captagent - Rocky Linux 9 Builder
 #
 
 VERSION_MAJOR="6.4"
 VERSION_MINOR="3"
 PROJECT_NAME="captagent"
-OS="centos"
-VERSION_OS="el8"
+OS="rocky"
+VERSION_OS="el9"
 
 export CODE_VERSION="${VERSION_MAJOR}.${VERSION_MINOR}"
 export TMP_DIR=/tmp/build
 
-# libuv
-cp -Rp ${TMP_DIR}/libuv-* .
-yum -y install libuv-1.34.2-1.module_el8+8340+1d027fbb.x86_64.rpm
-yum -y install libuv-devel-1.34.2-1.module_el8+8340+1d027fbb.x86_64.rpm
-
 # pkgconfig
-yum -y install pkgconfig
+dnf -y install pkgconfig
 
-yum -y install dnf-plugins-core
-yum -y install 'dnf-command(config-manager)'
-yum -y config-manager --set-enabled powertools
+dnf -y install dnf-plugins-core
+# In Rocky Linux 9, powertools is called crb (CodeReady Builder)
+dnf -y config-manager --enable crb
 
 echo "ENABLE EPEL"
-yum -y install https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm
+dnf -y install https://dl.fedoraproject.org/pub/epel/epel-release-latest-9.noarch.rpm
 
-yum -y update
+dnf -y update
 
 # gcc - make
-yum -y install gcc make automake libtool
+dnf -y install gcc make automake libtool
 
 # flex
-yum -y install flex
-yum -y --enablerepo=powertools install flex-devel
+dnf -y install flex flex-devel
 
 # mcrypt
-yum --enablerepo=epel -y install libmcrypt-devel
+dnf --enablerepo=epel -y install libmcrypt-devel
+
+# libuv
+dnf -y install libuv libuv-devel
 
 # git
-yum -y install git
+dnf -y install git
 
 # ruby - fpm
-yum -y install @ruby:3.0 ruby-devel rpm-build rubygems
-gem install --no-document fpm
+dnf -y install ruby ruby-devel rpm-build rubygems
+gem install --no-document fpm -v 1.17.0
 
 # openssl
-yum -y install openssl-devel
+dnf -y install openssl-devel
 
 # various
-yum -y install json-c-devel expat-devel libpcap-devel bison pcre-devel
+dnf -y install json-c-devel expat-devel libpcap-devel bison pcre-devel
 
 DEPENDENCY="libmcrypt,expat,json-c,libpcap,pcre,libuv";
 
@@ -59,8 +57,6 @@ cd captagent_build
 
 # BUILD
 ./build.sh
-
-LDFLAGS = -L/usr/local/ssl/lib
 
 # CONFIGURE
 ./configure
@@ -94,7 +90,7 @@ fpm -s dir -t rpm -C ${TMP_CAPT} \
         --name ${PROJECT_NAME} --version ${CODE_VERSION} \
         -p "captagent-${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_OS}.${OS}.x86_64.rpm" \
         --config-files /usr/local/${PROJECT_NAME}/etc/${PROJECT_NAME} --config-files /etc/sysconfig/${PROJECT_NAME} \
-        --iteration 8 --depends ${DEPENDENCY} --description "${PROJECT_NAME} ${CODE_VERSION}" .
+        --iteration 9 --depends ${DEPENDENCY} --description "${PROJECT_NAME} ${CODE_VERSION}" .
 
 
 ls -alF *.rpm

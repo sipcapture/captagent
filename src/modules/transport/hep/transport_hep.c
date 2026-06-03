@@ -1025,7 +1025,7 @@ int homer_alloc(hep_connection_t *conn)
 
 int init_udp_socket(hep_connection_t *conn, char *host, int port, char *udp_bind_host, int udp_bind_port) {
 
-    struct sockaddr_in v4addr;
+    struct sockaddr_storage bindaddr;
     int status = 0;
     struct addrinfo hints[1] = {{ 0 }};
     struct addrinfo *ai;
@@ -1044,23 +1044,39 @@ int init_udp_socket(hep_connection_t *conn, char *host, int port, char *udp_bind
     }
 
     /* copy structure */
-    memcpy(&conn->send_addr, ai->ai_addr, sizeof(struct sockaddr));
+    memcpy(&conn->send_addr, ai->ai_addr, ai->ai_addrlen);
 
     uv_async_init(conn->loop, &conn->async_handle, _async_callback);
     uv_udp_init(conn->loop, &conn->udp_handle);
 
+    memset(&bindaddr, 0, sizeof(bindaddr));
+    if (strchr(udp_bind_host, ':') != NULL) {
+        /* IPv6 bind address */
 #if UV_VERSION_MAJOR == 0
-    v4addr = uv_ip4_addr(udp_bind_host, udp_bind_port);
-    if (!v4addr) return -1;
+        struct sockaddr_in6 v6addr = uv_ip6_addr(udp_bind_host, udp_bind_port);
+        memcpy(&bindaddr, &v6addr, sizeof(v6addr));
 #else
-    status = uv_ip4_addr(udp_bind_host, udp_bind_port, &v4addr);
-    if (status) return status;
+        status = uv_ip6_addr(udp_bind_host, udp_bind_port, (struct sockaddr_in6 *)&bindaddr);
+        if (status) return status;
 #endif
+    } else {
+        /* IPv4 bind address */
+#if UV_VERSION_MAJOR == 0
+        struct sockaddr_in v4addr = uv_ip4_addr(udp_bind_host, udp_bind_port);
+        memcpy(&bindaddr, &v4addr, sizeof(v4addr));
+#else
+        status = uv_ip4_addr(udp_bind_host, udp_bind_port, (struct sockaddr_in *)&bindaddr);
+        if (status) return status;
+#endif
+    }
 
 #if UV_VERSION_MAJOR == 0
-    status = uv_udp_bind(&conn->udp_handle, v4addr, 0);
+    if (bindaddr.ss_family == AF_INET6)
+        status = uv_udp_bind6(&conn->udp_handle, *(struct sockaddr_in6 *)&bindaddr, 0);
+    else
+        status = uv_udp_bind(&conn->udp_handle, *(struct sockaddr_in *)&bindaddr, 0);
 #else
-    status = uv_udp_bind(&conn->udp_handle, (struct sockaddr*)&v4addr, UV_UDP_REUSEADDR);
+    status = uv_udp_bind(&conn->udp_handle, (struct sockaddr *)&bindaddr, UV_UDP_REUSEADDR);
 #endif
     if (status != 0) return status;
 
@@ -1099,7 +1115,7 @@ void on_tcp_connect(uv_connect_t* connection, int status)
 
 int init_tcp_socket(hep_connection_t *conn, char *host, int port) {
 
-    struct sockaddr_in v4addr;
+    struct sockaddr_storage destaddr;
     int status;
 	int err;
 	struct addrinfo hints[1] = {{ 0 }};
@@ -1123,7 +1139,8 @@ int init_tcp_socket(hep_connection_t *conn, char *host, int port) {
         if (err) return err;
 
         /* copy structure */
-        memcpy(&v4addr, (struct sockaddr_in*) ai->ai_addr, sizeof(struct sockaddr_in));
+        memset(&destaddr, 0, sizeof(destaddr));
+        memcpy(&destaddr, ai->ai_addr, ai->ai_addrlen);
 
         uv_tcp_keepalive(&conn->tcp_handle, 1, 60);
 
@@ -1136,9 +1153,12 @@ int init_tcp_socket(hep_connection_t *conn, char *host, int port) {
         conn->type = 2;
 
 #if UV_VERSION_MAJOR == 0
-        status = uv_tcp_connect(&conn->connect, &conn->tcp_handle, v4addr, on_tcp_connect);
+        if (destaddr.ss_family == AF_INET6)
+            status = uv_tcp_connect6(&conn->connect, &conn->tcp_handle, *(struct sockaddr_in6 *)&destaddr, on_tcp_connect);
+        else
+            status = uv_tcp_connect(&conn->connect, &conn->tcp_handle, *(struct sockaddr_in *)&destaddr, on_tcp_connect);
 #else
-        status = uv_tcp_connect(&conn->connect, &conn->tcp_handle, (struct sockaddr*)&v4addr, on_tcp_connect);
+        status = uv_tcp_connect(&conn->connect, &conn->tcp_handle, (struct sockaddr*)&destaddr, on_tcp_connect);
 #endif
 
         if (status < 0)

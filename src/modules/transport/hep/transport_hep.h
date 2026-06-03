@@ -82,7 +82,7 @@ typedef struct hep_connection {
   uint8_t type;
   uv_loop_t *loop;
   uv_thread_t *thread;
-  struct sockaddr_in send_addr;
+  struct sockaddr_storage send_addr;
   uv_async_t async_handle;
   uv_sem_t sem;
   uv_mutex_t mutex;

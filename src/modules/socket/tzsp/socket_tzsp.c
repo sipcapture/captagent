@@ -51,9 +51,9 @@
 #include <netinet/tcp.h>
 #include <netinet/udp.h>
 
-#ifdef USE_IPV6
+#ifdef USE_IPv6
 #include <netinet/ip6.h>
-#endif /* USE_IPV6 */
+#endif /* USE_IPv6 */
 
 #include <captagent/capture.h>
 #include <captagent/globals.h>
@@ -161,6 +161,7 @@ void on_recv(uv_udp_t* handle, ssize_t nread, const uv_buf_t* rcvbuf, const stru
     struct run_act_ctx ctx;
     struct sockaddr_in *cliaddr;
     uint8_t loc_idx = 0;
+    char ip_buf[INET6_ADDRSTRLEN];
 
     if (nread <= 0 || addr == NULL) 
     {
@@ -189,9 +190,17 @@ void on_recv(uv_udp_t* handle, ssize_t nread, const uv_buf_t* rcvbuf, const stru
 #endif    
 
     _msg.len = nread;
-    
-    _msg.rcinfo.dst_port = ntohs(cliaddr->sin_port);
-    _msg.rcinfo.dst_ip = inet_ntoa(cliaddr->sin_addr);
+
+    if (addr->sa_family == AF_INET6) {
+        struct sockaddr_in6 *cliaddr6 = (struct sockaddr_in6 *)addr;
+        _msg.rcinfo.dst_port = ntohs(cliaddr6->sin6_port);
+        inet_ntop(AF_INET6, &cliaddr6->sin6_addr, ip_buf, sizeof(ip_buf));
+        _msg.rcinfo.dst_ip = ip_buf;
+    } else {
+        _msg.rcinfo.dst_port = ntohs(cliaddr->sin_port);
+        inet_ntop(AF_INET, &cliaddr->sin_addr, ip_buf, sizeof(ip_buf));
+        _msg.rcinfo.dst_ip = ip_buf;
+    }
     _msg.rcinfo.liid = loc_idx;
 
     _msg.rcinfo.src_port = atoi(profile_socket[loc_idx].port);
@@ -264,23 +273,37 @@ int close_socket(unsigned int loc_idx) {
          
 int init_socket(unsigned int loc_idx) {
 
-	struct sockaddr_in v4addr;
+	struct sockaddr_storage bindaddr;
 	int status;
 
 	status = uv_udp_init(loop,&udp_servers[loc_idx]);
 
-#if UV_VERSION_MAJOR == 0                         
-	v4addr = uv_ip4_addr(profile_socket[loc_idx].host, atoi(profile_socket[loc_idx].port));
-
-#else    
-      	status = uv_ip4_addr(profile_socket[loc_idx].host, atoi(profile_socket[loc_idx].port), &v4addr);
+	memset(&bindaddr, 0, sizeof(bindaddr));
+	if (strchr(profile_socket[loc_idx].host, ':') != NULL) {
+		/* IPv6 bind address */
+#if UV_VERSION_MAJOR == 0
+		struct sockaddr_in6 v6addr = uv_ip6_addr(profile_socket[loc_idx].host, atoi(profile_socket[loc_idx].port));
+		memcpy(&bindaddr, &v6addr, sizeof(v6addr));
+#else
+		status = uv_ip6_addr(profile_socket[loc_idx].host, atoi(profile_socket[loc_idx].port), (struct sockaddr_in6 *)&bindaddr);
 #endif
-      
-#if UV_VERSION_MAJOR == 0                         
-	status = uv_udp_bind(&udp_servers[loc_idx], v4addr,0);
-#else    
-	status = uv_udp_bind(&udp_servers[loc_idx], (struct sockaddr*)&v4addr, UV_UDP_REUSEADDR);
-	      
+	} else {
+		/* IPv4 bind address */
+#if UV_VERSION_MAJOR == 0
+		struct sockaddr_in v4addr = uv_ip4_addr(profile_socket[loc_idx].host, atoi(profile_socket[loc_idx].port));
+		memcpy(&bindaddr, &v4addr, sizeof(v4addr));
+#else
+		status = uv_ip4_addr(profile_socket[loc_idx].host, atoi(profile_socket[loc_idx].port), (struct sockaddr_in *)&bindaddr);
+#endif
+	}
+
+#if UV_VERSION_MAJOR == 0
+	if (bindaddr.ss_family == AF_INET6)
+		status = uv_udp_bind6(&udp_servers[loc_idx], *(struct sockaddr_in6 *)&bindaddr, 0);
+	else
+		status = uv_udp_bind(&udp_servers[loc_idx], *(struct sockaddr_in *)&bindaddr, 0);
+#else
+	status = uv_udp_bind(&udp_servers[loc_idx], (struct sockaddr *)&bindaddr, UV_UDP_REUSEADDR);
 #endif
 	if(status < 0) 
 	{

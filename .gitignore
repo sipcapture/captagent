@@ -50,3 +50,5 @@ src/captagent
 src/capplan.tab.c
 *.dh-orig
 
+test/node_modules/
+_codeql_detected_source_root

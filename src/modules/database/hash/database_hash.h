@@ -27,6 +27,9 @@
 #define DATABASE_HASH_H_
 
 
+#include <captagent/api.h>
+#include <captagent/structure.h>
+#include <captagent/modules_api.h>
 #include <captagent/xmlread.h>
 #include "uthash.h"
 #include "hash_structure.h"
