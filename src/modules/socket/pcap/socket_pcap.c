@@ -522,7 +522,7 @@ void callback_proto(unsigned char *arg, struct pcap_pkthdr *pkthdr, unsigned cha
 
     /** IP LAYER **/
 
- ip_hdr_parse:
+ ip_hdr_parse: ;
     uint32_t ip_header_len = sizeof(struct ip);
 
 #if USE_IPv6
