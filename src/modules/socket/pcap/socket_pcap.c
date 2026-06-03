@@ -1635,6 +1635,7 @@ nextprofile: profile = profile->next;
                     if (all_devices) {
                         pcap_freealldevs(all_devices);
                     }
+                    free(arg);
                     return -1;
                 }
 
