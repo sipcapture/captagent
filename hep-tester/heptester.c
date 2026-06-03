@@ -192,18 +192,38 @@ int main(int argc,char **argv)
 /* Callback function that is passed to pcap_loop() */ 
 void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet) 
 {
-
-
   /* Pat Callahan's patch for MPLS */
   unsigned char ethaddr[3], mplsaddr[3];
-          
-  if (pkthdr->caplen < 18) return;
+  unsigned int l2_ext = 0;
+  unsigned int l3_off;
+  unsigned int min_frame;
+  struct ip *ip4_pkt;
+#if USE_IPv6
+  struct ip6_hdr *ip6_pkt;
+#endif
+
+  /* EtherType/MPLS tags at fixed offsets 12 and 16 */
+  if (pkthdr->caplen < 18)
+      return;
+
   memcpy(&ethaddr, (packet + 12), 2);
   memcpy(&mplsaddr, (packet + 16), 2);
-                      
-  struct ip      *ip4_pkt = (struct ip *)    (packet + link_offset + ((ntohs((uint16_t)*(&ethaddr)) == 0x8100)? (ntohs((uint16_t)*(&mplsaddr)) == 0x8847)? 8:4:0) );
+
+  if (ntohs((uint16_t)*(&ethaddr)) == 0x8100) {
+      if (ntohs((uint16_t)*(&mplsaddr)) == 0x8847)
+          l2_ext = 8;
+      else
+          l2_ext = 4;
+  }
+
+  l3_off = link_offset + l2_ext;
+  min_frame = l3_off + 20 + 8; /* min IPv4 header + UDP */
+  if (pkthdr->caplen < min_frame)
+      return;
+
+  ip4_pkt = (struct ip *)(packet + l3_off);
 #if USE_IPv6
-  struct ip6_hdr *ip6_pkt = (struct ip6_hdr*)(packet + link_offset + ((ntohs((uint16_t)*(packet + 12)) == 0x8100)? 4:0) );
+  ip6_pkt = (struct ip6_hdr *)(packet + l3_off);
 #endif
 
 	uint32_t ip_ver;
@@ -219,10 +239,6 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
 	unsigned char *data;
 	uint32_t len = pkthdr->caplen;
 
-	/* this packet is too small to make sense */
-        if (pkthdr->len < udp_payload_offset) return;
-         
-
 	ip_ver = ip4_pkt->ip_v;
 
 	switch (ip_ver) {
@@ -234,6 +250,8 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
 #else
 	            ip_hl       = ip4_pkt->ip_hl * 4;
 #endif
+                    if (ip_hl < 20 || pkthdr->caplen < l3_off + ip_hl)
+                        break;
         	    ip_proto    = ip4_pkt->ip_p;
 	            ip_off      = ntohs(ip4_pkt->ip_off);
 
@@ -247,12 +265,16 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
 
 #if USE_IPv6
 	        case 6: {
+                    if (pkthdr->caplen < l3_off + sizeof(struct ip6_hdr))
+                        break;
         	    ip_hl    = sizeof(struct ip6_hdr);
 	            ip_proto = ip6_pkt->ip6_nxt;
 
         	    if (ip_proto == IPPROTO_FRAGMENT) {
                 	struct ip6_frag *ip6_fraghdr;
 
+                        if (pkthdr->caplen < l3_off + ip_hl + sizeof(struct ip6_frag))
+                            break;
 	                ip6_fraghdr = (struct ip6_frag *)((unsigned char *)(ip6_pkt) + ip_hl);
         	        ip_hl      += sizeof(struct ip6_frag);
 	                ip_proto    = ip6_fraghdr->ip6f_nxt;
@@ -270,6 +292,8 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
 
 	switch (ip_proto) {
                 case IPPROTO_TCP: {
+                    if (pkthdr->caplen < l3_off + ip_hl + sizeof(struct tcphdr))
+                        break;
                     struct tcphdr *tcp_pkt = (struct tcphdr *)((unsigned char *)(ip4_pkt) + ip_hl);
 
                     //uint16_t tcphdr_offset = (frag_offset) ? 0 : (tcp_pkt->th_off * 4);
@@ -293,6 +317,8 @@ void callback_proto(u_char *useless, struct pcap_pkthdr *pkthdr, u_char *packet)
                 } break;
 
                 case IPPROTO_UDP: {
+                    if (pkthdr->caplen < l3_off + ip_hl + sizeof(struct udphdr))
+                        break;
                     struct udphdr *udp_pkt = (struct udphdr *)((unsigned char *)(ip4_pkt) + ip_hl);
                     uint16_t udphdr_offset = (frag_offset) ? 0 : sizeof(*udp_pkt);
 
