@@ -273,7 +273,7 @@ static int strip_fcs_end(unsigned char *data, int len) {
 
 static void websocket_decode(uint8_t *dst, const uint8_t *src, size_t len, const uint8_t mask[4])
 {
-    int i;
+    size_t i;
     for(i = 0; i < len; i++) {
         dst[i] = src[i] ^ mask[i % 4];
     }
