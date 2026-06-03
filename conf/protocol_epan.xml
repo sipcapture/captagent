@@ -1,0 +1,7 @@
+<?xml version="1.0"?>
+<document type="captagent_xml" serial="20161107">
+  <module name="protocol_epan" description="EPAN Protocol" serial="20161107">
+    <profile name="default" description="EPAN profile" enable="false" serial="20161107">
+    </profile>
+  </module>
+</document>

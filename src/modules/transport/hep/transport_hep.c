@@ -475,7 +475,7 @@ int send_hepv3 (rc_info_t *rcinfo, unsigned char *data, unsigned int len, unsign
               cval2.chunk.length = htons(sizeof(cval2));
     }
 
-    if (rcinfo->tags.s && rcinfo->tags.len > 0) {
+    if (rcinfo->tags.len > 0) {
               tlen += sizeof(hep_chunk_t);
               tags_chunk.vendor_id = htons(0x0000);
               tags_chunk.type_id   = htons(0x0026);
@@ -540,7 +540,7 @@ int send_hepv3 (rc_info_t *rcinfo, unsigned char *data, unsigned int len, unsign
     }
 
     /* Tags KEY CHUNK */
-    if (rcinfo->tags.s && rcinfo->tags.len > 0) {
+    if (rcinfo->tags.len > 0) {
 
            memcpy((void*) buffer+buflen, &tags_chunk,  sizeof(struct hep_chunk));
            buflen += sizeof(struct hep_chunk);

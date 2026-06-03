@@ -31,6 +31,7 @@
 #include <signal.h>
 #include <time.h>
 #include <ctype.h>
+#include <limits.h>
 #include <pcap.h>
 
 #include <sys/ioctl.h>
@@ -81,6 +82,11 @@ struct action *clist[20];
 
 struct stats_object stats_obj;
 
+/* Fallback for lexer builds that still reference yywrap(). */
+int yywrap(void)
+{
+    return 1;
+}
 static volatile sig_atomic_t terminate_requested = 0;
 
 static int replace_owned_string(char **dst, const char *src, const char *key_name)
@@ -293,6 +299,63 @@ void print_hw() {
 }
 
 
+static int validate_module_xml_configs(xml_node *mytree)
+{
+    xml_node *next, *modules;
+    int i = 0;
+    int errors = 0;
+    char module_config_name[PATH_MAX];
+    char erbuf[256];
+
+    if (mytree == NULL) {
+        LERR("Configuration tree is empty");
+        return 1;
+    }
+
+    next = mytree;
+
+    while (next) {
+        next = xml_get("configuration", next, 1);
+
+        if (next == NULL)
+            break;
+
+        for (i = 0; next->attr[i]; i++) {
+            if (next->attr[i + 1] == NULL) {
+                continue;
+            }
+            if (!strcmp(next->attr[i], "name")
+                && !strcmp(next->attr[i + 1], "modules.conf")) {
+
+                modules = next;
+                while (modules) {
+                    modules = xml_get("load", modules, 1);
+
+                    if (modules == NULL)
+                        break;
+
+                    if (modules->attr[0] != NULL && modules->attr[1] != NULL) {
+                        snprintf(module_config_name, sizeof(module_config_name),
+                                 "%s/%s.xml", global_config_path, modules->attr[1]);
+
+                        if (!xml_parse_with_report(module_config_name, erbuf, sizeof(erbuf))) {
+                            LERR("Configuration check failed for [%s]: %s",
+                                 module_config_name, erbuf);
+                            errors++;
+                        }
+                    }
+
+                    modules = modules->next;
+                }
+            }
+        }
+        next = next->next;
+    }
+
+    return errors;
+}
+
+
 int main(int argc, char *argv[])
 {
 
@@ -388,8 +451,18 @@ int main(int argc, char *argv[])
         return EXIT_FAILURE;
     }
 
-    if (checkout == 1)          // read config and exit
+    if (checkout == 1) {        // read config and validate module XML files
+        int module_cfg_errors = validate_module_xml_configs(tree);
+        free_xml_config();
+
+        if (module_cfg_errors > 0) {
+            LERR("Configuration check failed with %d error(s)", module_cfg_errors);
+            return EXIT_FAILURE;
+        }
+
+        printf("Configuration check completed successfully\n");
         return EXIT_SUCCESS;
+    }
 
     if (foreground)
         nofork = 1;

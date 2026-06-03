@@ -87,7 +87,7 @@ int w_parse_diameter_to_json(msg_t *msg)
     msg->mfree = 0;
 
     // call dissector
-    if((json_len = diameter_dissector((char *) msg->data,
+    if((json_len = diameter_dissector((const u_char *) msg->data,
                                       msg->len,
                                       json_diameter_buffer,
                                       JSON_BUFFER_LEN)) > 0) {

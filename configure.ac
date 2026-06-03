@@ -1,5 +1,5 @@
 AC_PREREQ([2.71])
-AC_INIT([captagent],[6.4.3],[support@sipcapture.org],[],[http://www.sipcapture.org])
+AC_INIT([captagent],[6.4.4],[support@sipcapture.org],[],[http://www.sipcapture.org])
 AC_COPYRIGHT("SIP Capture Solution")
 AC_CONFIG_MACRO_DIR([m4])
 AM_INIT_AUTOMAKE(foreign tar-ustar)
@@ -28,9 +28,11 @@ AC_DEFINE_UNQUOTED(AGENT_PLAN_DIR, ["$agent_plan_dir"], [capture plans dir])
 AC_DEFINE_UNQUOTED(MODULE_DIR, ["$module_dir"], [directory that modules will be installed to])
 
 enableCompression=no
+ZLIB=no
 AC_ARG_ENABLE([compression], AS_HELP_STRING([--enable-compression],[Enable compression support]))
 AS_IF([test "x$enable_compression" = "xyes"], [
         enableCompression=yes
+        ZLIB=yes
         AC_DEFINE([ZLIB], [1], [Enable compression support])
 ])
 AC_MSG_RESULT([$ZLIB])
@@ -39,25 +41,31 @@ AC_SUBST([ZLIB])
 AC_MSG_CHECKING([whether to use ssl])
 
 enableSSL=no
+SSL=no
 AC_ARG_ENABLE([ssl], AS_HELP_STRING([--enable-ssl],[Enable SSL support]))
 AS_IF([test "x$enable_ssl" = "xyes"], [
         enableSSL=yes
+        SSL=yes
         AC_DEFINE([SSL], [1], [Enable SSL support])
 ])
 AC_MSG_RESULT([$SSL])
 AC_SUBST([SSL])
 
 useEpan=no
+EPAN=no
 AC_ARG_ENABLE([epan], AS_HELP_STRING([--enable-epan],[Enable EPAN support / Wireshark dissectors]))
 AS_IF([test "x$enable_epan" = "xyes"], [
         useEpan=yes
+        EPAN=yes
         AC_DEFINE([EPAN], [1], [Enable epan support])
 ])
 AC_MSG_RESULT([$EPAN])
 AC_SUBST([EPAN])
+AM_CONDITIONAL([ENABLE_EPAN], [test "$EPAN" = "yes"])
 
 
 usePCRE=no
+PCRE=no
 AC_MSG_CHECKING([whether to use pcre])
 AC_ARG_ENABLE([pcre], AS_HELP_STRING([--enable-pcre],[Enable pcre support]))
 AS_IF([test "x$enable_pcre" = "xyes"], [
@@ -69,10 +77,12 @@ AC_MSG_RESULT([$usePCRE])
 AC_SUBST([PCRE])
 
 useRedis=no
+REDIS=no
 AC_MSG_CHECKING([whether to use redis])
 AC_ARG_ENABLE([redis], AS_HELP_STRING([--enable-redis],[Enable redis support]))
 AS_IF([test "x$enable_redis" = "xyes"], [
         useRedis=yes
+        REDIS=yes
 	AC_DEFINE([REDIS], [1], [Enable redis])
 ])
 
@@ -84,19 +94,23 @@ AC_MSG_RESULT([$LIBUV])
 AC_SUBST([LIBUV])
 
 useTLS=no
+TLS=no
 AC_MSG_CHECKING([whether to use TLS])
 AC_ARG_ENABLE([tls], AS_HELP_STRING([--enable-tls],[Enable TLS support]))
 AS_IF([test "x$enable_tls" = "xyes"], [
         useTLS=yes
+        TLS=yes
 	AC_DEFINE([TLS], [1], [Enable tls])
 ])
 AC_MSG_RESULT([$TLS])
 AC_SUBST([TLS])
 
 enableExtraModules=no
+EXTRAMODULES=no
 AC_ARG_ENABLE([extramodules], AS_HELP_STRING([--enable-extramodules],[Enable extra modules]))
 AS_IF([test "x$enable_extramodules" = "xyes"], [
         enableExtraModules=yes
+        EXTRAMODULES=yes
         AC_DEFINE([EXTRAMODULES], [1], [Enable extra modules support])
 ])
 AC_MSG_RESULT([$EXTRAMODULES])
@@ -118,7 +132,7 @@ AC_SUBST(OUR_MODS)
 #AC_CANONICAL_TARGET
 #AM_INIT_AUTOMAKE()
 
-LT_INIT
+LT_INIT([dlopen])
 
 AC_CANONICAL_HOST
 case "${host}" in
@@ -154,15 +168,16 @@ AC_PROG_CC
 AC_PROG_INSTALL
 AC_PROG_LN_S
 AC_PROG_MAKE_SET
-LT_INIT([dlopen])
-AC_PROG_LEX([yywrap])
+AC_PROG_LEX([noyywrap])
 
 if test "x$LEXLIB" = "x"; then
-       AC_MSG_ERROR([captagent requires but cannot find libfl])
+        AC_MSG_NOTICE([libfl not required because noyywrap is enabled])
+else
+        FLEX_LIBS="$LEXLIB"
 fi
 
 if test -z "`echo %%|$LEX -t|grep yypop_buffer_state`"; then
-	AC_MSG_ERROR([flex missing yypop_buffer_state - upgrade to version 2.5.33 or later])
+	AC_MSG_ERROR([flex missing yypop_buffer_state - upgrade to version 2.5.33 or later. On Debian/Ubuntu install: flex libfl-dev. On RHEL/Fedora install: flex flex-devel])
 fi
 
 AC_PROG_YACC

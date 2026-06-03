@@ -1,11 +1,18 @@
 include $(top_srcdir)/common.am
 
+if ENABLE_EPAN
+EPAN_SUBDIR = modules/protocol/epan
+else
+EPAN_SUBDIR =
+endif
+
 SUBDIRS = \
 	. \
 	modules/socket/pcap \
 	modules/socket/collector \
 	modules/socket/tzsp \
 	modules/protocol/sip \
+	$(EPAN_SUBDIR) \
 	modules/protocol/rtcp \
 	modules/protocol/tls \
 	modules/protocol/rtcpxr \
