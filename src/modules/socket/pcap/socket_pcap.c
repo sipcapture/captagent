@@ -1644,6 +1644,7 @@ nextprofile: profile = profile->next;
             }
             if (!profile_socket[i].device) {
                 LERR("Failed to select a capture device");
+                free(arg);
                 return -1;
             }
         }
