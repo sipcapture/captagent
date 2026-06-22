@@ -5422,8 +5422,8 @@ int mg_upload(struct mg_connection *conn, const char *destination_dir)
     if ((content_type_header = mg_get_header(conn, "Content-Type")) == NULL ||
         (boundary_start = mg_strcasestr(content_type_header,
                                         "boundary=")) == NULL ||
-        (sscanf(boundary_start, "boundary=\"%99[^\"]\"", boundary) == 0 &&
-         sscanf(boundary_start, "boundary=%99s", boundary) == 0) ||
+        (sscanf(boundary_start, "boundary=\"%99[^\"]\"", boundary) != 1 &&
+         sscanf(boundary_start, "boundary=%99s", boundary) != 1) ||
         boundary[0] == '\0') {
         return num_uploaded_files;
     }
