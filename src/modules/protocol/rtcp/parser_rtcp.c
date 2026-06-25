@@ -23,8 +23,30 @@
  *
  */
 #include <stdio.h>
+#include <stdarg.h>
 #include <captagent/log.h>
 #include "parser_rtcp.h"
+
+static int json_buf_append(char *buf, int buf_len, int *pos, const char *fmt, ...)
+{
+    va_list ap;
+    int avail;
+    int n;
+
+    if (*pos < 0 || *pos >= buf_len)
+        return -1;
+
+    avail = buf_len - *pos;
+    va_start(ap, fmt);
+    n = vsnprintf(buf + *pos, (size_t)avail, fmt, ap);
+    va_end(ap);
+
+    if (n < 0 || n >= avail)
+        return -1;
+
+    *pos += n;
+    return 0;
+}
 
 
 int check_rtcp_version (char *packet, int len) {
@@ -70,7 +92,9 @@ int capt_parse_rtcp(char *packet, int len, char *json_buffer, int buffer_len) {
   rtcp_header_t *rtcp = (rtcp_header_t *)packet;
   int ret = 0, flag = 0;
 
-  ret += snprintf(json_buffer, buffer_len, "{ ");
+  ret = snprintf(json_buffer, buffer_len, "{ ");
+  if (ret < 0 || ret >= buffer_len)
+    return -1;
 
   int pno = 0, total = len;
   LDEBUG("Parsing compound packet (total of %d bytes)\n", total);
@@ -92,12 +116,13 @@ int capt_parse_rtcp(char *packet, int len, char *json_buffer, int buffer_len) {
       LDEBUG("#%d SR (200)\n", pno);
       rtcp_sr_t *sr = (rtcp_sr_t*)rtcp;
 
-      ret += snprintf(json_buffer+ret, buffer_len - ret, SENDER_REPORT_JSON,
+      if (json_buf_append(json_buffer, buffer_len, &ret, SENDER_REPORT_JSON,
 		      sender_info_get_ntp_timestamp_msw(&sr->si),
 		      sender_info_get_ntp_timestamp_lsw(&sr->si),
 		      sender_info_get_octet_count(&sr->si),
 		      sender_info_get_rtp_timestamp(&sr->si),
-		      sender_info_get_packet_count(&sr->si));
+		      sender_info_get_packet_count(&sr->si)) < 0)
+        return -1;
 
       if(sr->header.rc > 0) {
 
@@ -106,7 +131,7 @@ int capt_parse_rtcp(char *packet, int len, char *json_buffer, int buffer_len) {
               return -1;
           }
 
-	ret += snprintf(json_buffer+ret, buffer_len - ret, REPORT_BLOCK_JSON,
+	if (json_buf_append(json_buffer, buffer_len, &ret, REPORT_BLOCK_JSON,
 			ntohl(sr->ssrc), rtcp->type,
 			report_block_get_identifier(&sr->rb[0]),
 			report_block_get_high_ext_seq(&sr->rb[0]),
@@ -114,7 +139,8 @@ int capt_parse_rtcp(char *packet, int len, char *json_buffer, int buffer_len) {
 			report_block_get_interarrival_jitter(&sr->rb[0]),
 			report_block_get_cum_packet_loss(&sr->rb[0]),
 			report_block_get_last_SR_time(&sr->rb[0]),
-			report_block_get_last_SR_delay(&sr->rb[0]));
+			report_block_get_last_SR_delay(&sr->rb[0])) < 0)
+          return -1;
       }
       break;
     }
@@ -136,7 +162,7 @@ int capt_parse_rtcp(char *packet, int len, char *json_buffer, int buffer_len) {
               return -1;
           }
 
-	ret += snprintf(json_buffer+ret, buffer_len - ret, REPORT_BLOCK_JSON,
+	if (json_buf_append(json_buffer, buffer_len, &ret, REPORT_BLOCK_JSON,
 			ntohl(rr->ssrc),
 			rtcp->type,
 			report_block_get_identifier(&rr->rb[0]),
@@ -145,7 +171,8 @@ int capt_parse_rtcp(char *packet, int len, char *json_buffer, int buffer_len) {
 			report_block_get_interarrival_jitter(&rr->rb[0]),
 			report_block_get_cum_packet_loss(&rr->rb[0]),
 			report_block_get_last_SR_time(&rr->rb[0]),
-			report_block_get_last_SR_delay(&rr->rb[0]));
+			report_block_get_last_SR_delay(&rr->rb[0])) < 0)
+          return -1;
       }
       break;
     }
@@ -164,8 +191,9 @@ int capt_parse_rtcp(char *packet, int len, char *json_buffer, int buffer_len) {
                                 ((uint32_t *)rtcp + ntohs(rtcp->length) + 1);
       rtcp_sdes_item_t *rsp, *rspn;
 
-      ret += snprintf(json_buffer+ret, buffer_len - ret, SDES_REPORT_BEGIN_JSON,
-          ntohl(sdes->csrc), sdes->header.rc);
+      if (json_buf_append(json_buffer, buffer_len, &ret, SDES_REPORT_BEGIN_JSON,
+          ntohl(sdes->csrc), sdes->header.rc) < 0)
+        return -1;
 
       rsp = &sdes->item[0];
       if (rsp >= end) break;
@@ -175,13 +203,15 @@ int capt_parse_rtcp(char *packet, int len, char *json_buffer, int buffer_len) {
           rsp = rspn;
           break;
         }
-        ret += snprintf(json_buffer+ret, buffer_len - ret, SDES_REPORT_INFO_JSON,
-            rsp->type, rsp->len, rsp->content);
+        if (json_buf_append(json_buffer, buffer_len, &ret, SDES_REPORT_INFO_JSON,
+            rsp->type, rsp->len, rsp->content) < 0)
+          return -1;
         items++;
       }
       /* cut , off */
       if (items) ret -= 1;
-      ret += snprintf(json_buffer+ret, buffer_len - ret, "],");
+      if (json_buf_append(json_buffer, buffer_len, &ret, "],") < 0)
+        return -1;
 
       break;
     }
