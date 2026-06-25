@@ -116,7 +116,8 @@ int list_size() {
         return count;
 }
 
-void* timer_loop() {
+void *timer_loop(void *arg) {
+	(void)arg;
 
 	INIT_LIST_HEAD(&g_queue_head);
 
