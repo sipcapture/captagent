@@ -24,15 +24,37 @@
 */
 #include <string.h>
 #include <stdio.h>
+#include <stdarg.h>
 #include <captagent/log.h>
 #include <arpa/inet.h>
 #include "parser_rtcpxr.h"
+
+static int json_buf_append(char *buf, int buf_len, int *pos, const char *fmt, ...)
+{
+    va_list ap;
+    int avail;
+    int n;
+
+    if (*pos < 0 || *pos >= buf_len)
+        return -1;
+
+    avail = buf_len - *pos;
+    va_start(ap, fmt);
+    n = vsnprintf(buf + *pos, (size_t)avail, fmt, ap);
+    va_end(ap);
+
+    if (n < 0 || n >= avail)
+        return -1;
+
+    *pos += n;
+    return 0;
+}
 
 
 // RTCP-XR check version
 int check_rtcpxr_version(char *packet, int size_payload)
 {
-  u_int8_t offset = 0, is_xr = 0;
+  unsigned int offset = 0, is_xr = 0;
   
   // check param
   if(!packet || size_payload == 0) return -1;
@@ -78,7 +100,7 @@ int check_rtcpxr_version(char *packet, int size_payload)
 // RTCP-XR Parser
 int parse_rtcpxr(char *packet, int size_payload, rc_info_t *rc_info, char json_buffer[], int buffer_len)
 {
-  u_int8_t offset = 0, is_xr = 0;
+  unsigned int offset = 0, is_xr = 0;
   int ret = 0;
   
   // check param
@@ -127,13 +149,14 @@ int parse_rtcpxr(char *packet, int size_payload, rc_info_t *rc_info, char json_b
       is_xr = 1;
 
       // create json buffer
-      ret += snprintf(json_buffer, buffer_len, "{");
+      if (json_buf_append(json_buffer, buffer_len, &ret, "{") < 0)
+        return -1;
       
       // cast the packet to rtcp-xr
       struct rtcp_xr_t *rtcp_xr = (struct rtcp_xr_t *) pp;
 
       // start to parse field and create json array
-      ret += snprintf(json_buffer + ret, buffer_len - ret, EXTENDED_REPORT_JSON,
+      if (json_buf_append(json_buffer, buffer_len, &ret, EXTENDED_REPORT_JSON,
 		      rtcp_header_get_id(&rtcp_xr->block),
 		      rtcp_header_get_loss(&rtcp_xr->block),
 		      rtcp_header_discard(&rtcp_xr->block),
@@ -156,13 +179,15 @@ int parse_rtcpxr(char *packet, int size_payload, rc_info_t *rc_info, char json_b
 		      rtcp_header_JB_rate(&rtcp_xr->block),
 		      rtcp_header_JB_nom(&rtcp_xr->block),
 		      rtcp_header_JB_max(&rtcp_xr->block),
-		      rtcp_header_JB_abs_max(&rtcp_xr->block));
+		      rtcp_header_JB_abs_max(&rtcp_xr->block)) < 0)
+        return -1;
+      if (json_buf_append(json_buffer, buffer_len, &ret, "}") < 0)
+        return -1;
       break;
     }
   }
-  ret += snprintf(json_buffer + ret - 1, buffer_len - ret + 1, "}");
 
   // update general statistic info **TODO** //
   
-  return strlen(json_buffer);
+  return ret;
 }

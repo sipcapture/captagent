@@ -195,7 +195,8 @@ static void print_all_devices()
 
 int get_basestat(char *module, char *buf, size_t len)
 {
-    int pos = 0, ret = 0;
+    size_t pos = 0;
+    int ret = 0;
     char stats[200];
 
     struct module *m = NULL;
@@ -204,13 +205,18 @@ int get_basestat(char *module, char *buf, size_t len)
 
         if (!strncmp(module, "all", 3)) {
             if (m->stats_f(stats, sizeof(stats))) {
-                pos += snprintf(buf + pos, len - pos, "%s\r\n", stats);
+                int n = snprintf(buf + pos, len - pos, "%s\r\n", stats);
+                if (n < 0 || (size_t)n >= len - pos)
+                    return 0;
+                pos += (size_t)n;
                 ret = 1;
             }
         } else {
             if (!strncmp(m->name, module, strlen(module))) {
                 if (m->stats_f(stats, sizeof(stats))) {
-                    ret = snprintf(buf, len, "%s\r\n", stats);
+                    int n = snprintf(buf, len, "%s\r\n", stats);
+                    if (n < 0 || (size_t)n >= len)
+                        return 0;
                     ret = 1;
                     break;
                 }
