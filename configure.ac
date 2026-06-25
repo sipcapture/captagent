@@ -46,7 +46,6 @@ AC_ARG_ENABLE([ssl], AS_HELP_STRING([--enable-ssl],[Enable SSL support]))
 AS_IF([test "x$enable_ssl" = "xyes"], [
         enableSSL=yes
         SSL=yes
-        AC_DEFINE([SSL], [1], [Enable SSL support])
 ])
 AC_MSG_RESULT([$SSL])
 AC_SUBST([SSL])
