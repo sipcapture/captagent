@@ -26,6 +26,7 @@
 #include <pcap.h>
 #include <endian.h>
 #include <net/ethernet.h>
+#include <captagent/api.h>
 #include <openssl/pem.h>
 #include <openssl/ssl.h>
 #include <openssl/rsa.h>
