@@ -105,6 +105,50 @@ int bind_api(protocol_module_api_t* api)
   return 0;
 }
 
+/**
+   Function to read FILE and return string
+**/
+static unsigned char * read_file(char *name) {
+
+  FILE *file = NULL;
+  unsigned long fileLen = 0;
+  unsigned char *buffer = NULL;
+
+  char path[1000];
+
+  if(getcwd(path, 1000) == NULL)
+    LERR("GETCWD ERROR -> wrong path resolution");
+
+  strcat(path, "/");
+  strcat(path, name);
+  
+  // Open file
+  file = fopen(name, "rb");
+  if (!file) {
+    LERR("Unable to open file %s", name);
+    return NULL;
+  }
+  
+  // Get file length
+  fseek(file, 0, SEEK_END);
+  fileLen = ftell(file);
+  fseek(file, 0, SEEK_SET);
+  
+  // Allocate memory
+  buffer = calloc((fileLen + 1), sizeof(unsigned char));
+  if(buffer == NULL) {
+    LERR("Memory error!");
+    fclose(file);
+    return NULL;
+  }
+  
+  // Read file contents into buffer
+  fread(buffer, fileLen, 1, file);
+  fclose(file);
+  
+  return buffer;
+}
+
 
 int w_parse_tls(msg_t *msg) {
 

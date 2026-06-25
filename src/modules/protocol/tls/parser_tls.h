@@ -26,6 +26,7 @@
 #include <stdlib.h>
 #include <endian.h>
 #include <net/ethernet.h>
+#include <captagent/api.h>
 #include "decryption.h"
 
 
@@ -50,7 +51,7 @@ enum {
   ALERT              = 21,
   HANDSHAKE          = 22,
   APPLICATION_DATA   = 23
-} Record_Type;
+};
 
 // Handshake Type values
 enum {
@@ -66,7 +67,7 @@ enum {
   CERTIFICATE_VERIFY  = 15,
   CLIENT_KEY_EXCHANGE = 16,
   FINISHED            = 20
-} Handshake_Type;
+};
 
 // Client Certificate types for Certificate Request
 enum {
@@ -77,7 +78,7 @@ enum {
   RSA_EPHEMERAL_DH_RESERVED = 5,
   DSS_EPHEMERAL_DH_RESERVED = 6,
   FORTEZZA_DMS_RESERVED     = 20
-} Client_Certificate_Type;
+};
 
 
 // Chipher Suite availlable for decription

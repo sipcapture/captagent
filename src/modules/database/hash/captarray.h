@@ -30,7 +30,7 @@ int add_timer(char *pid);
 int delete_timer(timer_queue_t *timer);
 int process_alarm_sig(int sig);
 int gather_data_run();
-void* timer_loop();
+void *timer_loop(void *arg);
 int list_size();
 
 #endif
