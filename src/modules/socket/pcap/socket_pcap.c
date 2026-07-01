@@ -1033,6 +1033,8 @@ bool websocket_header_detection(uint8_t *p_websock, uint32_t posLen, unsigned ch
        Mask 0xF to get the 4 less-significant bit (opcode check)
     **/
 
+    if (p_websock == NULL) return FALSE;
+
     if ((((*p_websock >> 7) & 1) == 1) && (((*p_websock & 0xF) == 0x01) || ((*p_websock & 0xF) == 0x02))) {
 
         /* TCP without payload */
@@ -1056,6 +1058,8 @@ bool websocket_header_detection(uint8_t *p_websock, uint32_t posLen, unsigned ch
 }
 
 bool websocket_pre_decode(uint8_t *p_websock, uint8_t *decoded,  msg_t *_msg) {
+
+    if (p_websock == NULL) return FALSE;
 
     LDEBUG("WEBSOCKET layer found!\n");
     int skip = 0, ws_len = 0, ret;
@@ -1790,6 +1794,11 @@ int w_tzsp_payload_extract(msg_t *_m)
     recv_buffer = _m->data;
     readsz = _m->len;
 
+    if (recv_buffer == NULL || readsz == 0) {
+        LERR("[SOCKET_PCAP] TZSP: NULL or empty data - discard");
+        return -1;
+    }
+
     char *end = recv_buffer + readsz;
     char *p = recv_buffer;
 
@@ -1858,6 +1867,11 @@ int w_tzsp_payload_extract(msg_t *_m)
 
 
 void proccess_packet(msg_t *_m, struct pcap_pkthdr *pkthdr, u_char *packet) {
+
+	if (packet == NULL || pkthdr == NULL) {
+		LERR("[SOCKET_PCAP] proccess_packet: NULL packet or header - discard");
+		return;
+	}
 
 	uint8_t hdr_offset = 0;
 	uint16_t ethaddr;
