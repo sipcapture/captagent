@@ -30,7 +30,7 @@ yum -y install https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarc
 yum -y update
 
 # gcc - make
-yum -y install gcc make automake libtool
+yum -y install gcc make autoconf automake libtool m4
 
 # flex
 yum -y install flex

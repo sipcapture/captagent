@@ -25,7 +25,7 @@ dnf -y install https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarc
 dnf -y update
 
 # gcc - make
-dnf -y install gcc make automake libtool
+dnf -y install gcc make autoconf automake libtool m4
 
 # flex
 dnf -y install flex

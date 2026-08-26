@@ -25,7 +25,7 @@ yum update
 # epel
 yum -y install epel-release
 # gcc make automake libtool
-yum -y install gcc make automake libtool
+yum -y install gcc make autoconf automake libtool m4
 # various
 yum -y install json-c-devel expat-devel libpcap-devel flex flex-devel bison libmcrypt-devel openssl-devel
 
