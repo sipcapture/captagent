@@ -5,7 +5,7 @@ set -euo pipefail
 #
 
 VERSION_MAJOR="6.4"
-VERSION_MINOR="3"
+VERSION_MINOR="4"
 PROJECT_NAME="captagent"
 OS="rocky"
 VERSION_OS="el8"
