@@ -337,6 +337,11 @@ int send_hepv3 (rc_info_t *rcinfo, unsigned char *data, unsigned int len, unsign
     hep_chunk_t tags_chunk;
     hep_chunk_uint16_t cval1;
     hep_chunk_uint16_t cval2;
+    int send_authkey = 1, send_correlation = 1, send_tags = 1, send_cval1 = 1, send_cval2 = 1;
+
+    /* Truncate payload to configured maximum before any size accounting. */
+    if (profile_transport[idx].max_payload_len > 0 && len > profile_transport[idx].max_payload_len)
+        len = profile_transport[idx].max_payload_len;
 
     hg = malloc(sizeof(struct hep_generic));
     memset(hg, 0, sizeof(struct hep_generic));
@@ -483,6 +488,44 @@ int send_hepv3 (rc_info_t *rcinfo, unsigned char *data, unsigned int len, unsign
               tlen += rcinfo->tags.len;
     }
 
+    /* If max-hep-size is set and tlen exceeds it, drop optional chunks in
+     * ascending priority order until we fit, then truncate payload last. */
+    if (profile_transport[idx].max_hep_size > 0 && tlen > profile_transport[idx].max_hep_size) {
+        /* 1. tags (lowest value) */
+        if (send_tags && rcinfo->tags.len > 0) {
+            tlen -= sizeof(hep_chunk_t) + rcinfo->tags.len;
+            send_tags = 0;
+        }
+        /* 2. cval1 / cval2 */
+        if (tlen > profile_transport[idx].max_hep_size && send_cval1 && rcinfo->cval1) {
+            tlen -= sizeof(hep_chunk_uint16_t);
+            send_cval1 = 0;
+        }
+        if (tlen > profile_transport[idx].max_hep_size && send_cval2 && rcinfo->cval2) {
+            tlen -= sizeof(hep_chunk_uint16_t);
+            send_cval2 = 0;
+        }
+        /* 3. correlation id */
+        if (tlen > profile_transport[idx].max_hep_size && send_correlation && rcinfo->correlation_id.s && rcinfo->correlation_id.len > 0) {
+            tlen -= sizeof(hep_chunk_t) + rcinfo->correlation_id.len;
+            send_correlation = 0;
+        }
+        /* 4. auth key */
+        if (tlen > profile_transport[idx].max_hep_size && send_authkey && profile_transport[idx].capt_password != NULL) {
+            tlen -= sizeof(hep_chunk_t) + strlen(profile_transport[idx].capt_password);
+            send_authkey = 0;
+        }
+        /* 5. truncate payload to whatever budget remains */
+        if (tlen > profile_transport[idx].max_hep_size) {
+            unsigned int overhead = tlen - len;
+            if (overhead < profile_transport[idx].max_hep_size) {
+                len = profile_transport[idx].max_hep_size - overhead;
+                tlen = profile_transport[idx].max_hep_size;
+            }
+        }
+        payload_chunk.length = htons(sizeof(payload_chunk) + len);
+    }
+
     /* total */
     hg->header.length = htons(tlen);
 
@@ -518,7 +561,7 @@ int send_hepv3 (rc_info_t *rcinfo, unsigned char *data, unsigned int len, unsign
 #endif
 
     /* AUTH KEY CHUNK */
-    if (profile_transport[idx].capt_password != NULL) {
+    if (send_authkey && profile_transport[idx].capt_password != NULL) {
 
         memcpy((void*) buffer+buflen, &authkey_chunk,  sizeof(struct hep_chunk));
         buflen += sizeof(struct hep_chunk);
@@ -529,7 +572,7 @@ int send_hepv3 (rc_info_t *rcinfo, unsigned char *data, unsigned int len, unsign
     }
 
     /* Correlation KEY CHUNK */
-    if (rcinfo->correlation_id.s && rcinfo->correlation_id.len > 0) {
+    if (send_correlation && rcinfo->correlation_id.s && rcinfo->correlation_id.len > 0) {
 
            memcpy((void*) buffer+buflen, &correlation_chunk,  sizeof(struct hep_chunk));
            buflen += sizeof(struct hep_chunk);
@@ -540,7 +583,7 @@ int send_hepv3 (rc_info_t *rcinfo, unsigned char *data, unsigned int len, unsign
     }
 
     /* Tags KEY CHUNK */
-    if (rcinfo->tags.len > 0) {
+    if (send_tags && rcinfo->tags.len > 0) {
 
            memcpy((void*) buffer+buflen, &tags_chunk,  sizeof(struct hep_chunk));
            buflen += sizeof(struct hep_chunk);
@@ -551,13 +594,13 @@ int send_hepv3 (rc_info_t *rcinfo, unsigned char *data, unsigned int len, unsign
     }
 
     /* CVAL1 CHUNK */
-    if (rcinfo->cval1) {
+    if (send_cval1 && rcinfo->cval1) {
            memcpy((void*) buffer+buflen, &cval1,  sizeof(hep_chunk_uint16_t));
            buflen += sizeof(hep_chunk_uint16_t);
     }
 
     /* CVAL2 CHUNK */
-    if (rcinfo->cval2) {
+    if (send_cval2 && rcinfo->cval2) {
            memcpy((void*) buffer+buflen, &cval2,  sizeof(hep_chunk_uint16_t));
            buflen += sizeof(hep_chunk_uint16_t);
     }
@@ -1320,6 +1363,8 @@ static int load_module(xml_node *config) {
                     else if (!strncmp(key, "capture-id", 11)) profile_transport[profile_size].capt_id = atoi(value);
                     else if (!strncmp(key, "payload-compression", 19) && !strncmp(value, "true", 5)) profile_transport[profile_size].compression = 1;
                     else if (!strncmp(key, "version", 7)) profile_transport[profile_size].version = atoi(value);
+                    else if (!strncmp(key, "max-payload-len", 15)) profile_transport[profile_size].max_payload_len = (unsigned int)atoi(value);
+                    else if (!strncmp(key, "max-hep-size", 12)) profile_transport[profile_size].max_hep_size = (unsigned int)atoi(value);
 
                 }
 

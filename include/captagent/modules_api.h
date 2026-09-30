@@ -214,6 +214,8 @@ typedef struct profile_transport {
     int action;
     struct profile_transport *next;
     unsigned int flag;
+    unsigned int max_payload_len;
+    unsigned int max_hep_size;
 } profile_transport_t;
 
 /* database profile */
