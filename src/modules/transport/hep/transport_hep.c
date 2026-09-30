@@ -830,18 +830,20 @@ void on_tcp_close(uv_handle_t* handle)
 
 void on_send_udp_request(uv_udp_send_t* req, int status)
 {
-        if (status == 0 && req) {
+        if (req) {
             free(req->data);
             req->data = NULL;
             free(req);
-            req = NULL;
         }
 }
 
 void on_send_tcp_request(uv_write_t* req, int status)
 {
+#if UV_VERSION_MAJOR != 0
+        uv_handle_t* stream_handle = (req != NULL) ? (uv_handle_t*)req->handle : NULL;
+#endif
 
-        if (status == 0 && req) {
+        if (req) {
                 free(req->data);
                 req->data = NULL;
                 free(req);
@@ -856,10 +858,9 @@ void on_send_tcp_request(uv_write_t* req, int status)
 
         if ((status != 0) && (hep_conn->conn_state == STATE_CONNECTED)) {
             LERR("tcp send failed! err=%d", status);
-            uv_close((uv_handle_t*)&hep_conn->tcp_handle, NULL);
-            if (uv_is_active((uv_handle_t*)(req->handle))) {
+            if (stream_handle != NULL && !uv_is_closing(stream_handle)) {
                 set_conn_state(hep_conn, STATE_CLOSING);
-                uv_close((uv_handle_t*)(req->handle), on_tcp_close);
+                uv_close(stream_handle, on_tcp_close);
             }
             else
                 set_conn_state(hep_conn, STATE_CLOSED);
@@ -900,7 +901,12 @@ int _handle_send_tcp_request(hep_connection_t *conn, unsigned char *message, siz
   write_req = malloc(sizeof(uv_write_t));
   write_req->data = message;
 
-  uv_write(write_req, conn->connect.handle, &buf, 1, on_send_tcp_request);
+  int r = uv_write(write_req, conn->connect.handle, &buf, 1, on_send_tcp_request);
+  if (r != 0) {
+      free(message);
+      free(write_req);
+      return r;
+  }
 
   return 0;
 }
@@ -927,7 +933,14 @@ int _handle_send_tcp_request(hep_connection_t *conn, unsigned char *message, siz
         result = _handle_send_udp_request(conn, request->message, request->len);
         break;
     case SEND_TCP_REQUEST:
-        result = _handle_send_tcp_request(conn, request->message, request->len);
+        if (conn->conn_state == STATE_CONNECTED && conn->connect.handle != NULL &&
+            !uv_is_closing((uv_handle_t *)conn->connect.handle)) {
+            result = _handle_send_tcp_request(conn, request->message, request->len);
+        } else {
+            free(request->message);
+            request->message = NULL;
+            result = -1;
+        }
         break;
     case QUIT_REQUEST:
         result = _handle_quit(conn);
@@ -1010,7 +1023,7 @@ void homer_free(hep_connection_t *conn)
 	free(conn->loop);
     conn->loop = NULL;
 	free(conn->thread);
-    conn->loop = NULL;
+    conn->thread = NULL;
 }
 
 int _handle_quit(hep_connection_t *conn)
@@ -1021,7 +1034,7 @@ int _handle_quit(hep_connection_t *conn)
 	  uv_close((uv_handle_t*)&conn->udp_handle, NULL);
    }
    else {
-      if (uv_is_active((uv_handle_t*)&conn->tcp_handle)) {
+      if (!uv_is_closing((uv_handle_t*)&conn->tcp_handle)) {
         set_conn_state(conn, STATE_CLOSING);
         uv_close((uv_handle_t*)&conn->tcp_handle, on_tcp_close);
       }
@@ -1149,7 +1162,8 @@ void on_tcp_connect(uv_connect_t* connection, int status)
         if (status == 0)
             set_conn_state(hep_conn, STATE_CONNECTED);
         else {
-            uv_close((uv_handle_t*)connection->handle, NULL);
+            if (!uv_is_closing((uv_handle_t*)connection->handle))
+                uv_close((uv_handle_t*)connection->handle, NULL);
             set_conn_state(hep_conn, STATE_ERROR);
         }
 
