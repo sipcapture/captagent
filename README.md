@@ -24,6 +24,42 @@ Captagent is a powerful, flexible, completely modular HEP packet capture and mir
 ### Get Started
 Setup & Configuration instructions are available on the Project [Wiki](https://github.com/sipcapture/captagent/wiki/Installation)
 
+### HEP Transport Configuration
+
+#### Payload Size Limiting (`transport_hep.xml`)
+
+Two optional per-profile parameters limit HEP3 packet size for receivers that
+cannot handle large packets (e.g. probes that do not reassemble TCP streams):
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `max-payload-len` | integer (bytes) | 0 (disabled) | Hard cap on the captured payload chunk (HEP3 chunk 0x000f). Applied before HEP3 assembly. Any payload exceeding this length is silently truncated. |
+| `max-hep-size` | integer (bytes) | 0 (disabled) | Cap on the total HEP3 packet size. When the assembled packet exceeds this limit, optional chunks are dropped in ascending priority order, then the payload is truncated to fit the remaining budget. |
+
+**Drop order for `max-hep-size`** (lowest priority dropped first):
+1. tags (chunk 0x0026)
+2. cval1 / cval2 (chunks 0x0020 / 0x0021)
+3. correlation-id (chunk 0x0011)
+4. auth key (chunk 0x000e)
+5. payload (chunk 0x000f) — truncated last
+
+**Recommended settings for 1500-byte MTU environments:**
+
+```xml
+<settings>
+  <param name="capture-host" value="192.0.2.1"/>
+  <param name="capture-port" value="9060"/>
+  <param name="capture-proto" value="tcp"/>
+  <param name="capture-id" value="2001"/>
+  <param name="max-payload-len" value="1200"/>
+</settings>
+```
+
+`max-payload-len=1200` keeps total HEP3 packet size under 1460 bytes
+(mandatory fixed-field overhead is ~240 bytes for IPv4 profiles), preventing
+TCP segmentation on standard Ethernet MTU paths and ensuring receivers that
+parse one `recv()` at a time always get a complete message.
+
 ### Build Dependencies (DEB/RPM)
 
 For local builds, install the required development tools and libraries first.
