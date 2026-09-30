@@ -490,6 +490,8 @@ void callback_proto(unsigned char *arg, struct pcap_pkthdr *pkthdr, unsigned cha
         sll = (struct sll_header *)(packet + hdr_preset);
     } else if (type_datalink == DLT_LINUX_SLL2) {
         sll2 = (struct sll2_header *)(packet + hdr_preset);
+    } else if (type_datalink == DLT_NULL || type_datalink == DLT_LOOP) {
+        /* BSD loopback: 4-byte AF family in host byte order; no eth header */
     } else {
         eth = (struct ether_header *)(packet + hdr_preset);
     }
@@ -517,6 +519,17 @@ void callback_proto(unsigned char *arg, struct pcap_pkthdr *pkthdr, unsigned cha
         if(vlan == 0) {
             // IP TYPE = 0x86dd (IPv6) or 0x0800 (IPv4)
             type_ip = ntohs(sll2->sll2_protocol);
+        }
+    } else if (type_datalink == DLT_NULL || type_datalink == DLT_LOOP) {
+        /* Map BSD AF family (host byte order) to EtherType for IP layer parse */
+        uint32_t af = 0;
+        memcpy(&af, packet, sizeof(af));
+        if (af == AF_INET) {
+            type_ip = ETHERTYPE_IP;
+#if USE_IPv6
+        } else if (af == AF_INET6) {
+            type_ip = ETHERTYPE_IPV6;
+#endif
         }
     }
 
@@ -552,7 +565,7 @@ void callback_proto(unsigned char *arg, struct pcap_pkthdr *pkthdr, unsigned cha
 #else
     if (ip4_pkt == NULL) {
 #endif
-        LERR("[SOCKET_PCAP] unsupported or invalid IP packet - discard it (caplen=%u, link_offset=%u, hdr_offset=%u, ipip_offset=%u, type_datalink=%u, type_ip=%u, gre=%u)",
+        LDEBUG("[SOCKET_PCAP] unsupported or invalid IP packet - discard it (caplen=%u, link_offset=%u, hdr_offset=%u, ipip_offset=%u, type_datalink=%u, type_ip=%u, gre=%u)",
              (unsigned int)pkthdr->caplen, link_offset, hdr_offset, ipip_offset, type_datalink, type_ip, is_only_gre);
         return;
     }
