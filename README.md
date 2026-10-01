@@ -28,37 +28,43 @@ Setup & Configuration instructions are available on the Project [Wiki](https://g
 
 #### Payload Size Limiting (`transport_hep.xml`)
 
-Two optional per-profile parameters limit HEP3 packet size for receivers that
-cannot handle large packets (e.g. probes that do not reassemble TCP streams):
+One optional per-profile parameter limits HEP3 packet size:
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `max-payload-len` | integer (bytes) | 0 (disabled) | Hard cap on the captured payload chunk (HEP3 chunk 0x000f). Applied before HEP3 assembly. Any payload exceeding this length is silently truncated. |
-| `max-hep-size` | integer (bytes) | 0 (disabled) | Cap on the total HEP3 packet size. When the assembled packet exceeds this limit, optional chunks are dropped in ascending priority order, then the payload is truncated to fit the remaining budget. |
+| `max-hep-size` | integer (bytes) | 0 (disabled) | Cap on the total HEP3 packet size. When the assembled packet would exceed this limit, optional chunks are dropped in priority order, then the SIP/RTP payload is truncated as a last resort. Auth key and correlation-id are never dropped. |
 
-**Drop order for `max-hep-size`** (lowest priority dropped first):
+**Drop order** (lowest priority first):
 1. tags (chunk 0x0026)
 2. cval1 / cval2 (chunks 0x0020 / 0x0021)
-3. correlation-id (chunk 0x0011)
-4. auth key (chunk 0x000e)
-5. payload (chunk 0x000f) — truncated last
+3. payload (chunk 0x000f) — truncated, never fully removed
 
-**Recommended settings for 1500-byte MTU environments:**
+Auth key (0x000e) and correlation-id (0x0011) are always preserved: dropping
+auth causes collectors to reject the packet; dropping correlation-id breaks
+call stitching.
+
+A `LWARN` is logged whenever any chunk is dropped or the payload is truncated.
+
+**Use case — UDP with no IP fragmentation:**
+
+`max-hep-size` is meaningful for **UDP** transport, where each `sendto()` maps
+to one datagram. Setting it below the path MTU avoids IP fragmentation.
+Mandatory IPv4 HEP3 overhead is ~99 bytes (`hep_generic` 73 B + two IPv4
+address chunks 20 B + payload chunk header 6 B); IPv6 overhead is ~123 bytes.
+
+> **Note:** This parameter has no effect on TCP fragmentation. TCP is a byte
+> stream — the kernel may split any write below MSS or coalesce multiple
+> writes into one `recv()` regardless of HEP packet size.
 
 ```xml
 <settings>
   <param name="capture-host" value="192.0.2.1"/>
   <param name="capture-port" value="9060"/>
-  <param name="capture-proto" value="tcp"/>
+  <param name="capture-proto" value="udp"/>
   <param name="capture-id" value="2001"/>
-  <param name="max-payload-len" value="1200"/>
+  <param name="max-hep-size" value="1400"/>
 </settings>
 ```
-
-`max-payload-len=1200` keeps total HEP3 packet size under 1460 bytes
-(mandatory fixed-field overhead is ~240 bytes for IPv4 profiles), preventing
-TCP segmentation on standard Ethernet MTU paths and ensuring receivers that
-parse one `recv()` at a time always get a complete message.
 
 ### Build Dependencies (DEB/RPM)
 

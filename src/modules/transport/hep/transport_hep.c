@@ -254,6 +254,25 @@ int send_hep(msg_t *msg, int freeParam) {
         int status = 0;
         unsigned long dlen;
 
+        /* Truncate the uncompressed payload BEFORE compression so zlib never
+         * receives a pre-truncated compressed stream.  Use the conservative
+         * mandatory IPv4 HEP3 overhead (99 bytes); optional chunks may push
+         * the final packet slightly higher but payload truncation is the last
+         * resort and auth/correlation are never dropped. */
+        if (profile_transport[idx].max_hep_size > 0 &&
+            profile_transport[idx].compression && profile_transport[idx].version == 3) {
+            unsigned int ip_overhead = (rcinfo->ip_family == AF_INET6) ? 123 : 99;
+            if (msg->len + ip_overhead > profile_transport[idx].max_hep_size) {
+                unsigned int max_pl = profile_transport[idx].max_hep_size > ip_overhead
+                                      ? profile_transport[idx].max_hep_size - ip_overhead : 0;
+                if (msg->len > max_pl) {
+                    LWARNING("HEP payload truncated before compression: %u -> %u bytes (max-hep-size=%u)",
+                             msg->len, max_pl, profile_transport[idx].max_hep_size);
+                    msg->len = max_pl;
+                }
+            }
+        }
+
         if (profile_transport[idx].compression && profile_transport[idx].version == 3) {
                 //dlen = len/1000+len*len+13;
 
@@ -338,10 +357,6 @@ int send_hepv3 (rc_info_t *rcinfo, unsigned char *data, unsigned int len, unsign
     hep_chunk_uint16_t cval1;
     hep_chunk_uint16_t cval2;
     int send_authkey = 1, send_correlation = 1, send_tags = 1, send_cval1 = 1, send_cval2 = 1;
-
-    /* Truncate payload to configured maximum before any size accounting. */
-    if (profile_transport[idx].max_payload_len > 0 && len > profile_transport[idx].max_payload_len)
-        len = profile_transport[idx].max_payload_len;
 
     hg = malloc(sizeof(struct hep_generic));
     memset(hg, 0, sizeof(struct hep_generic));
@@ -488,39 +503,41 @@ int send_hepv3 (rc_info_t *rcinfo, unsigned char *data, unsigned int len, unsign
               tlen += rcinfo->tags.len;
     }
 
-    /* If max-hep-size is set and tlen exceeds it, drop optional chunks in
-     * ascending priority order until we fit, then truncate payload last. */
+    /* If max-hep-size is set and tlen exceeds it, shed optional chunks in
+     * priority order, then truncate the payload as a last resort.
+     * Auth key and correlation id are never dropped: dropping auth causes
+     * collectors to reject the packet; dropping correlation breaks call
+     * stitching downstream. */
     if (profile_transport[idx].max_hep_size > 0 && tlen > profile_transport[idx].max_hep_size) {
-        /* 1. tags (lowest value) */
+        /* 1. tags */
         if (send_tags && rcinfo->tags.len > 0) {
             tlen -= sizeof(hep_chunk_t) + rcinfo->tags.len;
             send_tags = 0;
+            LWARNING("HEP tags chunk dropped to fit max-hep-size=%u", profile_transport[idx].max_hep_size);
         }
         /* 2. cval1 / cval2 */
         if (tlen > profile_transport[idx].max_hep_size && send_cval1 && rcinfo->cval1) {
             tlen -= sizeof(hep_chunk_uint16_t);
             send_cval1 = 0;
+            LWARNING("HEP cval1 chunk dropped to fit max-hep-size=%u", profile_transport[idx].max_hep_size);
         }
         if (tlen > profile_transport[idx].max_hep_size && send_cval2 && rcinfo->cval2) {
             tlen -= sizeof(hep_chunk_uint16_t);
             send_cval2 = 0;
+            LWARNING("HEP cval2 chunk dropped to fit max-hep-size=%u", profile_transport[idx].max_hep_size);
         }
-        /* 3. correlation id */
-        if (tlen > profile_transport[idx].max_hep_size && send_correlation && rcinfo->correlation_id.s && rcinfo->correlation_id.len > 0) {
-            tlen -= sizeof(hep_chunk_t) + rcinfo->correlation_id.len;
-            send_correlation = 0;
-        }
-        /* 4. auth key */
-        if (tlen > profile_transport[idx].max_hep_size && send_authkey && profile_transport[idx].capt_password != NULL) {
-            tlen -= sizeof(hep_chunk_t) + strlen(profile_transport[idx].capt_password);
-            send_authkey = 0;
-        }
-        /* 5. truncate payload to whatever budget remains */
+        /* 3. truncate payload — auth and correlation are kept */
         if (tlen > profile_transport[idx].max_hep_size) {
             unsigned int overhead = tlen - len;
             if (overhead < profile_transport[idx].max_hep_size) {
-                len = profile_transport[idx].max_hep_size - overhead;
+                unsigned int new_len = profile_transport[idx].max_hep_size - overhead;
+                LWARNING("HEP payload truncated in send_hepv3: %u -> %u bytes (max-hep-size=%u)",
+                         len, new_len, profile_transport[idx].max_hep_size);
+                len = new_len;
                 tlen = profile_transport[idx].max_hep_size;
+            } else {
+                LWARNING("HEP mandatory overhead (%u) >= max-hep-size=%u, sending oversized packet",
+                         overhead, profile_transport[idx].max_hep_size);
             }
         }
         payload_chunk.length = htons(sizeof(payload_chunk) + len);
@@ -1377,8 +1394,10 @@ static int load_module(xml_node *config) {
                     else if (!strncmp(key, "capture-id", 11)) profile_transport[profile_size].capt_id = atoi(value);
                     else if (!strncmp(key, "payload-compression", 19) && !strncmp(value, "true", 5)) profile_transport[profile_size].compression = 1;
                     else if (!strncmp(key, "version", 7)) profile_transport[profile_size].version = atoi(value);
-                    else if (!strncmp(key, "max-payload-len", 15)) profile_transport[profile_size].max_payload_len = (unsigned int)atoi(value);
-                    else if (!strncmp(key, "max-hep-size", 12)) profile_transport[profile_size].max_hep_size = (unsigned int)atoi(value);
+                    else if (!strncmp(key, "max-hep-size", 12)) {
+                        char *endp; long v = strtol(value, &endp, 10);
+                        profile_transport[profile_size].max_hep_size = (v > 0 && *endp == '\0') ? (unsigned int)v : 0;
+                    }
 
                 }
 
