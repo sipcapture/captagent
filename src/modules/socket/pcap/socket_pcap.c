@@ -1178,9 +1178,10 @@ int init_socket(unsigned int loc_idx) {
 
 		len += snprintf(filter_expr+len, sizeof(filter_expr)-len, "(%s)", profile_socket[loc_idx].filter);
 
-		if(user_data[loc_idx].ipv4fragments || user_data[loc_idx].ipv6fragments) {
+		if(user_data[loc_idx].ipv4fragments || user_data[loc_idx].ipv6fragments ||
+		   (profile_socket[loc_idx].reasm & REASM_UDP)) {
 
-			if (user_data[loc_idx].ipv4fragments) {
+			if (user_data[loc_idx].ipv4fragments || (profile_socket[loc_idx].reasm & REASM_UDP)) {
 				LDEBUG("Reassembling of IPv4 packets is enabled, adding '%s' to filter", BPF_DEFRAGMENTION_FILTER_IPV4);
 				len += snprintf(filter_expr+len, sizeof(filter_expr)-len, " or %s", BPF_DEFRAGMENTION_FILTER_IPV4);
 			}
