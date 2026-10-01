@@ -56,3 +56,27 @@ jobs:
         with:
           name: ${{ matrix.artifact_name }}
           path: "${{ github.workspace }}/${{ matrix.artifact_pattern }}"
+
+  build-macos:
+    name: Build macOS package
+    runs-on: macos-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          path: captagent_build
+
+      - name: Build package
+        env:
+          TMP_DIR: ${{ github.workspace }}
+        run: |
+          chmod +x "${{ github.workspace }}/captagent_build/pkg/macos/builder-macos/builder.sh"
+          "${{ github.workspace }}/captagent_build/pkg/macos/builder-macos/builder.sh"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-package
+          path: "${{ github.workspace }}/*.pkg"

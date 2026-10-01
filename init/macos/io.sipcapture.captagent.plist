@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>io.sipcapture.captagent</string>
+
+  <key>ProgramArguments</key>
+  <array>
+    <string>/usr/local/captagent/sbin/captagent</string>
+    <string>-f</string>
+    <string>/usr/local/captagent/etc/captagent/captagent.xml</string>
+    <string>-d</string>
+  </array>
+
+  <key>RunAtLoad</key>
+  <true/>
+
+  <key>KeepAlive</key>
+  <true/>
+
+  <key>StandardOutPath</key>
+  <string>/var/log/captagent.log</string>
+
+  <key>StandardErrorPath</key>
+  <string>/var/log/captagent.log</string>
+</dict>
+</plist>
